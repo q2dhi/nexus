@@ -1,0 +1,18 @@
+# Gradle & Android Build Outputs
+.gradle/
+build/
+*/build/
+*.iml
+.idea/
+local.properties
+.cxx/
+captures/
+
+# Python & Node
+__pycache__/
+*.pyc
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

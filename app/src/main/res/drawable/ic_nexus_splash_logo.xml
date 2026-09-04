@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+    <!-- Royal Blue Square Emblem Container (#1E40AF) with zero curve -->
+    <path
+        android:fillColor="#1E40AF"
+        android:pathData="M30,30h100v100h-100z" />
+
+    <!-- Approved Crisp White Geometric Stacked Layers Emblem -->
+    <group
+        android:scaleX="3.2"
+        android:scaleY="3.2"
+        android:translateX="41.6"
+        android:translateY="41.6">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,2L2,7l10,5 10,-5 -10,-5zM2,17l10,5 10,-5M2,12l10,5 10,-5" />
+    </group>
+</vector>

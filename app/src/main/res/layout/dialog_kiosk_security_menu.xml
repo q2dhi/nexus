@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/nexus_bg_light"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Top Accent / Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="خيارات المشرف والأمان"
+            android:textColor="@color/nexus_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NEXUS"
+            android:textColor="@color/nexus_royal_blue"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="يرجى تحديد الإجراء المطلوب:"
+        android:textColor="@color/nexus_text_secondary"
+        android:textSize="13sp"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Action 1: Admin PIN -->
+    <LinearLayout
+        android:id="@+id/btnSecurityAdminPin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/nexus_royal_blue"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="رمز الأدمن (Admin PIN)"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="فتح نافذة إدخال رمز الأدمن للوصول إلى لوحة التحكم"
+            android:textColor="#E0E7FF"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Action 2: Reboot Device -->
+    <LinearLayout
+        android:id="@+id/btnSecurityReboot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/nexus_surface_light"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="إعادة تشغيل الجهاز (Reboot Device)"
+            android:textColor="@color/nexus_red"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="إعادة تشغيل النظام فوراً للصيانة الدورية"
+            android:textColor="@color/nexus_text_secondary"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Cancel Button -->
+    <Button
+        android:id="@+id/btnSecurityCancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/nexus_surface_subtle"
+        android:text="إلغاء (Cancel)"
+        android:textAllCaps="false"
+        android:textColor="@color/nexus_text_secondary"
+        android:textSize="14sp" />
+
+</LinearLayout>

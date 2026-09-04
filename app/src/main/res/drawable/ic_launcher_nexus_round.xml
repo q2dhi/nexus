@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Circular Royal Blue Enterprise Background (#1E40AF) -->
+    <path
+        android:fillColor="#1E40AF"
+        android:pathData="M54,54m-52,0a52,52 0 1,0 104,0a52,52 0 1,0 -104,0" />
+
+    <!-- Approved Crisp White Geometric Stacked Layers Emblem -->
+    <group
+        android:scaleX="2.5"
+        android:scaleY="2.5"
+        android:translateX="24"
+        android:translateY="24">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,2L2,7l10,5 10,-5 -10,-5zM2,17l10,5 10,-5M2,12l10,5 10,-5" />
+    </group>
+</vector>

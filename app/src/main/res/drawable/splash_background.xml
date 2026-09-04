@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pure White Background (#FFFFFF) -->
+    <item android:drawable="@color/nexus_bg_light" />
+
+    <!-- Centered Official Nexus Splash Logo -->
+    <item
+        android:width="140dp"
+        android:height="140dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_nexus_splash_logo" />
+</layer-list>

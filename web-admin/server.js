@@ -1,0 +1,151 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// In-Memory Fleet Device Registry & Command Queues
+const devices = new Map();
+const pendingCommands = new Map(); // deviceId -> Array<Command>
+const auditLogs = [];
+
+// Helper to log audit events
+function addAuditLog(action, target, details) {
+    const entry = {
+        timestamp: new Date().toLocaleTimeString(),
+        action,
+        target,
+        details
+    };
+    auditLogs.unshift(entry);
+    if (auditLogs.length > 80) auditLogs.pop();
+}
+
+// --------------------------------------------------------------------------
+// AGENT API: Device Heartbeat & Command Retrieval
+// --------------------------------------------------------------------------
+app.post('/api/devices/heartbeat', (req, res) => {
+    const data = req.body;
+    if (!data || !data.id) {
+        return res.status(400).json({ error: 'Missing device id' });
+    }
+
+    const deviceId = data.id;
+    devices.set(deviceId, {
+        ...data,
+        lastSeen: Date.now()
+    });
+
+    // Check if there are pending commands for this device
+    const queue = pendingCommands.get(deviceId) || [];
+    const commandsToExecute = [...queue];
+    pendingCommands.set(deviceId, []); // Flush queue after delivering
+
+    if (commandsToExecute.length > 0) {
+        addAuditLog('COMMANDS_DELIVERED', deviceId, `Delivered ${commandsToExecute.length} commands to agent`);
+    }
+
+    res.json({
+        status: 'OK',
+        commands: commandsToExecute
+    });
+});
+
+// --------------------------------------------------------------------------
+// ADMIN API: Fleet Devices Query
+// --------------------------------------------------------------------------
+app.get('/api/devices', (req, res) => {
+    const now = Date.now();
+    const deviceList = Array.from(devices.values()).map(dev => ({
+        ...dev,
+        isOnline: (now - dev.lastSeen) < 25000 // Considered online if seen in last 25s
+    }));
+    res.json(deviceList);
+});
+
+// --------------------------------------------------------------------------
+// ADMIN API: Push Remote Command to Device
+// --------------------------------------------------------------------------
+app.post('/api/commands', (req, res) => {
+    const { deviceId, command, payload } = req.body;
+    if (!deviceId || !command) {
+        return res.status(400).json({ error: 'Missing deviceId or command' });
+    }
+
+    const cmdObject = {
+        command,
+        ...(payload || {}),
+        timestamp: Date.now()
+    };
+
+    if (deviceId === 'ALL') {
+        devices.forEach((_, id) => {
+            const queue = pendingCommands.get(id) || [];
+            queue.push(cmdObject);
+            pendingCommands.set(id, queue);
+        });
+        addAuditLog('BROADCAST_COMMAND', 'ALL_DEVICES', `Dispatched: ${command}`);
+    } else {
+        const queue = pendingCommands.get(deviceId) || [];
+        queue.push(cmdObject);
+        pendingCommands.set(deviceId, queue);
+        addAuditLog('DISPATCH_COMMAND', deviceId, `Dispatched: ${command}`);
+    }
+
+    res.json({ success: true, message: `Command '${command}' queued successfully.` });
+});
+
+// --------------------------------------------------------------------------
+// ADMIN API: Deploy OTA App Update
+// --------------------------------------------------------------------------
+app.post('/api/apps/deploy', (req, res) => {
+    const { deviceId, apkUrl, packageName } = req.body;
+    if (!apkUrl) {
+        return res.status(400).json({ error: 'APK download URL required' });
+    }
+
+    const installCommand = {
+        command: 'INSTALL_APK_FROM_URL',
+        url: apkUrl,
+        package_name: packageName || 'ota_update_app',
+        timestamp: Date.now()
+    };
+
+    if (deviceId === 'ALL') {
+        devices.forEach((_, id) => {
+            const queue = pendingCommands.get(id) || [];
+            queue.push(installCommand);
+            pendingCommands.set(id, queue);
+        });
+        addAuditLog('OTA_DEPLOY_BROADCAST', 'ALL_DEVICES', `Deployed APK: ${apkUrl}`);
+    } else {
+        const queue = pendingCommands.get(deviceId) || [];
+        queue.push(installCommand);
+        pendingCommands.set(deviceId, queue);
+        addAuditLog('OTA_DEPLOY', deviceId, `Deployed APK: ${apkUrl}`);
+    }
+
+    res.json({ success: true, message: 'OTA silent installation command dispatched.' });
+});
+
+// --------------------------------------------------------------------------
+// ADMIN API: Audit Logs Query
+// --------------------------------------------------------------------------
+app.get('/api/logs', (req, res) => {
+    res.json(auditLogs);
+});
+
+// Start Server
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`====================================================`);
+    console.log(` Nexus MDM Web Admin Console is running!`);
+    console.log(` Local:   http://localhost:${PORT}`);
+    console.log(` Network: http://<YOUR_LOCAL_IP>:${PORT}`);
+    console.log(`====================================================`);
+});

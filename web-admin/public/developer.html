@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus MDM - بوابة المطور المركزية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="developer.css">
+</head>
+<body>
+
+    <!-- Developer Authentication Overlay -->
+    <div id="devLoginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="brand-icon-mark" style="width:44px; height:44px; margin:0 auto 12px auto; display:flex; align-items:center; justify-content:center; background:#1E40AF; color:#FFFFFF;">
+                    <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:#FFFFFF;">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="brand-badge-dev">SUPER ADMIN</div>
+                <h2 dir="ltr">Nexus<span style="color:#1E40AF;">.</span> Developer</h2>
+                <p>بوابة المطور المركزية لإدارة التراخيص واشتراكات الشركات</p>
+            </div>
+            <form id="devLoginForm" onsubmit="handleDevLogin(event)">
+                <div class="form-group">
+                    <label for="devPinInput">رمز دخول المطور الرئيسي</label>
+                    <input type="password" id="devPinInput" class="form-input text-center" placeholder="أدخل رمز المطور (الافتراضي: nexus2026)" required autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="btnDevLogin">
+                    <span>تسجيل الدخول</span>
+                </button>
+                <div id="loginErrorMsg" class="login-error" style="display:none;"></div>
+            </form>
+            <div class="login-footer">
+                <small>نظام Nexus DPC لإدارة الأجهزة الذكية • الإصدار المطور 2.6</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Developer Command Center Container -->
+    <div id="devAppContainer" class="dev-container" style="display:none;">
+        
+        <!-- Header -->
+        <header class="dev-header">
+            <div class="brand-area">
+                <div class="brand-logo" style="display:flex; align-items:center; gap:12px;">
+                    <div class="brand-icon-mark" style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:#1E40AF; color:#FFFFFF; flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#FFFFFF;">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div class="brand-title">
+                        <h1 dir="ltr" style="font-weight:800; font-size:20px; color:#000000; letter-spacing:-0.03em; margin:0;">Nexus<span style="color:#1E40AF;">.</span> <span style="font-size:15px; color:#1E40AF; font-weight:700;">Developer</span></h1>
+                        <span class="sub" style="font-size:12px; color:#64748B;">مركز تحكم وإدارة التراخيص المركزية</span>
+                    </div>
+                </div>
+                <span class="role-chip">DEVELOPER CONSOLE</span>
+            </div>
+
+            <div class="dev-stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">الشركات المسجلة</span>
+                    <span class="stat-value" id="kpiTotalTenants">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">الاشتراكات النشطة</span>
+                    <span class="stat-value text-royal" id="kpiActiveSubs">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">إجمالي الأجهزة</span>
+                    <span class="stat-value" id="kpiTotalDevices">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">الأجهزة المتصلة الآن</span>
+                    <span class="stat-value text-emerald" id="kpiOnlineDevices">0</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn btn-outline-primary btn-sm" onclick="openCompanyPortal('NEXUS-DEFAULT')">
+                    <span>فتح لوحة الشركات</span>
+                </button>
+                <button class="btn btn-danger-soft btn-sm" onclick="handleDevLogout()">
+                    <span>خروج</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="dev-nav">
+            <button class="nav-tab active" data-tab="tenants" onclick="switchDevTab('tenants', this)">
+                <span>إدارة الشركات والاشتراكات</span>
+            </button>
+            <button class="nav-tab" data-tab="devices" onclick="switchDevTab('devices', this)">
+                <span>مراقبة كافة أجهزة الأسطول</span>
+            </button>
+            <button class="nav-tab" data-tab="ota" onclick="switchDevTab('ota', this)">
+                <span>تحديثات النظام عن بُعد (OTA)</span>
+            </button>
+            <button class="nav-tab" data-tab="settings" onclick="switchDevTab('settings', this)">
+                <span>إعدادات المطور وبيانات الدعم</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: TENANTS & SUBSCRIPTIONS -->
+        <main class="dev-main">
+            <section id="devTab-tenants" class="dev-pane active">
+                <div class="pane-header">
+                    <div>
+                        <h2>الشركات المشتركة والتراخيص</h2>
+                        <p>إدارة وتفعيل تراخيص الشركات المشتركة وتمديد الصلاحيات</p>
+                    </div>
+                    <div class="pane-actions">
+                        <button class="btn btn-primary" onclick="openAddTenantModal()">
+                            <span>إضافة شركة جديدة</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="fetchTenantsList()">
+                            <span>تحديث البيانات</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tenants Table -->
+                <div class="table-container">
+                    <table class="dev-table">
+                        <thead>
+                            <tr>
+                                <th>كود واسم الشركة</th>
+                                <th>المسؤول والتواصل</th>
+                                <th>حالة الاشتراك</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>الأجهزة المصرح بها</th>
+                                <th>الويبات الفرعية (الفروع)</th>
+                                <th>إجراءات الإدارة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tenantsTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">جاري تحميل بيانات الشركات...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 2: GLOBAL FLEET -->
+            <section id="devTab-devices" class="dev-pane">
+                <div class="pane-header">
+                    <div>
+                        <h2>كافة أجهزة الأسطول المركزية</h2>
+                        <p>مراقبة جميع أجهزة الشركات المشتركة مع إمكانية تعديل اسم أي جهاز فورياً</p>
+                    </div>
+                    <div class="pane-actions">
+                        <select id="devFilterCompanySelect" class="form-input" onchange="filterDevDevices()" style="min-width:220px;">
+                            <option value="ALL">جميع الشركات المشتركة</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="fetchDevDevices()">
+                            <span>تحديث الأجهزة</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="dev-table">
+                        <thead>
+                            <tr>
+                                <th>معرّف الجهاز</th>
+                                <th>اسم / وسم الجهاز</th>
+                                <th>الشركة التابعة</th>
+                                <th>الموديل والنظام</th>
+                                <th>البطارية</th>
+                                <th>الحالة</th>
+                                <th>آخر اتصال</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devDevicesTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">جاري تحميل الأجهزة...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: OTA APPLICATION UPDATES -->
+            <section id="devTab-ota" class="dev-pane">
+                <div class="pane-header">
+                    <div>
+                        <h2>تحديثات النظام وتطبيقات الكشك عن بُعد (OTA Updates)</h2>
+                        <p>بث وتثبيت التحديثات البرمجية صامتاً على أجهزة الكشك بالكامل دون تدخل يدوي أو فك وضع الكشك</p>
+                    </div>
+                    <div class="pane-actions">
+                        <button type="button" class="btn btn-secondary" onclick="fetchOtaHistory()">
+                            <span>تحديث السجل</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Alert Banner -->
+                <div class="mb-4" style="background:#EFF6FF; border:1px solid #BFDBFE; border-right:4px solid #1E40AF; padding:14px 18px; border-radius:var(--radius-md); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+                    <div>
+                        <strong style="color:#1E40AF; font-size:14px; display:block; margin-bottom:4px;">ميزة التثبيت والتحديث الصامت عبر صلاحية مالك الجهاز (Device Owner)</strong>
+                        <span style="font-size:12.5px; color:#1E3A8A; line-height:1.5;">تقوم أجهزة الكشك باستلام الأمر وتحميل ملف الـ APK وتثبيته في الخلفية عبر محرك <code>PackageInstaller</code> الصامت وإعادة تشغيل الكشك بالإصدار الجديد فوراً.</span>
+                    </div>
+                    <button type="button" class="btn btn-xs btn-outline-primary" style="white-space:nowrap;" onclick="useServerBuiltInApk()">
+                        استخدام رابط APK السيرفر
+                    </button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:20px; margin-bottom:24px;">
+                    <!-- LEFT COLUMN: DEPLOYMENT FORM -->
+                    <div class="card p-4">
+                        <h3 class="card-title mb-3" style="font-size:15px; font-weight:700; color:#0F172A; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+                            إرسال وبث تحديث صامت جديد
+                        </h3>
+
+                        <form onsubmit="handleDevOtaSubmit(event)">
+                            <div class="form-group mb-3">
+                                <label for="otaTargetSelect">نطاق الأجهزة المستهدفة بالتحديث *</label>
+                                <select id="otaTargetSelect" class="form-input">
+                                    <option value="ALL">جميع الأجهزة في كافة الشركات المشتركة (بث عام شامل)</option>
+                                </select>
+                                <small class="text-muted">يمكنك بث التحديث لجميع الأجهزة دفعة واحدة، أو حصر التحديث بشركة معينة أو جهاز محدد.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="otaPackageName">اسم الحزمة البرمجية (Package Name) *</label>
+                                <input type="text" id="otaPackageName" class="form-input" dir="ltr" value="com.nexus.mdm.agent" required>
+                                <div class="quick-packages mt-2" style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-xs btn-outline" onclick="setOtaPackage('com.nexus.mdm.agent')">Nexus Kiosk Agent</button>
+                                    <button type="button" class="btn btn-xs btn-outline" onclick="setOtaPackage('com.nexus.pos.app')">تطبيق POS</button>
+                                </div>
+                            </div>
+
+                            <!-- APK Source Method -->
+                            <div class="form-group mb-3">
+                                <label>مصدر ملف الـ APK الجديد *</label>
+                                <div style="display:flex; gap:16px; margin-bottom:10px;">
+                                    <label class="radio-label" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                                        <input type="radio" name="otaSourceMode" id="otaModeUrl" value="url" checked onchange="toggleOtaSourceMode('url')">
+                                        <span>رابط مباشر (URL)</span>
+                                    </label>
+                                    <label class="radio-label" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                                        <input type="radio" name="otaSourceMode" id="otaModeFile" value="file" onchange="toggleOtaSourceMode('file')">
+                                        <span>رفع ملف APK من الكمبيوتر</span>
+                                    </label>
+                                </div>
+
+                                <!-- Mode 1: URL Input -->
+                                <div id="otaUrlGroup">
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="url" id="otaApkUrl" class="form-input" dir="ltr" placeholder="http://server-ip:3000/download/nexus-agent.apk">
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="useServerBuiltInApk()" style="white-space:nowrap;">
+                                            رابط السيرفر
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">الرابط المباشر الذي ستقوم الهواتف بتحميل ملف التحديث منه.</small>
+                                </div>
+
+                                <!-- Mode 2: File Upload -->
+                                <div id="otaUploadGroup" style="display:none;">
+                                    <div class="upload-dropzone" id="otaDropzone" style="border:2px dashed #CBD5E1; padding:20px; text-align:center; background:#F8FAFC; border-radius:var(--radius-md); cursor:pointer;" onclick="document.getElementById('otaApkFileInput').click()">
+                                        <input type="file" id="otaApkFileInput" accept=".apk" style="display:none;" onchange="handleOtaFileSelected(event)">
+                                        <div style="color:#64748B; font-size:13px;">
+                                            <strong style="color:#1E40AF; display:block; margin-bottom:4px;">انقر لاختيار ملف الـ APK من حاسوبك</strong>
+                                            <span style="font-size:11.5px;">سيتم رفعه تلقائياً لمجلد التنزيلات بالسيرفر وحساب بصمة SHA-256</span>
+                                        </div>
+                                    </div>
+                                    <div id="otaUploadProgress" style="display:none; margin-top:10px;">
+                                        <div style="font-size:12px; color:#1E40AF; margin-bottom:4px;" id="otaUploadStatusText">جاري الرفع...</div>
+                                        <div style="height:6px; background:#E2E8F0; border-radius:3px; overflow:hidden;">
+                                            <div id="otaUploadProgressBar" style="width:0%; height:100%; background:#1E40AF; transition:width 0.2s;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row-2 mb-3">
+                                <div class="form-group">
+                                    <label for="otaVersionNote">ملاحظات الإصدار (اختياري)</label>
+                                    <input type="text" id="otaVersionNote" class="form-input" placeholder="مثال: v1.0.1 تحديث الواجهة">
+                                </div>
+                                <div class="form-group">
+                                    <label for="otaReleaseChecksum">بصمة SHA-256 (تلقائية)</label>
+                                    <input type="text" id="otaReleaseChecksum" class="form-input" dir="ltr" placeholder="تُحسب تلقائياً عند الرفع" readonly style="background:#F8FAFC; font-family:monospace; font-size:11px;">
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btnDevDeployOta" class="btn btn-primary w-100" style="padding:12px 18px; font-size:14.5px; font-weight:700;">
+                                <span>إرسال وبث التحديث الصامت للأجهزة الآن</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- RIGHT COLUMN: DEVELOPER RULES -->
+                    <div class="card p-4" style="background:#FAFAFA; border:1px solid #E2E8F0;">
+                        <h3 class="card-title mb-3" style="font-size:15px; font-weight:700; color:#0F172A;">
+                            شروط وقواعد التحديث الصامت الناجح
+                        </h3>
+                        
+                        <div style="display:flex; flex-direction:column; gap:12px; font-size:13px; line-height:1.6; color:#334155;">
+                            <div style="background:#FFFFFF; border:1px solid #CBD5E1; padding:10px 14px; border-radius:var(--radius-sm);">
+                                <strong style="color:#0F172A; display:block; margin-bottom:2px;">1. تطابق مفتاح التوقيع (Signing Keystore):</strong>
+                                <span style="font-size:12px; color:#64748B;">يشترط نظام أندرويد أن يكون الـ APK الجديد موقعاً بـ <strong>نفس المفتاح الرقمي (.jks / .keystore)</strong> للنسخة الأولى، وإلا سيرفض النظام تثبيتها.</span>
+                            </div>
+
+                            <div style="background:#FFFFFF; border:1px solid #CBD5E1; padding:10px 14px; border-radius:var(--radius-sm);">
+                                <strong style="color:#0F172A; display:block; margin-bottom:2px;">2. زيادة رقم الإصدار البرمجي:</strong>
+                                <span style="font-size:12px; color:#64748B;">في ملف <code>build.gradle.kts</code>، احرص على رفع <code>versionCode</code> بمقدار 1 على الأقل (مثلاً من 1 إلى 2).</span>
+                            </div>
+
+                            <div style="background:#FFFFFF; border:1px solid #CBD5E1; padding:10px 14px; border-radius:var(--radius-sm);">
+                                <strong style="color:#0F172A; display:block; margin-bottom:2px;">3. المزامنة والتنفيذ التلقائي:</strong>
+                                <span style="font-size:12px; color:#64748B;">تتصل الهواتف بالسيرفر كل 5 ثوانٍ تلقائياً عبر خدمة <code>MdmCloudSyncService</code>. فور استلام الأمر تقوم بتحميل وتثبيت الـ APK وإعادة تشغيل الكشك صامتاً.</span>
+                            </div>
+
+                            <div style="background:#FFFFFF; border:1px solid #CBD5E1; padding:10px 14px; border-radius:var(--radius-sm);">
+                                <strong style="color:#0F172A; display:block; margin-bottom:2px;">4. للأجهزة الجديدة (QR Code):</strong>
+                                <span style="font-size:12px; color:#64748B;">انسخ رابط الـ APK وبصمة الـ SHA-256 وضعهما في إعدادات رمز الـ QR لتنصيب النسخة الأحدث دائماً عند تهيئة الهواتف الجديدة.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM: RECENT OTA BROADCAST LOGS -->
+                <div class="card p-4">
+                    <h3 class="card-title mb-3" style="font-size:15px; font-weight:700; color:#0F172A;">
+                        سجل بث عمليات التحديث السابقة (OTA Audit Trail)
+                    </h3>
+                    <div class="table-responsive">
+                        <table class="dev-table">
+                            <thead>
+                                <tr>
+                                    <th>التوقيت والتاريخ</th>
+                                    <th>اسم الحزمة المستهدفة</th>
+                                    <th>النطاق المستهدف</th>
+                                    <th>رابط التحديث المباشر</th>
+                                    <th>ملاحظات الإصدار</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="otaHistoryTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">لا توجد عمليات بث سابقة حتى الآن.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: DEVELOPER SETTINGS -->
+            <section id="devTab-settings" class="dev-pane">
+                <div class="pane-header">
+                    <div>
+                        <h2>إعدادات المطور ودعم العملاء</h2>
+                        <p>تعديل رمز الدخول وبيانات التواصل التي تظهر في شاشة القفل للعملاء</p>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card p-4">
+                        <h3 class="card-title">بيانات الدعم الفني (تظهر للعملاء عند تعليق الاشتراك)</h3>
+                        <form onsubmit="saveDeveloperSettings(event)">
+                            <div class="form-group mb-3">
+                                <label for="devSupportPhone">رقم هاتف الدعم الفني المباشر</label>
+                                <input type="text" id="devSupportPhone" class="form-input" dir="ltr" placeholder="+964 770 000 0000">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="devSupportWhatsApp">رقم واتساب المطور للتفعيل الفوري (بدون علامة +)</label>
+                                <input type="text" id="devSupportWhatsApp" class="form-input" dir="ltr" placeholder="9647700000000">
+                                <small class="text-muted">يُستخدم لتوجيه العميل مباشرة إلى محادثة واتساب لطلب تفعيل حسابه.</small>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="devMasterPin">رمز PIN دخول المطور الجديد (اتركه فارغاً للحفاظ على الرمز الحالي)</label>
+                                <input type="password" id="devMasterPin" class="form-input" dir="ltr" placeholder="رمز دخول جديد (6 خانات على الأقل)">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <span>حفظ إعدادات المطور</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL 1: ADD NEW COMPANY -->
+    <div id="modalAddTenant" class="modal-backdrop" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إضافة شركة أو عميل جديد</h3>
+                <button class="btn-close" onclick="closeModal('modalAddTenant')">&times;</button>
+            </div>
+            <form onsubmit="submitAddTenant(event)">
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="tenantName">اسم الشركة أو المؤسسة *</label>
+                        <input type="text" id="tenantName" class="form-input" placeholder="مثال: شركة النور للتجارة" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="tenantCode">كود الشركة الفريد (رمز بالإنجليزية) *</label>
+                        <input type="text" id="tenantCode" class="form-input" placeholder="مثال: ALNOOR-IQ" style="text-transform:uppercase;" required>
+                        <small class="text-muted">يُستخدم لربط هواتف الشركة وحساباتها.</small>
+                    </div>
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="tenantMaxDevices">الحد الأقصى للأجهزة المصرح بها</label>
+                            <input type="number" id="tenantMaxDevices" class="form-input" value="25" min="1" max="10000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tenantMaxBranches">الحد الأقصى للويبات الفرعية (الفروع)</label>
+                            <input type="number" id="tenantMaxBranches" class="form-input" value="5" min="0" max="500" required>
+                        </div>
+                    </div>
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="tenantContactPerson">اسم مسؤول الشركة</label>
+                            <input type="text" id="tenantContactPerson" class="form-input" placeholder="مثال: أحمد الخالدي">
+                        </div>
+                        <div class="form-group">
+                            <label for="tenantPhone">رقم هاتف التواصل</label>
+                            <input type="text" id="tenantPhone" class="form-input" dir="ltr" placeholder="+964 770 123 4567">
+                        </div>
+                    </div>
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="tenantEmail">البريد الإلكتروني للشركة (لتسجيل الدخول للويب) *</label>
+                            <input type="email" id="tenantEmail" class="form-input" dir="ltr" placeholder="company@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tenantPassword">كلمة مرور حساب الشركة *</label>
+                            <input type="text" id="tenantPassword" class="form-input" dir="ltr" placeholder="كلمة المرور" value="123456" required>
+                        </div>
+                    </div>
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="tenantPlanName">اسم الباقة</label>
+                            <input type="text" id="tenantPlanName" class="form-input" value="باقة الشركات الممتازة">
+                        </div>
+                        <div class="form-group">
+                            <label for="tenantExpiryDate">تاريخ انتهاء الاشتراك</label>
+                            <input type="date" id="tenantExpiryDate" class="form-input" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modalAddTenant')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تأكيد وإنشاء الشركة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: EDIT SUBSCRIPTION -->
+    <div id="modalEditSubscription" class="modal-backdrop" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إدارة وتمديد اشتراك الشركة</h3>
+                <button class="btn-close" onclick="closeModal('modalEditSubscription')">&times;</button>
+            </div>
+            <form onsubmit="submitEditSubscription(event)">
+                <input type="hidden" id="editSubTenantId">
+                <div class="modal-body">
+                    <div class="company-badge-preview mb-3">
+                        <span class="lbl">الشركة المحددة:</span>
+                        <strong id="editSubCompanyName">اسم الشركة</strong>
+                        <span class="code" id="editSubCompanyCode">CODE</span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label>حالة الاشتراك الحالية</label>
+                        <div class="status-radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="subStatus" value="ACTIVE" id="statusActive">
+                                <span class="status-tag active"><span class="dot active"></span> مفعّل ونشط</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="subStatus" value="SUSPENDED" id="statusSuspended">
+                                <span class="status-tag suspended"><span class="dot suspended"></span> معلّق وموقوف</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="subStatus" value="EXPIRED" id="statusExpired">
+                                <span class="status-tag expired"><span class="dot expired"></span> منتهي الصلاحية</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="editSubExpiryDate">تاريخ انتهاء الصلاحية</label>
+                        <input type="date" id="editSubExpiryDate" class="form-input">
+                        <div class="quick-dates mt-2">
+                            <button type="button" class="btn btn-xs btn-outline" onclick="setQuickExpiry(30)">+ شهر</button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="setQuickExpiry(90)">+ 3 أشهر</button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="setQuickExpiry(180)">+ 6 أشهر</button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="setQuickExpiry(365)">+ سنة كاملة</button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="setLifetimeExpiry()">اشتراك دائم</button>
+                        </div>
+                    </div>
+
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="editSubMaxDevices">الحد الأقصى للأجهزة المصرح بها</label>
+                            <input type="number" id="editSubMaxDevices" class="form-input" min="1" max="5000">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSubMaxBranches">الحد الأقصى للويبات الفرعية (الفروع)</label>
+                            <input type="number" id="editSubMaxBranches" class="form-input" min="0" max="500">
+                        </div>
+                    </div>
+
+                    <div class="row-2 mb-3">
+                        <div class="form-group">
+                            <label for="editSubPlanName">اسم الباقة</label>
+                            <input type="text" id="editSubPlanName" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSubEmail">البريد الإلكتروني لدخول الشركة</label>
+                            <input type="email" id="editSubEmail" class="form-input" dir="ltr" placeholder="company@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="editSubPassword">كلمة المرور الجديدة (اختياري)</label>
+                        <input type="text" id="editSubPassword" class="form-input" dir="ltr" placeholder="اتركه فارغاً للحفاظ على الحالية">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditSubscription')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تطبيق وتحديث الاشتراك</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: RENAME DEVICE MODAL -->
+    <div id="modalRenameDevice" class="modal-backdrop" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إعادة تسمية الجهاز عن بُعد</h3>
+                <button class="btn-close" onclick="closeModal('modalRenameDevice')">&times;</button>
+            </div>
+            <form onsubmit="submitDeviceRename(event)">
+                <input type="hidden" id="renameDeviceId">
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="renameNewName">الاسم أو الوسم الجديد للجهاز</label>
+                        <input type="text" id="renameNewName" class="form-input" placeholder="مثال: نقطة بيع فرع المنصور 1" required autofocus>
+                        <small class="text-muted">سيتم تحديث الاسم فوراً وتوجيه أمر عن بُعد لتثبيت التسمية في شاشة هاتف العميل.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modalRenameDevice')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ وتعميم الاسم الجديد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="developer.js"></script>
+</body>
+</html>

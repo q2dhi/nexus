@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nexus DPC</string>
+    <string name="admin_receiver_label">Nexus Enterprise Security Agent</string>
+    <string name="admin_receiver_description">Enforces enterprise policies, zero-trust kiosk lockouts, and silent application management for dedicated enterprise devices.</string>
+
+    <string name="status_device_owner_active">Device Owner: ACTIVE</string>
+    <string name="status_device_owner_inactive">Device Owner: INACTIVE</string>
+    <string name="status_kiosk_engaged">Kiosk Mode: ENGAGED</string>
+    <string name="status_kiosk_disengaged">Kiosk Mode: DISENGAGED</string>
+
+    <string name="btn_engage_kiosk">Engage Kiosk Mode (COSU)</string>
+    <string name="btn_disengage_kiosk">Disengage Kiosk Mode</string>
+    <string name="btn_trigger_install">Execute Silent APK Install</string>
+    <string name="btn_apply_lockdown">Enforce Baseline Lockdown</string>
+    <string name="btn_clear_lockdown">Clear Lockdown Restrictions</string>
+    <string name="btn_request_battery_opt">Request Battery Optimization Bypass</string>
+
+    <string name="terminal_title">Live Enterprise Audit Stream</string>
+    <string name="dialog_escape_title">Field Maintenance Escape Hatch</string>
+    <string name="dialog_escape_msg">Enter the authorized recovery PIN to exit Kiosk Lock Task mode. All actions are logged and audited.</string>
+    <string name="dialog_escape_confirm">Verify &amp; Exit Kiosk</string>
+    <string name="dialog_escape_cancel">Cancel</string>
+    <string name="pin_hint">6-Digit Admin PIN</string>
+
+    <string name="notification_channel_name">Nexus Enterprise Service</string>
+    <string name="notification_channel_desc">Maintains high-priority MDM device compliance monitoring.</string>
+    <string name="notification_title">Nexus DPC Compliance Active</string>
+    <string name="notification_text">Enterprise agent is monitoring device policies and lockdown state.</string>
+
+    <!-- Phase 2 Tabs & Features -->
+    <string name="tab_kiosk">Kiosk &amp; Console</string>
+    <string name="tab_policies">Policies</string>
+    <string name="tab_telemetry">Health &amp; Root</string>
+    <string name="tab_commands">Cloud Sim</string>
+    <string name="tab_enrollment">QR Enroll</string>
+
+    <string name="policy_camera_title">Hardware Camera Sensor</string>
+    <string name="policy_camera_desc">Disables physical camera hardware access across all applications.</string>
+
+    <string name="policy_screen_capture_title">Screen Capture &amp; Recording</string>
+    <string name="policy_screen_capture_desc">Blocks screenshots and screen recording to prevent sensitive data leaks.</string>
+
+    <string name="policy_usb_title">USB File Transfer (MTP/PTP)</string>
+    <string name="policy_usb_desc">Suppresses USB mass storage mode to block physical data exfiltration.</string>
+
+    <string name="policy_bluetooth_title">Bluetooth Configuration</string>
+    <string name="policy_bluetooth_desc">Prevents pairing new Bluetooth accessories or altering connectivity.</string>
+
+    <string name="policy_wifi_title">Wi-Fi Network Modifications</string>
+    <string name="policy_wifi_desc">Prevents users from connecting to unmanaged external Wi-Fi networks.</string>
+
+    <string name="policy_factory_reset_title">Factory Reset Protection</string>
+    <string name="policy_factory_reset_desc">Blocks users from triggering factory data reset from system settings.</string>
+</resources>

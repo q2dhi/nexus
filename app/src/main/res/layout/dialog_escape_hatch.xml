@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/nexus_surface"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/dialog_escape_title"
+        android:textColor="@color/nexus_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/dialog_escape_msg"
+        android:textColor="@color/nexus_text_secondary"
+        android:textSize="13sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Challenge Nonce & Security Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_terminal"
+        android:padding="12dp"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SESSION SECURITY CONTEXT"
+            android:textColor="@color/nexus_text_muted"
+            android:textSize="10sp"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/tvChallengeNonce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NONCE: 7F9A2B4C"
+            android:textColor="@color/nexus_cyan"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvAttemptWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Attempts Remaining: 3 / 3"
+            android:textColor="@color/nexus_amber"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilPin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColorHint="@color/nexus_text_muted"
+        android:layout_marginBottom="20dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etPin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/pin_hint"
+            android:inputType="numberPassword"
+            android:maxLength="8"
+            android:textColor="@color/nexus_text_primary"
+            android:fontFamily="monospace"
+            android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelEscape"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dialog_escape_cancel"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/nexus_surface_variant"
+            android:textColor="@color/nexus_text_muted"
+            android:layout_marginEnd="12dp" />
+
+        <Button
+            android:id="@+id/btnConfirmEscape"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dialog_escape_confirm"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/nexus_red"
+            android:textColor="@color/nexus_text_primary"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

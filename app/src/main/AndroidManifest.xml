@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.nexus.mdm.agent">
+
+    <!-- Signature-Level Permission for Local Zero-Trust IPC -->
+    <permission
+        android:name="com.nexus.mdm.agent.permission.INTERNAL_IPC"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.nexus.mdm.agent.permission.INTERNAL_IPC" />
+
+    <!-- Enterprise & System Permissions -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.MANAGE_DEVICE_POLICY_LOCK_TASK" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesCondition" />
+
+    <application
+        android:name=".NexusApp"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_launcher_nexus"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_launcher_nexus_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NexusDPC"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="34">
+
+        <!-- Main Launcher & Kiosk Activity -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:lockTaskMode="if_whitelisted"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Standard App Launcher Filter -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Dedicated Home / Firmware Kiosk Launcher Filter -->
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.app.action.PROVISIONING_SUCCESSFUL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Device Admin Receiver (Guarded with BIND_DEVICE_ADMIN) -->
+        <receiver
+            android:name=".admin.NexusAdminReceiver"
+            android:description="@string/admin_receiver_description"
+            android:label="@string/admin_receiver_label"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
+                <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+                <action android:name="android.app.action.LOCK_TASK_ENTERING" />
+                <action android:name="android.app.action.LOCK_TASK_EXITING" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Silent Package Installer Status Receiver (Internal IPC Protected) -->
+        <receiver
+            android:name=".installer.InstallStatusReceiver"
+            android:exported="false"
+            android:permission="com.nexus.mdm.agent.permission.INTERNAL_IPC">
+            <intent-filter>
+                <action android:name="com.nexus.mdm.agent.ACTION_INSTALL_COMMIT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Boot & Recovery Receiver (Zero-Trust Unexported) -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Enterprise Keep-Alive Foreground Service -->
+        <service
+            android:name=".service.NexusKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
+
+        <!-- Background MDM Cloud Sync Service -->
+        <service
+            android:name=".remote.MdmCloudSyncService"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

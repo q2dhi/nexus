@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nexus-mdm-admin
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
