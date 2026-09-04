@@ -628,13 +628,13 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # ---------------------------------------------------------
         # BINARY APK UPLOAD FOR OTA DEPLOYMENTS
         # ---------------------------------------------------------
-        if path == '/api/developer/ota/upload':
+        if path == '/api/developer/ota/upload' or path == '/api/ota/upload':
             content_len = int(self.headers.get('Content-Length', 0))
             if content_len <= 0:
                 self._send_json(400, {"error": "الملف فارغ أو غير موجود"})
                 return
 
-            raw_filename = self.headers.get('X-Filename', 'nexus-agent-update.apk')
+            raw_filename = self.headers.get('X-Filename', 'managed-app.apk')
             import urllib.parse
             import re
             raw_filename = urllib.parse.unquote(raw_filename)
@@ -659,7 +659,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             file_size = os.path.getsize(target_path)
             checksum = sha256.hexdigest()
             host = self.headers.get('Host', f"localhost:{PORT}")
-            apk_url = f"http://{host}/downloads/{filename}"
+            proto = self.headers.get('X-Forwarded-Proto', 'https' if ('onrender.com' in host or self.headers.get('X-Forwarded-Ssl') == 'on') else 'http')
+            apk_url = f"{proto}://{host}/downloads/{filename}"
 
             add_audit_log('OTA_APK_UPLOAD', 'DEVELOPER', f"Uploaded {filename} ({file_size} bytes)")
 

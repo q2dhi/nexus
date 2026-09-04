@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +9,11 @@
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body class="rtl-mode">
     <!-- COMPANY LOGIN SCREEN (WHITE & ROYAL BLUE, ZERO GRADIENTS, LOGO + BLACK NEXUS + BLUE DOT) -->
     <div id="companyLoginOverlay" class="company-login-overlay" style="display:none;">
@@ -17,7 +21,7 @@
             <div class="login-brand-header">
                 <span class="brand-icon-mark" style="width:44px; height:44px; margin:0 auto 12px auto;">
                     <svg viewBox="0 0 24 24" style="width:24px; height:24px;">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                     </svg>
                 </span>
                 <h1 class="login-brand-text" dir="ltr">Nexus<span class="login-brand-dot">.</span></h1>
@@ -28,13 +32,16 @@
                 <div id="companyLoginError" class="login-error-alert" style="display:none;"></div>
 
                 <div class="form-group mb-3 text-start">
-                    <label for="companyLoginEmail" id="lblLoginEmail">البريد الإلكتروني للشركة، أو رقم دخول الفرع، أو كود الشركة</label>
-                    <input type="text" id="companyLoginEmail" class="form-input" dir="ltr" placeholder="رقم الفرع، أو البريد الإلكتروني، أو الكود" required autofocus>
+                    <label for="companyLoginEmail" id="lblLoginEmail">البريد الإلكتروني للشركة، أو رقم دخول الفرع، أو
+                        كود الشركة</label>
+                    <input type="text" id="companyLoginEmail" class="form-input" dir="ltr"
+                        placeholder="رقم الفرع، أو البريد الإلكتروني، أو الكود" required autofocus>
                 </div>
 
                 <div class="form-group mb-4 text-start">
                     <label for="companyLoginPassword" id="lblLoginPassword">كلمة المرور</label>
-                    <input type="password" id="companyLoginPassword" class="form-input" dir="ltr" placeholder="••••••••" required>
+                    <input type="password" id="companyLoginPassword" class="form-input" dir="ltr" placeholder="••••••••"
+                        required>
                 </div>
 
                 <button type="submit" id="btnCompanyLoginSubmit" class="btn btn-primary btn-block">
@@ -43,7 +50,8 @@
             </form>
 
             <div class="login-card-footer">
-                <small id="loginFooterNote">إذا لم يكن لديك حساب، يرجى التواصل مع مزود الخدمة لإنشاء حساب شركتك وتفعيل الاشتراك.</small>
+                <small id="loginFooterNote">إذا لم يكن لديك حساب، يرجى التواصل مع مزود الخدمة لإنشاء حساب شركتك وتفعيل
+                    الاشتراك.</small>
             </div>
         </div>
     </div>
@@ -55,7 +63,7 @@
                 <a href="#" class="brand-logo" dir="ltr" aria-label="Nexus Home">
                     <span class="brand-icon-mark">
                         <svg viewBox="0 0 24 24">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                         </svg>
                     </span>
                     <span class="brand-name">Nexus<span class="brand-dot">.</span></span>
@@ -78,10 +86,12 @@
             </div>
 
             <div class="header-right-controls">
-                <button id="btnLangToggle" class="btn-lang-toggle" onclick="toggleLanguage()" title="تبديل اللغة / Switch Language">
+                <button id="btnLangToggle" class="btn-lang-toggle" onclick="toggleLanguage()"
+                    title="تبديل اللغة / Switch Language">
                     <span id="langLabel">English</span>
                 </button>
-                <button id="btnCompanyLogout" class="btn-company-logout" onclick="handleCompanyLogout()" title="تسجيل الخروج">
+                <button id="btnCompanyLogout" class="btn-company-logout" onclick="handleCompanyLogout()"
+                    title="تسجيل الخروج">
                     <span id="logoutBtnLabel">تسجيل الخروج</span>
                 </button>
             </div>
@@ -91,12 +101,14 @@
         <main class="main-content">
             <!-- Navigation Sub-bar -->
             <div class="nav-bar">
-                <button class="nav-tab active" data-tab="devices" onclick="showTab('devices', this)">الأسطول المدار</button>
+                <button class="nav-tab active" data-tab="devices" onclick="showTab('devices', this)">الأسطول
+                    المدار</button>
                 <button class="nav-tab" data-tab="whitelist" onclick="showTab('whitelist', this)">تطبيقات الكشك</button>
                 <button class="nav-tab" data-tab="qr" onclick="showTab('qr', this)">تجهيز الـ QR السريع</button>
                 <button class="nav-tab" data-tab="ota" onclick="showTab('ota', this)">توزيع التطبيقات OTA</button>
                 <button class="nav-tab" data-tab="logs" onclick="showTab('logs', this)">سجلات التدقيق</button>
-                <button class="nav-tab" id="tabNavBranches" data-tab="branches" onclick="showTab('branches', this)">إدارة الفروع (الويبات الفرعية)</button>
+                <button class="nav-tab" id="tabNavBranches" data-tab="branches"
+                    onclick="showTab('branches', this)">إدارة الفروع (الويبات الفرعية)</button>
             </div>
 
             <!-- TAB 1: FLEET DEVICES -->
@@ -104,17 +116,20 @@
                 <div class="pane-header">
                     <div>
                         <h2 id="fleetSectionTitle">الأسطول المدار المركزي</h2>
-                        <p class="section-desc" id="fleetSectionDesc">الحالة المباشرة، قياسات الأداء اللحظية، والتحكم الإداري الفوري عن بُعد.</p>
+                        <p class="section-desc" id="fleetSectionDesc">الحالة المباشرة، قياسات الأداء اللحظية، والتحكم
+                            الإداري الفوري عن بُعد.</p>
                     </div>
                     <div class="pane-actions">
                         <span class="live-pulse-badge">
                             <span class="pulse-indicator"></span>
                             <span id="autoSyncBadge">مزامنة حية 3 ثوانٍ</span>
                         </span>
-                        <button class="btn btn-secondary btn-sm" id="btnSyncTimeFleet" onclick="syncFleetTime()" title="مزامنة الوقت والتاريخ تلقائياً لجميع أجهزة الأسطول">
+                        <button class="btn btn-secondary btn-sm" id="btnSyncTimeFleet" onclick="syncFleetTime()"
+                            title="مزامنة الوقت والتاريخ تلقائياً لجميع أجهزة الأسطول">
                             <span id="btnSyncTimeLabel">مزامنة الوقت والتاريخ</span>
                         </button>
-                        <button class="btn btn-secondary btn-sm" id="btnRefreshFleet" onclick="fetchDevices()">تحديث الأسطول</button>
+                        <button class="btn btn-secondary btn-sm" id="btnRefreshFleet" onclick="fetchDevices()">تحديث
+                            الأسطول</button>
                     </div>
                 </div>
 
@@ -184,94 +199,142 @@
             <!-- TAB 2: KIOSK APP WHITELIST -->
             <section id="tab-whitelist" class="tab-pane">
                 <div class="pane-header">
-                    <h2 id="whitelistTitle">إدارة وتوزيع تطبيقات وضع الكشك (App Whitelist)</h2>
-                    <p class="section-desc" id="whitelistDesc">تحديد وحصر التطبيقات المسموح للمستخدمين بفتحها واستخدامها أثناء تفعيل وضع الكشك المقيد على الأجهزة.</p>
-                </div>
-
-                <div class="form-container" style="max-width: 820px;">
-                    <div class="form-group">
-                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl">الجهاز المستهدف (Target Device):</label>
-                        <select id="whitelistDeviceSelect" class="form-input" onchange="onWhitelistDeviceChanged()">
-                            <option value="ALL">جميع أجهزة الأسطول (All Fleet Devices - Broadcast)</option>
-                        </select>
+                    <div>
+                        <h2 id="whitelistTitle">إدارة واختيار تطبيقات وضع الكشك (App Whitelist)</h2>
+                        <p class="section-desc" id="whitelistDesc">اختر التطبيقات المسموحة للمستخدمين بنقرة واحدة، وستظهر التطبيقات المحملة على الهاتف تلقائياً.</p>
                     </div>
-
-                    <div class="form-group">
-                        <label id="whitelistPresetsLbl">حزم وتطبيقات سريعة مقترحة (Quick Presets):</label>
-                        <div class="preset-buttons" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.sec.android.app.popupcalculator')">+ حاسبة سامسونج (Samsung Calc)</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.google.android.calculator')">+ حاسبة جوجل (Google Calc)</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.android.chrome')">+ متصفح كروم (Chrome)</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.sec.android.app.camera')">+ كاميرا سامسونج (Camera)</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.google.android.apps.photos')">+ صور جوجل (Photos)</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addPreset('com.whatsapp')">+ واتساب (WhatsApp)</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="customPackageInput" id="whitelistAddLbl">إضافة اسم حزمة تطبيق مخصص (Application Package Name):</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <input type="text" id="customPackageInput" class="form-input" placeholder="مثال: com.company.pos أو com.android.chrome" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
-                            <button type="button" id="btnAddCustomPkg" class="btn btn-secondary" onclick="addCustomPackage()" style="white-space: nowrap; padding: 0 20px;">+ إضافة</button>
-                        </div>
-                        <small style="color: #64748B; font-size: 11.5px; margin-top: 4px; display: block;">اكتب اسم الحزمة (Package ID) لأي تطبيق مثبت على الهاتف تريد السماح به داخل شاشة الكشك.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label id="whitelistAssignedLbl" style="margin: 0; font-weight: 700;">التطبيقات المسموح بها حالياً (Assigned Kiosk Applications):</label>
-                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()" style="color: #DC2626;">مسح الكل</button>
-                        </div>
-                        <div id="whitelistTagsContainer" class="tags-container" style="min-height: 80px; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                            <!-- Dynamically populated tags -->
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px; display: flex; align-items: center; gap: 12px;">
-                        <button id="btnDeployWhitelist" class="btn btn-primary" onclick="deployWhitelist()" style="padding: 10px 24px; font-weight: 700; font-size: 14px;">
+                    <div class="pane-actions">
+                        <button id="btnDeployWhitelistTop" class="btn btn-primary btn-sm" onclick="deployWhitelist()">
                             <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
                         </button>
                     </div>
+                </div>
+
+                <div class="form-container" style="max-width: 960px;">
+                    <!-- Target Device Selector -->
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700;">الجهاز المستهدف (Target Device):</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="whitelistDeviceSelect" class="form-input" onchange="onWhitelistDeviceChanged()" style="font-weight: 600;">
+                                <option value="ALL">جميع أجهزة الأسطول (All Fleet Devices - Broadcast)</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchDevices().then(renderKioskAppsCatalog)" title="تحديث قائمة تطبيقات الجهاز" style="white-space: nowrap;">
+                                🔄 تحديث التطبيقات
+                            </button>
+                        </div>
+                        <div id="deviceInstalledHint" style="font-size: 11.5px; color: #2563EB; margin-top: 4px; display: none;">
+                            📱 يتم الآن عرض التطبيقات المثبتة فعلياً على هذا الجهاز
+                        </div>
+                    </div>
+
+                    <!-- Search and Filters Bar -->
+                    <div class="kiosk-apps-header-bar">
+                        <div class="kiosk-apps-search-wrap">
+                            <span class="kiosk-apps-search-icon">🔍</span>
+                            <input type="text" id="kioskAppsSearchInput" class="kiosk-apps-search-input" placeholder="ابحث عن اسم أي تطبيق (واتساب، كاميرا، كروم، مبيعات...)" oninput="filterKioskApps()">
+                        </div>
+                        <div class="kiosk-apps-filter-tabs">
+                            <button type="button" class="kiosk-filter-tab active" data-filter="all" onclick="setKioskAppsFilter('all', this)">الكل (<span id="countFilterAll">0</span>)</button>
+                            <button type="button" class="kiosk-filter-tab" data-filter="selected" onclick="setKioskAppsFilter('selected', this)">المسموحة للكشك (<span id="countFilterSelected">0</span>)</button>
+                            <button type="button" class="kiosk-filter-tab" data-filter="installed" onclick="setKioskAppsFilter('installed', this)">المثبتة على الهاتف (<span id="countFilterInstalled">0</span>)</button>
+                            <button type="button" class="btn btn-xs btn-secondary" onclick="selectAllVisibleApps()" style="margin-right: 6px;">تحديد الكل</button>
+                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()" style="color: #DC2626;">إلغاء التحديد</button>
+                        </div>
+                    </div>
+
+                    <!-- Apps Grid Container -->
+                    <div id="kioskAppsGrid" class="kiosk-apps-grid">
+                        <!-- Populated dynamically with interactive app cards -->
+                    </div>
+
+                    <!-- Selection Summary & Deploy Bar -->
+                    <div class="kiosk-selection-summary-bar">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 13.5px; font-weight: 700; color: #0F172A;">
+                                تم اختيار <span id="kioskSelectedCount" style="color: #16A34A; font-size: 16px;">0</span> تطبيق مسموح في شاشة الكشك
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="btnDeployWhitelist" class="btn btn-primary" onclick="deployWhitelist()" style="padding: 10px 24px; font-weight: 700; font-size: 14px;">
+                                <span>توزيع وحفظ التطبيقات المسموحة للأجهزة 🚀</span>
+                            </button>
+                        </div>
+                    </div>
                     <div id="whitelistStatusMessage" class="status-box" style="display: none; margin-top: 14px;"></div>
+
+                    <!-- Collapsible Advanced: Custom Package Input -->
+                    <details style="margin-top: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
+                        <summary style="cursor: pointer; font-size: 12.5px; font-weight: 600; color: #64748B;">
+                            ⚙️ خيارات متقدمة: إضافة اسم حزمة تطبيق مخصص يدوياً (Custom Package Name)
+                        </summary>
+                        <div style="margin-top: 12px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="customPackageInput" class="form-input" placeholder="مثال: com.company.pos أو com.custom.app" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
+                                <button type="button" id="btnAddCustomPkg" class="btn btn-secondary" onclick="addCustomPackage()" style="white-space: nowrap; padding: 0 20px;">+ إضافة للقائمة</button>
+                            </div>
+                            <small style="color: #64748B; font-size: 11px; margin-top: 4px; display: block;">لإضافة أي تطبيق داخلي نادر بكتابة معرف الحزمة Package ID مباشرة.</small>
+                            <div style="margin-top: 10px;" id="whitelistTagsContainer"></div>
+                        </div>
+                    </details>
                 </div>
             </section>
 
             <!-- TAB 3: OTA APP DEPLOYMENT -->
             <section id="tab-ota" class="tab-pane">
                 <div class="pane-header">
-                    <h2>Over-The-Air (OTA) Application Updates</h2>
-                    <p class="section-desc">Silently install or update applications on managed Nexus devices without any user interaction.</p>
+                    <h2>توزيع وتثبيت التطبيقات عن بُعد (Over-The-Air Updates)</h2>
+                    <p class="section-desc">رفع وتثبيت تطبيقات APK على أجهزة الأسطول عن بعد بنقرة زر واحدة وبدون تدخل المستخدم.</p>
                 </div>
 
-                <!-- Helpful shortcut to QR Code tab -->
-                <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 680px;">
-                    <div style="font-size: 13px; color: #1E40AF; display: flex; align-items: center; gap: 8px;">
-                        <span>Looking for device setup? Access the <strong>Zero-Touch QR Code</strong> generator.</span>
+                <div class="form-container" style="max-width: 780px;">
+                    <!-- Direct APK Upload Dropzone -->
+                    <div class="form-group" style="background: #F8FAFC; border: 2px dashed #93C5FD; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 22px;">
+                        <div style="font-size: 40px; margin-bottom: 8px;">📦</div>
+                        <strong style="display: block; font-size: 16px; color: #1E3A8A; margin-bottom: 6px;">رفع ملف التطبيق (APK) مباشرة من جهازك</strong>
+                        <p style="font-size: 13px; color: #64748B; margin-bottom: 16px;">اختر ملف التطبيق (.apk) المخزن على جهازك لرفعه لسيرفرك تلقائياً وتوليد رابط التحميل المباشر الآمن.</p>
+                        
+                        <input type="file" id="otaApkFileInput" accept=".apk" style="display: none;" onchange="handleOtaFileUpload(event)">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('otaApkFileInput').click()" style="padding: 10px 24px; font-weight: 700;">
+                            📂 اختر ملف APK من جهازك
+                        </button>
+                        
+                        <div id="otaUploadProgressWrap" style="display: none; margin-top: 16px; max-width: 420px; margin-left: auto; margin-right: auto;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; color: #1E40AF; font-weight: 700;">
+                                <span id="otaUploadFileName">جاري الرفع...</span>
+                                <span id="otaUploadPercent">0%</span>
+                            </div>
+                            <div style="background: #E2E8F0; border-radius: 6px; height: 10px; overflow: hidden;">
+                                <div id="otaProgressBar" style="background: #2563EB; width: 0%; height: 100%; transition: width 0.2s;"></div>
+                            </div>
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary" style="white-space:nowrap;" onclick="showTab('qr')">Open QR Code &rarr;</button>
-                </div>
 
-                <div class="form-container">
                     <div class="form-group">
-                        <label for="targetDeviceSelect">Target Device</label>
-                        <select id="targetDeviceSelect" class="form-input">
-                            <option value="ALL">All Enrolled Fleet Devices (Broadcast)</option>
+                        <label for="targetDeviceSelect" style="font-weight: 700;">الجهاز المستهدف (Target Device):</label>
+                        <select id="targetDeviceSelect" class="form-input" style="font-weight: 600;">
+                            <option value="ALL">جميع أجهزة الأسطول (All Enrolled Fleet Devices - Broadcast)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="apkUrlInput">APK Download Direct URL</label>
-                        <input type="url" id="apkUrlInput" class="form-input" placeholder="https://example.com/builds/pos-app-v2.1.apk">
-                        <span class="input-hint">The device will download this binary in the background and commit via PackageInstaller.</span>
+                        <label for="apkUrlInput" style="font-weight: 700;">رابط تحميل الـ APK المباشر (Direct Download URL):</label>
+                        <input type="url" id="apkUrlInput" class="form-input" placeholder="سيتم تعبئة الرابط تلقائياً عند رفع الملف أعلاه، أو ضع رابطاً مباشراً ينتهي بـ .apk">
+                        <span class="input-hint" style="color: #64748B; font-size: 11.5px; display: block; margin-top: 5px;">
+                            💡 <strong>ملاحظة هامة:</strong> يجب أن ينتهي الرابط بـ <code>.apk</code> مباشر. روابط المواقع (مثل صفحات APKPure أو Mediafire) تفشل لأنها صفحات ويب وليست ملفات خام. استخدم زر الرفع أعلاه لضمان التحميل 100%.
+                        </span>
                     </div>
 
                     <div class="form-group">
-                        <label for="apkPackageInput">Application Package Name (Optional)</label>
-                        <input type="text" id="apkPackageInput" class="form-input" placeholder="com.enterprise.pos">
+                        <label for="apkPackageInput" style="font-weight: 700;">اسم حزمة التطبيق (اختياري - Application Package Name):</label>
+                        <input type="text" id="apkPackageInput" class="form-input" placeholder="مثال: com.google.android.calculator أو com.company.pos">
                     </div>
 
-                    <button class="btn btn-primary" onclick="deployOtaUpdate()">Push Silent OTA Update</button>
-                    <div id="otaStatusMessage" class="status-box"></div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="deployOtaUpdate()" style="padding: 12px 28px; font-weight: 700; font-size: 14.5px;">
+                            🚀 إرسال وتثبيت التطبيق على الأجهزة الآن
+                        </button>
+                    </div>
+                    <div id="otaStatusMessage" class="status-box" style="margin-top: 14px; display: none;"></div>
                 </div>
             </section>
 
@@ -279,30 +342,37 @@
             <section id="tab-qr" class="tab-pane">
                 <div class="pane-header">
                     <h2>Zero-Touch Android Enterprise QR Provisioning</h2>
-                    <p class="section-desc">Instantly turn any fresh or factory-reset Android device into a dedicated Nexus Kiosk appliance without entering Google accounts.</p>
+                    <p class="section-desc">Instantly turn any fresh or factory-reset Android device into a dedicated
+                        Nexus Kiosk appliance without entering Google accounts.</p>
                 </div>
 
                 <div class="qr-layout">
                     <!-- Left: Configuration Form -->
                     <div class="form-container" style="flex: 1;">
                         <h3 style="margin-bottom: 16px; font-size: 15px;">1. Enrollment Parameters</h3>
-                        
+
                         <div class="form-group">
                             <label for="qrDeviceTag" id="lblQrDeviceTag">اسم / وسم الجهاز (Device Name / Tag) *</label>
-                            <input type="text" id="qrDeviceTag" class="form-input" value="POS-TERMINAL-01" placeholder="مثال: كاشير 1 أو POS-01" oninput="generateQrCode()">
-                            <small style="color: #64748B; font-size: 11px;" id="descQrDeviceTag">يتم تثبيت هذا الاسم تلقائياً في الجهاز عند مسح كود الـ QR بعد الفرمتة.</small>
+                            <input type="text" id="qrDeviceTag" class="form-input" value="POS-TERMINAL-01"
+                                placeholder="مثال: كاشير 1 أو POS-01" oninput="generateQrCode()">
+                            <small style="color: #64748B; font-size: 11px;" id="descQrDeviceTag">يتم تثبيت هذا الاسم
+                                تلقائياً في الجهاز عند مسح كود الـ QR بعد الفرمتة.</small>
                         </div>
 
                         <div class="form-group">
-                            <label for="qrCompanySelect" id="lblQrCompany">الشركة التابعة للجهاز (Assigned Company)</label>
+                            <label for="qrCompanySelect" id="lblQrCompany">الشركة التابعة للجهاز (Assigned
+                                Company)</label>
                             <select id="qrCompanySelect" class="form-input" onchange="onQrCompanyChange()"></select>
-                            <small style="color: #64748B; font-size: 11px;">سيتم ربط الجهاز باشتراك هذه الشركة تلقائياً فور التجهيز.</small>
+                            <small style="color: #64748B; font-size: 11px;">سيتم ربط الجهاز باشتراك هذه الشركة تلقائياً
+                                فور التجهيز.</small>
                         </div>
 
                         <div class="form-group">
                             <label for="qrDownloadUrl">APK Download URL (Hosted on this PC)</label>
-                            <input type="text" id="qrDownloadUrl" class="form-input" value="http://192.168.0.101:3000/download/nexus-agent.apk">
-                            <small style="color: #64748B; font-size: 11px;">The target phone must be able to reach this IP over local Wi-Fi.</small>
+                            <input type="text" id="qrDownloadUrl" class="form-input"
+                                value="http://192.168.0.101:3000/download/nexus-agent.apk">
+                            <small style="color: #64748B; font-size: 11px;">The target phone must be able to reach this
+                                IP over local Wi-Fi.</small>
                         </div>
 
                         <div class="form-group">
@@ -312,16 +382,19 @@
 
                         <div class="form-group">
                             <label for="qrApkChecksum">APK Signature SHA-256 Checksum</label>
-                            <input type="text" id="qrApkChecksum" class="form-input" readonly value="RL__IU87QZW8GA66qikKZ-ySIY1r9UnQqxgyHU63bBU">
+                            <input type="text" id="qrApkChecksum" class="form-input" readonly
+                                value="RL__IU87QZW8GA66qikKZ-ySIY1r9UnQqxgyHU63bBU">
                         </div>
 
                         <div style="display: flex; gap: 12px;">
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiSsid">Wi-Fi Network Name (SSID) <small style="color:#94A3B8;">Optional</small></label>
+                                <label for="qrWifiSsid">Wi-Fi Network Name (SSID) <small
+                                        style="color:#94A3B8;">Optional</small></label>
                                 <input type="text" id="qrWifiSsid" class="form-input" placeholder="e.g., Office-WiFi">
                             </div>
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiPassword">Wi-Fi Password <small style="color:#94A3B8;">Optional</small></label>
+                                <label for="qrWifiPassword">Wi-Fi Password <small
+                                        style="color:#94A3B8;">Optional</small></label>
                                 <input type="password" id="qrWifiPassword" class="form-input" placeholder="Password">
                             </div>
                         </div>
@@ -341,10 +414,12 @@
                             <h4>How to Enroll Fresh / Factory Reset Phone:</h4>
                             <ol>
                                 <li>Turn on new or freshly factory-reset Android device.</li>
-                                <li>At the first <strong>"Welcome" (مرحباً)</strong> screen, tap <strong>6 times rapidly</strong> anywhere on the screen.</li>
+                                <li>At the first <strong>"Welcome" (مرحباً)</strong> screen, tap <strong>6 times
+                                        rapidly</strong> anywhere on the screen.</li>
                                 <li>The phone's enterprise QR camera will automatically activate.</li>
                                 <li>Point the camera at this QR code on your laptop screen.</li>
-                                <li>The phone will download Nexus, configure <strong>Device Owner</strong>, and launch the Kiosk automatically!</li>
+                                <li>The phone will download Nexus, configure <strong>Device Owner</strong>, and launch
+                                    the Kiosk automatically!</li>
                             </ol>
                         </div>
                     </div>
@@ -369,10 +444,12 @@
                 <div class="pane-header">
                     <div>
                         <h2 id="branchesSectionTitle">إدارة الفروع والويبات الفرعية</h2>
-                        <p class="section-desc" id="branchesSectionDesc">إنشاء حسابات دخول ويب مستقلة لكل فرع برقم دخول خاص مع حظر فك وضع الكشك للفروع وحصره بالإدارة الرئيسية.</p>
+                        <p class="section-desc" id="branchesSectionDesc">إنشاء حسابات دخول ويب مستقلة لكل فرع برقم دخول
+                            خاص مع حظر فك وضع الكشك للفروع وحصره بالإدارة الرئيسية.</p>
                     </div>
                     <div class="pane-actions" style="display:flex; align-items:center; gap:12px;">
-                        <div class="branches-quota-badge" style="background:#EFF6FF; border:1px solid #BFDBFE; padding:6px 14px; font-size:13px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px;">
+                        <div class="branches-quota-badge"
+                            style="background:#EFF6FF; border:1px solid #BFDBFE; padding:6px 14px; font-size:13px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px;">
                             <span>حصة الفروع المتاحة:</span>
                             <span id="branchesQuotaDisplay">0 من 5</span>
                         </div>
@@ -414,8 +491,10 @@
             </div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn btn-sm" style="background:#FFFFFF; color:#991B1B; font-weight:700;" onclick="disarmActiveSiren()">Disarm Siren</button>
-            <button class="btn btn-secondary btn-sm" style="color:#FFFFFF; border-color:rgba(255,255,255,0.4);" onclick="dismissSecurityBanner()">Dismiss</button>
+            <button class="btn btn-sm" style="background:#FFFFFF; color:#991B1B; font-weight:700;"
+                onclick="disarmActiveSiren()">Disarm Siren</button>
+            <button class="btn btn-secondary btn-sm" style="color:#FFFFFF; border-color:rgba(255,255,255,0.4);"
+                onclick="dismissSecurityBanner()">Dismiss</button>
         </div>
     </div>
 
@@ -423,12 +502,14 @@
     <div id="companySubLockOverlay" class="company-sub-lock" style="display:none;">
         <div class="sub-lock-card">
             <h2 id="lockTitle">اشتراك الشركة غير مفعّل</h2>
-            <p id="lockDesc">عذراً! لوحة تحكم وإدارة أجهزة Nexus معطّلة حالياً لأن اشتراك هذه الشركة غير مفعّل أو انتهت فترة صلاحيته من قِبل المطور.</p>
-            
+            <p id="lockDesc">عذراً! لوحة تحكم وإدارة أجهزة Nexus معطّلة حالياً لأن اشتراك هذه الشركة غير مفعّل أو انتهت
+                فترة صلاحيته من قِبل المطور.</p>
+
             <div class="sub-lock-details">
                 <div><span>الشركة المشتركة:</span> <strong id="lockCompanyName">...</strong></div>
                 <div><span>كود الشركة:</span> <strong id="lockCompanyCode" class="badge-code">...</strong></div>
-                <div><span>حالة الحساب:</span> <strong id="lockCompanyStatus" class="text-danger">معلّق / منتهي</strong></div>
+                <div><span>حالة الحساب:</span> <strong id="lockCompanyStatus" class="text-danger">معلّق / منتهي</strong>
+                </div>
                 <div><span>تاريخ الصلاحية:</span> <strong id="lockCompanyExpiry">...</strong></div>
             </div>
 
@@ -450,10 +531,12 @@
     <div id="companyRenameModal" class="modal" style="display:none;">
         <div class="modal-card">
             <h3 id="renameModalTitle">إعادة تسمية الجهاز عن بعد</h3>
-            <p id="renameModalDesc">أدخل الاسم الجديد للجهاز، وسيتم تحديثه فوراً في النظام وتوجيه أمر عن بعد لتحديثه داخل هاتف العميل.</p>
+            <p id="renameModalDesc">أدخل الاسم الجديد للجهاز، وسيتم تحديثه فوراً في النظام وتوجيه أمر عن بعد لتحديثه
+                داخل هاتف العميل.</p>
             <input type="hidden" id="adminRenameDeviceId">
             <div class="form-group" style="margin: 16px 0;">
-                <input type="text" id="adminRenameInput" class="form-input" placeholder="اسم الجهاز الجديد (مثال: كاشير 1)">
+                <input type="text" id="adminRenameInput" class="form-input"
+                    placeholder="اسم الجهاز الجديد (مثال: كاشير 1)">
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeRenameModal()">إلغاء</button>
@@ -465,19 +548,23 @@
     <!-- ADD BRANCH MODAL (الويبات الفرعية) -->
     <div id="modalAddBranch" class="modal" style="display:none;">
         <div class="modal-card" style="max-width:520px;">
-            <div class="modal-header-flex" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
+            <div class="modal-header-flex"
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
                 <h3 style="margin:0; font-size:17px; font-weight:700; color:#0F172A;">إضافة ويب فرعي جديد للفرع</h3>
                 <button class="btn-close" onclick="closeAddBranchModal()">&times;</button>
             </div>
             <form onsubmit="submitCreateBranch(event)">
                 <div class="form-group mb-3 text-start">
                     <label for="branchNameInput">اسم الفرع *</label>
-                    <input type="text" id="branchNameInput" class="form-input" placeholder="مثال: فرع الكرادة، فرع المنصور" required>
+                    <input type="text" id="branchNameInput" class="form-input"
+                        placeholder="مثال: فرع الكرادة، فرع المنصور" required>
                 </div>
                 <div class="form-group mb-3 text-start">
                     <label for="branchNumberInput">رقم الدخول (رقم هاتف أو رقم المعرف الخاص بالفرع) *</label>
-                    <input type="text" id="branchNumberInput" class="form-input" dir="ltr" placeholder="مثال: 07701234567 أو 101" required>
-                    <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">يستخدمه مسؤول الفرع لتسجيل الدخول إلى لوحة التحكم الخاصة به بدلاً من البريد.</small>
+                    <input type="text" id="branchNumberInput" class="form-input" dir="ltr"
+                        placeholder="مثال: 07701234567 أو 101" required>
+                    <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">يستخدمه مسؤول الفرع
+                        لتسجيل الدخول إلى لوحة التحكم الخاصة به بدلاً من البريد.</small>
                 </div>
                 <div class="row-2 mb-3" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="form-group text-start">
@@ -486,11 +573,14 @@
                     </div>
                     <div class="form-group text-start">
                         <label for="branchPasswordInput">كلمة المرور *</label>
-                        <input type="text" id="branchPasswordInput" class="form-input" dir="ltr" placeholder="كلمة المرور" value="123456" required>
+                        <input type="text" id="branchPasswordInput" class="form-input" dir="ltr"
+                            placeholder="كلمة المرور" value="123456" required>
                     </div>
                 </div>
-                <div style="background:#FEF3C7; border:1px solid #FDE68A; padding:10px 12px; margin-bottom:16px; font-size:12px; color:#92400E; line-height:1.5;">
-                    <strong>ملاحظة أمنية:</strong> لا يمتلك مسؤولو الفروع رمز الأدمن ولا صلاحية فك أو إلغاء وضع الكشك للأجهزة المدارة؛ صلاحية إلغاء الكشك محصورة بالشركة الرئيسية فقط.
+                <div
+                    style="background:#FEF3C7; border:1px solid #FDE68A; padding:10px 12px; margin-bottom:16px; font-size:12px; color:#92400E; line-height:1.5;">
+                    <strong>ملاحظة أمنية:</strong> لا يمتلك مسؤولو الفروع رمز الأدمن ولا صلاحية فك أو إلغاء وضع الكشك
+                    للأجهزة المدارة؛ صلاحية إلغاء الكشك محصورة بالشركة الرئيسية فقط.
                 </div>
                 <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:8px;">
                     <button type="button" class="btn btn-secondary" onclick="closeAddBranchModal()">إلغاء</button>
@@ -503,28 +593,38 @@
     <!-- CHANGE BRANCH PASSWORD MODAL (تغيير كلمة مرور ويب الفرع) -->
     <div id="modalChangeBranchPassword" class="modal" style="display:none;">
         <div class="modal-card" style="max-width:480px;">
-            <div class="modal-header-flex" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
+            <div class="modal-header-flex"
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
                 <h3 style="margin:0; font-size:17px; font-weight:700; color:#0F172A;">🔑 تغيير كلمة مرور ويب الفرع</h3>
                 <button class="btn-close" onclick="closeChangeBranchPasswordModal()">&times;</button>
             </div>
             <form onsubmit="submitChangeBranchPassword(event)">
                 <input type="hidden" id="changeBranchId">
-                <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:13px; text-align:right;">
-                    <div style="margin-bottom:6px;">الفرع: <strong id="changeBranchNameDisplay" style="color:#0F172A;">-</strong></div>
-                    <div>رقم الدخول (المعرف): <span id="changeBranchNumberDisplay" dir="ltr" style="font-family:monospace; color:#1E40AF; font-weight:700;">-</span></div>
+                <div
+                    style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:13px; text-align:right;">
+                    <div style="margin-bottom:6px;">الفرع: <strong id="changeBranchNameDisplay"
+                            style="color:#0F172A;">-</strong></div>
+                    <div>رقم الدخول (المعرف): <span id="changeBranchNumberDisplay" dir="ltr"
+                            style="font-family:monospace; color:#1E40AF; font-weight:700;">-</span></div>
                 </div>
                 <div class="form-group mb-3 text-start">
                     <label for="changeBranchPasswordInput">كلمة المرور الجديدة للفرع *</label>
                     <div style="position:relative;">
-                        <input type="password" id="changeBranchPasswordInput" class="form-input" placeholder="أدخل كلمة المرور الجديدة (4 خانات فأكثر)" required minlength="4" style="padding-left:42px;">
-                        <button type="button" onclick="toggleNewPasswordInputVisibility()" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:#64748B; padding:4px;" title="إظهار / إخفاء">
+                        <input type="password" id="changeBranchPasswordInput" class="form-input"
+                            placeholder="أدخل كلمة المرور الجديدة (4 خانات فأكثر)" required minlength="4"
+                            style="padding-left:42px;">
+                        <button type="button" onclick="toggleNewPasswordInputVisibility()"
+                            style="position:absolute; left:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:#64748B; padding:4px;"
+                            title="إظهار / إخفاء">
                             <span id="newPasswordEyeIcon">👁️</span>
                         </button>
                     </div>
-                    <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">تُعتمد كلمة المرور فوراً لتسجيل دخول الفرع عبر رقمه.</small>
+                    <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">تُعتمد كلمة المرور
+                        فوراً لتسجيل دخول الفرع عبر رقمه.</small>
                 </div>
                 <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeChangeBranchPasswordModal()">إلغاء</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeChangeBranchPasswordModal()">إلغاء</button>
                     <button type="submit" class="btn btn-primary">حفظ وتحديث كلمة المرور</button>
                 </div>
             </form>
@@ -552,7 +652,8 @@
                         <span class="pulse-indicator"></span>
                         <h3 id="trackModalTitle">Device Live GPS Tracking</h3>
                     </div>
-                    <p id="trackModalSub" class="modal-subtitle">Tracking satellite coordinates &amp; geofence sentinel...</p>
+                    <p id="trackModalSub" class="modal-subtitle">Tracking satellite coordinates &amp; geofence
+                        sentinel...</p>
                 </div>
                 <button class="btn-close" onclick="closeDeviceTrackModal()">&times;</button>
             </div>
@@ -584,7 +685,8 @@
             <div class="geofence-drawer">
                 <div class="geofence-fields">
                     <label class="toggle-control">
-                        <input type="checkbox" id="modalGeoEnabled" checked onchange="toggleDeviceGeofence(this.checked)">
+                        <input type="checkbox" id="modalGeoEnabled" checked
+                            onchange="toggleDeviceGeofence(this.checked)">
                         <span class="toggle-text">Enforce Perimeter</span>
                     </label>
                     <div class="radius-field">
@@ -593,7 +695,8 @@
                         <span class="radius-unit">meters</span>
                     </div>
                     <button class="btn btn-primary btn-sm" onclick="saveDeviceGeofence()">Save Geofence</button>
-                    <button class="btn btn-secondary btn-sm" onclick="centerOnDeviceLocation()">Center on Device</button>
+                    <button class="btn btn-secondary btn-sm" onclick="centerOnDeviceLocation()">Center on
+                        Device</button>
                 </div>
             </div>
         </div>
@@ -613,7 +716,7 @@
                 </div>
                 <button class="btn-close" onclick="closeScreenStream()">&times;</button>
             </div>
-            
+
             <!-- Realistic Phone Chassis with Touch Overlay -->
             <div class="phone-bezel">
                 <div class="phone-speaker-notch"></div>
@@ -644,15 +747,17 @@
                     <button class="btn btn-secondary btn-xs" onclick="sendDeviceKey('VOLUME_UP')">Vol +</button>
                     <button class="btn btn-secondary btn-xs" onclick="sendDeviceKey('VOLUME_DOWN')">Vol -</button>
                 </div>
-                
+
                 <div class="remote-type-bar">
-                    <input type="text" id="remoteTextInput" placeholder="Type text or URL to send..." onkeydown="if(event.key==='Enter') sendRemoteTextInput()">
+                    <input type="text" id="remoteTextInput" placeholder="Type text or URL to send..."
+                        onkeydown="if(event.key==='Enter') sendRemoteTextInput()">
                     <button class="btn btn-primary btn-xs" onclick="sendRemoteTextInput()">Send Keys</button>
                 </div>
             </div>
 
             <div class="stream-footer">
-                <span id="streamFps" class="stream-status-badge"><span class="dot online" style="display:inline-block; margin-right:4px;"></span>30 FPS • Ultra-Low Latency</span>
+                <span id="streamFps" class="stream-status-badge"><span class="dot online"
+                        style="display:inline-block; margin-right:4px;"></span>30 FPS • Ultra-Low Latency</span>
                 <button class="btn btn-secondary btn-sm" onclick="closeScreenStream()">Close Remote Session</button>
             </div>
         </div>
@@ -662,4 +767,5 @@
     <script src="qrcode.min.js"></script>
     <script src="app.js?v=20260904_6"></script>
 </body>
+
 </html>

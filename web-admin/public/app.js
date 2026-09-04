@@ -348,7 +348,7 @@ async function checkCurrentCompanySubscription() {
             return false;
         }
         const data = await res.json();
-        
+
         if (data.success && data.tenant) {
             currentTenantData = data.tenant;
             const t = currentTenantData;
@@ -394,7 +394,7 @@ async function checkCurrentCompanySubscription() {
                 const whatsapp = devContact.supportWhatsApp || '9647700000000';
                 const phone = devContact.supportPhone || '+9647700000000';
                 const msg = encodeURIComponent(`مرحباً مطور Nexus، أود تفعيل أو تجديد اشتراك شركتنا: ${t.name} (كود: ${t.code})`);
-                
+
                 document.getElementById('btnWhatsAppDev').href = `https://wa.me/${whatsapp}?text=${msg}`;
                 document.getElementById('btnCallDev').href = `tel:${phone}`;
                 return false;
@@ -501,12 +501,12 @@ function renderDeviceTable(devices) {
     const allowWipe = true;
 
     tbody.innerHTML = devices.map(d => {
-        const onlineTag = d.isOnline 
-            ? '<span class="status-tag tag-online"><span class="dot online"></span> Online</span>' 
+        const onlineTag = d.isOnline
+            ? '<span class="status-tag tag-online"><span class="dot online"></span> Online</span>'
             : '<span class="status-tag tag-offline"><span class="dot" style="background:#94A3B8;"></span> Offline</span>';
-            
-        const kioskTag = d.isKiosk 
-            ? '<span class="status-tag tag-kiosk-active">Locked</span>' 
+
+        const kioskTag = d.isKiosk
+            ? '<span class="status-tag tag-kiosk-active">Locked</span>'
             : '<span class="status-tag tag-kiosk-idle">Unrestricted</span>';
 
         const batteryColor = (d.battery > 50) ? '#10B981' : (d.battery > 20 ? '#F59E0B' : '#EF4444');
@@ -577,14 +577,14 @@ function renderDeviceTable(devices) {
                                     <span>${t.actLock}</span>
                                 </button>
                                  ${d.isKiosk ? (
-                                     currentTenantData?.isBranch ?
-                                     `<button class="dropdown-item" style="opacity:0.45; cursor:not-allowed;" onclick="showToast('عذراً! إلغاء وضع الكشك محصور بالإدارة العامة للشركة المركزية فقط.', 'error')" title="محظور للفروع">
+                currentTenantData?.isBranch ?
+                    `<button class="dropdown-item" style="opacity:0.45; cursor:not-allowed;" onclick="showToast('عذراً! إلغاء وضع الكشك محصور بالإدارة العامة للشركة المركزية فقط.', 'error')" title="محظور للفروع">
                                          <span>${t.actExitKiosk} (محظور للفرع)</span>
                                       </button>` :
-                                     `<button class="dropdown-item" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', 'Exit Kiosk Mode', { enable: false })">
+                    `<button class="dropdown-item" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', 'Exit Kiosk Mode', { enable: false })">
                                          <span>${t.actExitKiosk}</span>
                                       </button>`
-                                 ) : `
+            ) : `
                                      <button class="dropdown-item" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', 'Enter Kiosk Mode', { enable: true })">
                                          <span>${t.actEnterKiosk}</span>
                                      </button>
@@ -718,7 +718,7 @@ function generateQrCode() {
     const checksum = document.getElementById('qrApkChecksum').value.trim();
     const wifiSsid = document.getElementById('qrWifiSsid').value.trim();
     const wifiPassword = document.getElementById('qrWifiPassword').value.trim();
-    
+
     // Read the user-defined device name and selected company code!
     const deviceTagInput = document.getElementById('qrDeviceTag');
     const deviceTag = deviceTagInput ? deviceTagInput.value.trim() || 'POS-TERMINAL-01' : 'POS-TERMINAL-01';
@@ -950,7 +950,7 @@ function clearWhitelistTags() {
 function renderWhitelistTags() {
     const container = document.getElementById('whitelistTagsContainer');
     if (!container) return;
-    
+
     if (currentWhitelistPackages.length === 0) {
         container.innerHTML = `
             <div style="width: 100%; padding: 18px; text-align: center; color: #94A3B8; font-size: 13px; border: 1px dashed #CBD5E1; border-radius: 8px;">
@@ -1077,7 +1077,7 @@ async function openDeviceTrackModal(deviceId, deviceName) {
             document.getElementById('modalGeoEnabled').checked = cfg.enabled;
             document.getElementById('modalGeoRadius').value = cfg.radiusMeters;
         }
-    } catch (_) {}
+    } catch (_) { }
 
     updateDeviceTrackModal(deviceId);
 }
@@ -1112,7 +1112,7 @@ function updateDeviceTrackModal(deviceId) {
         } else {
             deviceTrackMarker = L.marker([lat, lng], { icon: customPulseMarkerIcon }).addTo(deviceMap);
         }
-        
+
         deviceTrackMarker.bindPopup(`
             <div style="font-family:Cairo,Inter,sans-serif; text-align:center;">
                 <strong style="color:#0F172A; font-size:13px;">${escapeHtml(device.name || device.id)}</strong><br>
@@ -1172,7 +1172,7 @@ function openScreenStream(deviceId, deviceName) {
             command: 'START_SCREEN_STREAM',
             payload: { timestamp: Date.now() }
         })
-    }).catch(() => {});
+    }).catch(() => { });
 
     if (streamInterval) clearInterval(streamInterval);
     pollScreenFrame();
@@ -1196,7 +1196,7 @@ async function pollScreenFrame() {
                 if (placeholder) placeholder.style.display = 'none';
             }
         }
-    } catch (_) {}
+    } catch (_) { }
     finally {
         isPollingScreen = false;
     }
@@ -1242,7 +1242,7 @@ function handlePhoneScreenClick(event) {
     }).then(() => {
         setTimeout(pollScreenFrame, 150);
         setTimeout(pollScreenFrame, 350);
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 function sendDeviceKey(key) {
@@ -1257,7 +1257,7 @@ function sendDeviceKey(key) {
     }).then(() => {
         setTimeout(pollScreenFrame, 150);
         setTimeout(pollScreenFrame, 350);
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 function sendDeviceSwipe(direction) {
@@ -1272,7 +1272,7 @@ function sendDeviceSwipe(direction) {
     }).then(() => {
         setTimeout(pollScreenFrame, 200);
         setTimeout(pollScreenFrame, 450);
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 function sendRemoteTextInput() {
@@ -1291,7 +1291,7 @@ function sendRemoteTextInput() {
         input.value = '';
         setTimeout(pollScreenFrame, 150);
         setTimeout(pollScreenFrame, 350);
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 // --------------------------------------------------------------------------
@@ -1342,8 +1342,15 @@ async function deployOtaUpdate() {
     const packageName = document.getElementById('apkPackageInput').value.trim() || 'ota_app';
 
     if (!apkUrl) {
-        showToast('يرجى إدخال رابط تحميل الـ APK المباشر', 'error');
+        showToast('يرجى اختيار ملف APK لرفعه أو إدخال رابط تحميل مباشر', 'error');
         return;
+    }
+
+    const statusBox = document.getElementById('otaStatusMessage');
+    if (statusBox) {
+        statusBox.style.display = 'block';
+        statusBox.className = 'status-box status-loading';
+        statusBox.innerText = 'جاري إرسال أمر التثبيت الصامت للأجهزة المستهدفة...';
     }
 
     try {
@@ -1354,13 +1361,94 @@ async function deployOtaUpdate() {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('تمت جدولة تثبيت التحديث الصامت OTA بنجاح!', 'success');
+            showToast('تمت جدولة تثبيت التطبيق بنجاح! ستقوم الأجهزة بتحميله وتثبيته فوراً.', 'success');
+            if (statusBox) {
+                statusBox.className = 'status-box status-success';
+                statusBox.innerText = 'تم إرسال أمر التثبيت بنجاح! ستقوم الأجهزة بتحميل الـ APK وتثبيته فوراً في الخلفية.';
+            }
         } else {
             showToast(data.error || 'فشل الجدولة', 'error');
+            if (statusBox) {
+                statusBox.className = 'status-box status-error';
+                statusBox.innerText = data.error || 'فشلت جدولة التثبيت';
+            }
         }
     } catch (e) {
-        showToast('خطأ في الاتصال', 'error');
+        showToast('خطأ في الاتصال بالسيرفر', 'error');
+        if (statusBox) {
+            statusBox.className = 'status-box status-error';
+            statusBox.innerText = 'خطأ في الاتصال بالسيرفر';
+        }
     }
+}
+
+function handleOtaFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.apk')) {
+        showToast('يرجى اختيار ملف بصيغة APK فقط (.apk)', 'error');
+        return;
+    }
+
+    const progressWrap = document.getElementById('otaUploadProgressWrap');
+    const progressBar = document.getElementById('otaProgressBar');
+    const percentLabel = document.getElementById('otaUploadPercent');
+    const fileNameLabel = document.getElementById('otaUploadFileName');
+
+    if (progressWrap) progressWrap.style.display = 'block';
+    if (fileNameLabel) fileNameLabel.innerText = `${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+    if (progressBar) progressBar.style.width = '0%';
+    if (percentLabel) percentLabel.innerText = '0%';
+
+    showToast(`جاري رفع ملف ${file.name}...`, 'info');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/ota/upload');
+    xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+    xhr.setRequestHeader('Content-Type', 'application/vnd.android.package-archive');
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (percentLabel) percentLabel.innerText = percent + '%';
+        }
+    };
+
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    const urlInput = document.getElementById('apkUrlInput');
+                    if (urlInput) urlInput.value = data.url;
+                    
+                    // Suggest package name if empty
+                    const pkgInput = document.getElementById('apkPackageInput');
+                    if (pkgInput && !pkgInput.value) {
+                        const baseName = file.name.replace(/\.apk$/i, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+                        pkgInput.value = 'app.' + baseName;
+                    }
+
+                    if (percentLabel) percentLabel.innerText = 'اكتمل الرفع 100% ✓';
+                    showToast(`تم رفع ${file.name} بنجاح! الرابط المباشر جاهز للتوزيع الآن.`, 'success');
+                } else {
+                    showToast(data.error || 'فشل في معالجة الملف', 'error');
+                }
+            } catch (e) {
+                showToast('خطأ في استجابة السيرفر بعد الرفع', 'error');
+            }
+        } else {
+            showToast('فشل في رفع الملف، رمز الخطأ: ' + xhr.status, 'error');
+        }
+    };
+
+    xhr.onerror = () => {
+        showToast('خطأ في الاتصال أثناء رفع الملف إلى السيرفر', 'error');
+    };
+
+    xhr.send(file);
 }
 
 async function fetchLogs() {
@@ -1372,7 +1460,7 @@ async function fetchLogs() {
         list.innerHTML = logs.map(l => `
             <li><span style="color:#64748B;">[${escapeHtml(l.timestamp)}]</span> <strong>${escapeHtml(l.action)}</strong> (${escapeHtml(l.target)}): ${escapeHtml(l.details)}</li>
         `).join('');
-    } catch (_) {}
+    } catch (_) { }
 }
 
 function escapeHtml(str) {
@@ -1738,7 +1826,7 @@ async function handleCompanyLogout() {
                     'X-Tenant-Token': currentTenantToken
                 }
             });
-        } catch (_) {}
+        } catch (_) { }
     }
     sessionStorage.removeItem('nexus_tenant_token');
     localStorage.removeItem('nexus_tenant_token');
