@@ -1431,7 +1431,7 @@ function handleOtaFileUpload(event) {
                         pkgInput.value = 'app.' + baseName;
                     }
 
-                    if (percentLabel) percentLabel.innerText = 'اكتمل الرفع 100% ✓';
+                    if (percentLabel) percentLabel.innerText = 'اكتمل الرفع 100%';
                     showToast(`تم رفع ${file.name} بنجاح! الرابط المباشر جاهز للتوزيع الآن.`, 'success');
                 } else {
                     showToast(data.error || 'فشل في معالجة الملف', 'error');
@@ -1538,11 +1538,11 @@ function renderBranchesTable(branches) {
             <td>
                 <div style="display:inline-flex; align-items:center; gap:6px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:3px 8px;">
                     <span id="branchPwdText_${b.id}" style="font-family:monospace; font-size:13px; font-weight:600; color:#334155; min-width:65px; letter-spacing:1px; user-select:all;">••••••</span>
-                    <button type="button" class="btn btn-secondary btn-xs" onclick="toggleBranchPasswordVisibility('${b.id}', '${escapeHtml(branchPwd)}')" title="إظهار / إخفاء كلمة المرور" style="padding:2px 6px; font-size:11px; cursor:pointer;">
-                        <span id="branchPwdEye_${b.id}">👁️</span>
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="toggleBranchPasswordVisibility('${b.id}', '${escapeHtml(branchPwd)}')" title="إظهار / إخفاء كلمة المرور" style="padding:2px 8px; font-size:11px; cursor:pointer;">
+                        <span id="branchPwdEye_${b.id}">عرض</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-xs" onclick="copyToClipboard('${escapeHtml(branchPwd)}', 'تم نسخ كلمة مرور الفرع إلى الحافظة!')" title="نسخ كلمة المرور" style="padding:2px 6px; font-size:11px; cursor:pointer;">
-                        📋
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="copyToClipboard('${escapeHtml(branchPwd)}', 'تم نسخ كلمة مرور الفرع إلى الحافظة!')" title="نسخ كلمة المرور" style="padding:2px 8px; font-size:11px; cursor:pointer;">
+                        نسخ
                     </button>
                 </div>
             </td>
@@ -1552,7 +1552,7 @@ function renderBranchesTable(branches) {
             <td>
                 <div style="display:inline-flex; gap:6px; align-items:center;">
                     <button class="btn btn-secondary btn-xs" onclick="openChangeBranchPasswordModal('${b.id}', '${escapeHtml(b.name)}', '${escapeHtml(b.number || '')}', '${escapeHtml(branchPwd)}')" title="تغيير كلمة المرور لهذا الفرع">
-                        🔑 تغيير كلمة المرور
+                        تغيير كلمة المرور
                     </button>
                     <button class="btn btn-danger-soft btn-xs" onclick="deleteBranch('${b.id}', '${escapeHtml(b.name)}')">
                         حذف الفرع
@@ -1591,12 +1591,12 @@ function toggleBranchPasswordVisibility(branchId, actualPassword) {
         textEl.innerText = actualPassword;
         textEl.style.color = '#1E40AF';
         textEl.style.letterSpacing = 'normal';
-        if (eyeEl) eyeEl.innerText = '🔒';
+        if (eyeEl) eyeEl.innerText = 'إخفاء';
     } else {
         textEl.innerText = '••••••';
         textEl.style.color = '#334155';
         textEl.style.letterSpacing = '1px';
-        if (eyeEl) eyeEl.innerText = '👁️';
+        if (eyeEl) eyeEl.innerText = 'عرض';
     }
 }
 
@@ -1615,7 +1615,7 @@ function openChangeBranchPasswordModal(branchId, branchName, branchNumber, curre
         pwdInput.type = 'password';
     }
     const eyeIcon = document.getElementById('newPasswordEyeIcon');
-    if (eyeIcon) eyeIcon.innerText = '👁️';
+    if (eyeIcon) eyeIcon.innerText = 'عرض';
 
     if (modal) modal.style.display = 'flex';
 }
@@ -1631,10 +1631,10 @@ function toggleNewPasswordInputVisibility() {
     if (!pwdInput) return;
     if (pwdInput.type === 'password') {
         pwdInput.type = 'text';
-        if (eyeIcon) eyeIcon.innerText = '🔒';
+        if (eyeIcon) eyeIcon.innerText = 'إخفاء';
     } else {
         pwdInput.type = 'password';
-        if (eyeIcon) eyeIcon.innerText = '👁️';
+        if (eyeIcon) eyeIcon.innerText = 'عرض';
     }
 }
 

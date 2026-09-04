@@ -628,7 +628,7 @@ function populateOtaTargets() {
     if (allDevicesCache && allDevicesCache.length > 0) {
         html += `<optgroup label="أجهزة محددة بالاسم / المعرف">`;
         allDevicesCache.forEach(d => {
-            const status = d.isOnline ? '🟢 متصل' : '⚪ غير متصل';
+            const status = d.isOnline ? 'متصل' : 'غير متصل';
             html += `<option value="DEVICE:${d.id}">${escapeHtml(d.name || d.id)} - [${escapeHtml(d.model || 'Android')}] (${status})</option>`;
         });
         html += `</optgroup>`;
@@ -706,7 +706,7 @@ async function handleOtaFileSelected(event) {
 
         if (data.success) {
             progressBar.style.width = '100%';
-            statusText.innerText = `✅ تم الرفع بنجاح! الرابط جاهز للبث.`;
+            statusText.innerText = `تم الرفع بنجاح! الرابط جاهز للبث.`;
             document.getElementById('otaApkUrl').value = data.url;
             document.getElementById('otaReleaseChecksum').value = data.sha256;
 
@@ -716,11 +716,11 @@ async function handleOtaFileSelected(event) {
 
             showDevToast(`تم رفع ${file.name} بنجاح وحساب البصمة.`, 'success');
         } else {
-            statusText.innerText = `❌ ${data.error || 'فشل الرفع'}`;
+            statusText.innerText = data.error || 'فشل الرفع';
             showDevToast(data.error || 'فشل رفع ملف الـ APK', 'error');
         }
     } catch (e) {
-        statusText.innerText = '❌ خطأ أثناء رفع الملف للسيرفر';
+        statusText.innerText = 'خطأ أثناء رفع الملف للسيرفر';
         showDevToast('خطأ في الاتصال أثناء رفع الملف.', 'error');
     }
 }

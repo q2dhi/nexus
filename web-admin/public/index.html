@@ -219,18 +219,23 @@
                                 <option value="ALL">جميع أجهزة الأسطول (All Fleet Devices - Broadcast)</option>
                             </select>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchDevices().then(renderKioskAppsCatalog)" title="تحديث قائمة تطبيقات الجهاز" style="white-space: nowrap;">
-                                🔄 تحديث التطبيقات
+                                تحديث التطبيقات
                             </button>
                         </div>
                         <div id="deviceInstalledHint" style="font-size: 11.5px; color: #2563EB; margin-top: 4px; display: none;">
-                            📱 يتم الآن عرض التطبيقات المثبتة فعلياً على هذا الجهاز
+                            يتم الآن عرض التطبيقات المثبتة فعلياً على هذا الجهاز
                         </div>
                     </div>
 
                     <!-- Search and Filters Bar -->
                     <div class="kiosk-apps-header-bar">
                         <div class="kiosk-apps-search-wrap">
-                            <span class="kiosk-apps-search-icon">🔍</span>
+                            <span class="kiosk-apps-search-icon" style="display: flex; align-items: center;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
                             <input type="text" id="kioskAppsSearchInput" class="kiosk-apps-search-input" placeholder="ابحث عن اسم أي تطبيق (واتساب، كاميرا، كروم، مبيعات...)" oninput="filterKioskApps()">
                         </div>
                         <div class="kiosk-apps-filter-tabs">
@@ -256,7 +261,7 @@
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <button id="btnDeployWhitelist" class="btn btn-primary" onclick="deployWhitelist()" style="padding: 10px 24px; font-weight: 700; font-size: 14px;">
-                                <span>توزيع وحفظ التطبيقات المسموحة للأجهزة 🚀</span>
+                                <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
                             </button>
                         </div>
                     </div>
@@ -265,7 +270,7 @@
                     <!-- Collapsible Advanced: Custom Package Input -->
                     <details style="margin-top: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
                         <summary style="cursor: pointer; font-size: 12.5px; font-weight: 600; color: #64748B;">
-                            ⚙️ خيارات متقدمة: إضافة اسم حزمة تطبيق مخصص يدوياً (Custom Package Name)
+                            خيارات متقدمة: إضافة اسم حزمة تطبيق مخصص يدوياً (Custom Package Name)
                         </summary>
                         <div style="margin-top: 12px;">
                             <div style="display: flex; gap: 8px;">
@@ -289,13 +294,19 @@
                 <div class="form-container" style="max-width: 780px;">
                     <!-- Direct APK Upload Dropzone -->
                     <div class="form-group" style="background: #F8FAFC; border: 2px dashed #93C5FD; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 22px;">
-                        <div style="font-size: 40px; margin-bottom: 8px;">📦</div>
+                        <div style="margin-bottom: 10px; display: flex; justify-content: center; color: #2563EB;">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                        </div>
                         <strong style="display: block; font-size: 16px; color: #1E3A8A; margin-bottom: 6px;">رفع ملف التطبيق (APK) مباشرة من جهازك</strong>
                         <p style="font-size: 13px; color: #64748B; margin-bottom: 16px;">اختر ملف التطبيق (.apk) المخزن على جهازك لرفعه لسيرفرك تلقائياً وتوليد رابط التحميل المباشر الآمن.</p>
                         
                         <input type="file" id="otaApkFileInput" accept=".apk" style="display: none;" onchange="handleOtaFileUpload(event)">
                         <button type="button" class="btn btn-primary" onclick="document.getElementById('otaApkFileInput').click()" style="padding: 10px 24px; font-weight: 700;">
-                            📂 اختر ملف APK من جهازك
+                            اختر ملف APK من جهازك
                         </button>
                         
                         <div id="otaUploadProgressWrap" style="display: none; margin-top: 16px; max-width: 420px; margin-left: auto; margin-right: auto;">
@@ -320,7 +331,7 @@
                         <label for="apkUrlInput" style="font-weight: 700;">رابط تحميل الـ APK المباشر (Direct Download URL):</label>
                         <input type="url" id="apkUrlInput" class="form-input" placeholder="سيتم تعبئة الرابط تلقائياً عند رفع الملف أعلاه، أو ضع رابطاً مباشراً ينتهي بـ .apk">
                         <span class="input-hint" style="color: #64748B; font-size: 11.5px; display: block; margin-top: 5px;">
-                            💡 <strong>ملاحظة هامة:</strong> يجب أن ينتهي الرابط بـ <code>.apk</code> مباشر. روابط المواقع (مثل صفحات APKPure أو Mediafire) تفشل لأنها صفحات ويب وليست ملفات خام. استخدم زر الرفع أعلاه لضمان التحميل 100%.
+                            <strong>ملاحظة هامة:</strong> يجب أن ينتهي الرابط بـ <code>.apk</code> مباشر. روابط المواقع (مثل صفحات APKPure أو Mediafire) تفشل لأنها صفحات ويب وليست ملفات خام. استخدم زر الرفع أعلاه لضمان التحميل 100%.
                         </span>
                     </div>
 
@@ -331,7 +342,7 @@
 
                     <div style="margin-top: 20px;">
                         <button class="btn btn-primary" onclick="deployOtaUpdate()" style="padding: 12px 28px; font-weight: 700; font-size: 14.5px;">
-                            🚀 إرسال وتثبيت التطبيق على الأجهزة الآن
+                            إرسال وتثبيت التطبيق على الأجهزة الآن
                         </button>
                     </div>
                     <div id="otaStatusMessage" class="status-box" style="margin-top: 14px; display: none;"></div>
@@ -595,7 +606,7 @@
         <div class="modal-card" style="max-width:480px;">
             <div class="modal-header-flex"
                 style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
-                <h3 style="margin:0; font-size:17px; font-weight:700; color:#0F172A;">🔑 تغيير كلمة مرور ويب الفرع</h3>
+                <h3 style="margin:0; font-size:17px; font-weight:700; color:#0F172A;">تغيير كلمة مرور ويب الفرع</h3>
                 <button class="btn-close" onclick="closeChangeBranchPasswordModal()">&times;</button>
             </div>
             <form onsubmit="submitChangeBranchPassword(event)">
@@ -616,7 +627,7 @@
                         <button type="button" onclick="toggleNewPasswordInputVisibility()"
                             style="position:absolute; left:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:#64748B; padding:4px;"
                             title="إظهار / إخفاء">
-                            <span id="newPasswordEyeIcon">👁️</span>
+                            <span id="newPasswordEyeIcon" style="font-size:12px; font-weight:600;">عرض</span>
                         </button>
                     </div>
                     <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">تُعتمد كلمة المرور
