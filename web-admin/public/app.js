@@ -900,22 +900,81 @@ window.addEventListener('scroll', () => {
 // KIOSK APP WHITELIST CONTROLLER
 // --------------------------------------------------------------------------
 let currentWhitelistPackages = [
-    "com.sec.android.app.popupcalculator",
-    "com.google.android.calculator",
+    "com.sec.android.app.camera",
+    "com.google.android.apps.maps",
     "com.android.chrome",
-    "com.sec.android.app.camera"
+    "com.sec.android.app.popupcalculator"
 ];
 
 const PRESET_APP_LABELS = {
+    "com.sec.android.app.camera": "كاميرا سامسونج (Camera)",
+    "com.google.android.GoogleCamera": "كاميرا جوجل (Google Camera)",
+    "com.android.camera2": "كاميرا أندرويد (Camera)",
+    "com.google.android.apps.maps": "خرائط جوجل (Google Maps)",
+    "com.android.chrome": "متصفح كروم (Google Chrome)",
     "com.sec.android.app.popupcalculator": "حاسبة سامسونج (Samsung Calc)",
     "com.google.android.calculator": "حاسبة جوجل (Google Calc)",
-    "com.android.chrome": "متصفح كروم (Google Chrome)",
-    "com.sec.android.app.camera": "كاميرا سامسونج (Camera)",
-    "com.google.android.apps.photos": "صور جوجل (Google Photos)",
-    "com.whatsapp": "واتساب (WhatsApp)"
+    "com.whatsapp": "واتساب (WhatsApp)",
+    "com.whatsapp.w4b": "واتساب للأعمال (WhatsApp Business)",
+    "com.samsung.android.dialer": "هاتف سامسونج (Phone)",
+    "com.google.android.dialer": "هاتف جوجل (Google Phone)",
+    "com.sec.android.gallery3d": "معرض الصور (Samsung Gallery)",
+    "com.google.android.apps.photos": "صور جوجل (Google Photos)"
 };
 
+const QUICK_SUGGESTIONS = [
+    {
+        id: "camera",
+        title: "تطبيق الكاميرا (Camera)",
+        subtitle: "الكاميرا الرسمية (Samsung & Google & Android)",
+        packages: ["com.sec.android.app.camera", "com.google.android.GoogleCamera", "com.android.camera2"],
+        primaryPkg: "com.sec.android.app.camera",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
+    },
+    {
+        id: "maps",
+        title: "تطبيق الخرائط (Google Maps)",
+        subtitle: "ملاحة وتحديد المواقع الرسمية",
+        packages: ["com.google.android.apps.maps"],
+        primaryPkg: "com.google.android.apps.maps",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>`
+    },
+    {
+        id: "chrome",
+        title: "متصفح كروم (Google Chrome)",
+        subtitle: "تصفح الويب الآمن",
+        packages: ["com.android.chrome"],
+        primaryPkg: "com.android.chrome",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>`
+    },
+    {
+        id: "calculator",
+        title: "الآلة الحاسبة (Calculator)",
+        subtitle: "حاسبة سامسونج وجوجل المدمجة",
+        packages: ["com.sec.android.app.popupcalculator", "com.google.android.calculator"],
+        primaryPkg: "com.sec.android.app.popupcalculator",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>`
+    },
+    {
+        id: "whatsapp",
+        title: "واتساب (WhatsApp)",
+        subtitle: "المراسلة والتواصل المؤسسي",
+        packages: ["com.whatsapp", "com.whatsapp.w4b"],
+        primaryPkg: "com.whatsapp",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>`
+    },
+    {
+        id: "dialer",
+        title: "الهاتف وجهات الاتصال (Phone)",
+        subtitle: "لوحة الاتصال وسجل المكالمات",
+        packages: ["com.samsung.android.dialer", "com.google.android.dialer"],
+        primaryPkg: "com.samsung.android.dialer",
+        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`
+    }
+];
+
 function initWhitelistView() {
+    renderQuickSuggestions();
     renderWhitelistTags();
     updateDeviceSelect(lastDevicesCache || []);
 }
@@ -930,13 +989,65 @@ function onWhitelistDeviceChanged() {
             currentWhitelistPackages = [...dev.whitelistedApps];
         }
     }
+    renderQuickSuggestions();
     renderWhitelistTags();
+}
+
+function toggleQuickSuggestion(id) {
+    const item = QUICK_SUGGESTIONS.find(s => s.id === id);
+    if (!item) return;
+
+    const hasAny = item.packages.some(pkg => currentWhitelistPackages.includes(pkg));
+    if (hasAny) {
+        currentWhitelistPackages = currentWhitelistPackages.filter(pkg => !item.packages.includes(pkg));
+        showToast(`تمت إزالة ${item.title} من قائمة الكشك`, 'info');
+    } else {
+        item.packages.forEach(pkg => {
+            if (!currentWhitelistPackages.includes(pkg)) {
+                currentWhitelistPackages.push(pkg);
+            }
+        });
+        showToast(`تمت إضافة ${item.title} إلى قائمة الكشك`, 'success');
+    }
+
+    renderQuickSuggestions();
+    renderWhitelistTags();
+}
+
+function renderQuickSuggestions() {
+    const grid = document.getElementById('quickSuggestionsGrid');
+    if (!grid) return;
+
+    grid.innerHTML = QUICK_SUGGESTIONS.map(s => {
+        const isSelected = s.packages.some(pkg => currentWhitelistPackages.includes(pkg));
+        return `
+            <div class="kiosk-suggestion-card ${isSelected ? 'selected' : ''}" onclick="toggleQuickSuggestion('${s.id}')" title="انقر لتفعيل أو إلغاء تطبيق ${escapeHtml(s.title)}">
+                <div class="kiosk-suggestion-icon">
+                    ${s.icon}
+                </div>
+                <div class="kiosk-suggestion-info">
+                    <span class="kiosk-suggestion-title">${escapeHtml(s.title)}</span>
+                    <span class="kiosk-suggestion-sub">${escapeHtml(s.subtitle)}</span>
+                </div>
+                <div class="kiosk-suggestion-badge">
+                    ${isSelected ? `
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>مسموح</span>
+                    ` : `
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>إضافة</span>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function addPreset(pkg) {
     if (!pkg) return;
     if (!currentWhitelistPackages.includes(pkg)) {
         currentWhitelistPackages.push(pkg);
+        renderQuickSuggestions();
         renderWhitelistTags();
         showToast(`تمت إضافة ${PRESET_APP_LABELS[pkg] || pkg} إلى قائمة الكشك`, 'info');
     } else {
@@ -946,46 +1057,65 @@ function addPreset(pkg) {
 
 function addCustomPackage() {
     const input = document.getElementById('customPackageInput');
+    const inputLabel = document.getElementById('customPackageLabelInput');
     if (!input) return;
+
     const pkg = input.value.trim();
+    const label = inputLabel ? inputLabel.value.trim() : '';
+
     if (!pkg) {
-        showToast('يرجى كتابة اسم حزمة التطبيق مثل com.android.chrome', 'warning');
+        showToast('يرجى كتابة اسم حزمة التطبيق مثل com.company.pos', 'warning');
         return;
     }
     if (!pkg.includes('.') || pkg.length < 3) {
         showToast('اسم الحزمة يجب أن يحتوي على نقطة مثل com.company.app', 'warning');
         return;
     }
+
     if (!currentWhitelistPackages.includes(pkg)) {
         currentWhitelistPackages.push(pkg);
+        if (label) {
+            PRESET_APP_LABELS[pkg] = `${label} (${pkg})`;
+        }
         input.value = '';
+        if (inputLabel) inputLabel.value = '';
+        renderQuickSuggestions();
         renderWhitelistTags();
-        showToast(`تمت إضافة ${pkg} بنجاح`, 'info');
+        showToast(`تمت إضافة ${label || pkg} بنجاح`, 'success');
     } else {
-        showToast('هذا التطبيق مضاف مسبقاً', 'warning');
+        showToast('هذا التطبيق مضاف مسبقاً في القائمة', 'warning');
     }
 }
 
 function removeWhitelistTag(pkg) {
     currentWhitelistPackages = currentWhitelistPackages.filter(p => p !== pkg);
+    renderQuickSuggestions();
     renderWhitelistTags();
 }
 
 function clearWhitelistTags() {
     if (confirm('هل أنت متأكد من مسح جميع التطبيقات من القائمة المسموحة؟')) {
         currentWhitelistPackages = [];
+        renderQuickSuggestions();
         renderWhitelistTags();
+        showToast('تم مسح جميع التطبيقات من القائمة', 'info');
     }
 }
 
 function renderWhitelistTags() {
     const container = document.getElementById('whitelistTagsContainer');
+    const countEl = document.getElementById('kioskSelectedCount');
+
+    if (countEl) {
+        countEl.innerText = currentWhitelistPackages.length;
+    }
+
     if (!container) return;
 
     if (currentWhitelistPackages.length === 0) {
         container.innerHTML = `
-            <div style="width: 100%; padding: 18px; text-align: center; color: #94A3B8; font-size: 13px; border: 1px dashed #CBD5E1; border-radius: 8px;">
-                لم يتم تعيين أي تطبيقات حتى الآن. انقر على الحزم السريعة المقترحة أعلاه أو اكتب اسم حزمة تطبيق مخصص.
+            <div style="width: 100%; padding: 18px; text-align: center; color: #94A3B8; font-size: 13px;">
+                لم يتم تعيين أي تطبيقات حتى الآن. انقر على الاقتراحات السريعة أعلاه أو أضف تطبيقاً مخصصاً.
             </div>
         `;
         return;
@@ -994,10 +1124,11 @@ function renderWhitelistTags() {
     container.innerHTML = currentWhitelistPackages.map(pkg => {
         const label = PRESET_APP_LABELS[pkg] || pkg;
         return `
-            <div class="whitelist-tag-chip" style="display: inline-flex; align-items: center; gap: 8px; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 6px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; margin: 4px;">
+            <div class="whitelist-tag-chip">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>${escapeHtml(label)}</span>
-                <span style="font-family: monospace; font-size: 10.5px; color: #3B82F6; opacity: 0.85;">(${escapeHtml(pkg)})</span>
-                <button type="button" onclick="removeWhitelistTag('${escapeHtml(pkg)}')" style="background: none; border: none; color: #DC2626; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;" title="إزالة">&times;</button>
+                <span class="whitelist-tag-pkg">${escapeHtml(pkg)}</span>
+                <button type="button" class="whitelist-tag-del" onclick="removeWhitelistTag('${escapeHtml(pkg)}')" title="إزالة">&times;</button>
             </div>
         `;
     }).join('');

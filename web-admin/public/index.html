@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260906_3">
+    <link rel="stylesheet" href="style.css?v=20260906_4">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -222,111 +222,112 @@
                 <div class="pane-header">
                     <div>
                         <h2 id="whitelistTitle">إدارة واختيار تطبيقات وضع الكشك (App Whitelist)</h2>
-                        <p class="section-desc" id="whitelistDesc">اختر التطبيقات المسموحة للمستخدمين بنقرة واحدة،
-                            وستظهر التطبيقات المحملة على الهاتف تلقائياً.</p>
+                        <p class="section-desc" id="whitelistDesc">اختر التطبيقات المسموحة للمستخدمين في الكشك بنقرة واحدة، أو أضف تطبيقات مخصصة.</p>
                     </div>
                     <div class="pane-actions">
                         <button id="btnDeployWhitelistTop" class="btn btn-primary btn-sm" onclick="deployWhitelist()">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                             <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="form-container" style="max-width: 960px;">
+                <div class="form-container" style="max-width: 980px;">
                     <!-- Target Device Selector -->
-                    <div class="form-group" style="margin-bottom: 14px;">
-                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700;">الجهاز
-                            المستهدف (Target Device):</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                    <div class="form-group" style="margin-bottom: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px;">
+                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700; color: #0F172A; margin-bottom: 8px; display: block;">الجهاز المستهدف (Target Device):</label>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <select id="whitelistDeviceSelect" class="form-input" onchange="onWhitelistDeviceChanged()"
-                                style="font-weight: 600;">
+                                style="font-weight: 600; flex: 1; min-width: 260px;">
                                 <option value="ALL">جميع أجهزة الأسطول (All Fleet Devices - Broadcast)</option>
                             </select>
                             <button type="button" class="btn btn-secondary btn-sm"
-                                onclick="fetchDevices().then(renderKioskAppsCatalog)" title="تحديث قائمة تطبيقات الجهاز"
+                                onclick="fetchDevices().then(initWhitelistView)" title="تحديث قائمة تطبيقات الجهاز"
                                 style="white-space: nowrap;">
-                                تحديث التطبيقات
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                <span>تحديث التطبيقات</span>
                             </button>
                         </div>
-                        <div id="deviceInstalledHint"
-                            style="font-size: 11.5px; color: #2563EB; margin-top: 4px; display: none;">
-                            يتم الآن عرض التطبيقات المثبتة فعلياً على هذا الجهاز
+                    </div>
+
+                    <!-- Quick Suggestions Section (Camera, Maps, Chrome, etc.) -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="margin-bottom: 12px;">
+                            <h3 style="font-size: 15px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#2563EB" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <span>اقتراحات سهلة الوصول (انقر للإضافة أو الإزالة مباشرة)</span>
+                            </h3>
+                            <p style="font-size: 12.5px; color: #64748B; margin-top: 2px;">تطبيقات الكاميرا، الخرائط، والتطبيقات الأساسية مجهزة للاختيار الفوري بنقرة واحدة:</p>
+                        </div>
+
+                        <!-- Suggestions Cards Grid -->
+                        <div id="quickSuggestionsGrid" class="kiosk-suggestions-grid">
+                            <!-- Populated dynamically via renderQuickSuggestions() -->
                         </div>
                     </div>
 
-                    <!-- Search and Filters Bar -->
-                    <div class="kiosk-apps-header-bar">
-                        <div class="kiosk-apps-search-wrap">
-                            <span class="kiosk-apps-search-icon" style="display: flex; align-items: center;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                            </span>
-                            <input type="text" id="kioskAppsSearchInput" class="kiosk-apps-search-input"
-                                placeholder="ابحث عن اسم أي تطبيق (واتساب، كاميرا، كروم، مبيعات...)"
-                                oninput="filterKioskApps()">
-                        </div>
-                        <div class="kiosk-apps-filter-tabs">
-                            <button type="button" class="kiosk-filter-tab active" data-filter="all"
-                                onclick="setKioskAppsFilter('all', this)">الكل (<span
-                                    id="countFilterAll">0</span>)</button>
-                            <button type="button" class="kiosk-filter-tab" data-filter="selected"
-                                onclick="setKioskAppsFilter('selected', this)">المسموحة للكشك (<span
-                                    id="countFilterSelected">0</span>)</button>
-                            <button type="button" class="kiosk-filter-tab" data-filter="installed"
-                                onclick="setKioskAppsFilter('installed', this)">المثبتة على الهاتف (<span
-                                    id="countFilterInstalled">0</span>)</button>
-                            <button type="button" class="btn btn-xs btn-secondary" onclick="selectAllVisibleApps()"
-                                style="margin-right: 6px;">تحديد الكل</button>
-                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()"
-                                style="color: #DC2626;">إلغاء التحديد</button>
+                    <!-- Add Custom Application Section -->
+                    <div style="margin-bottom: 24px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px;">
+                        <h3 style="font-size: 14.5px; font-weight: 700; color: #0F172A; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1E40AF" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span>إضافة تطبيق آخر مخصص (Add Custom Application)</span>
+                        </h3>
+                        <p style="font-size: 12.5px; color: #64748B; margin-bottom: 12px;">أضف أي تطبيق آخر مثبت على الهاتف بكتابة اسم الحزمة Package ID (مثل تطبيق مبيعات، نقاط بيع POS، أو محاسبة):</p>
+                        
+                        <div style="display: grid; grid-template-columns: 2fr 1.5fr auto; gap: 10px; align-items: flex-end;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">معرّف حزمة التطبيق (Package ID) *</label>
+                                <input type="text" id="customPackageInput" class="form-input"
+                                    placeholder="مثال: com.company.pos أو com.custom.app"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">اسم التطبيق المقروء (اختياري)</label>
+                                <input type="text" id="customPackageLabelInput" class="form-input"
+                                    placeholder="مثال: نظام المبيعات"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
+                            </div>
+                            <button type="button" id="btnAddCustomPkg" class="btn btn-primary" onclick="addCustomPackage()" style="white-space: nowrap; height: 42px;">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                <span>إضافة للقائمة</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Apps Grid Container -->
-                    <div id="kioskAppsGrid" class="kiosk-apps-grid">
-                        <!-- Populated dynamically with interactive app cards -->
+                    <!-- Currently Allowed Applications List -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <h3 style="font-size: 14.5px; font-weight: 700; color: #0F172A;">
+                                التطبيقات المسموحة حالياً في شاشة الكشك (<span id="kioskSelectedCount" style="color: #16A34A; font-weight: 800;">0</span> تطبيق)
+                            </h3>
+                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()" style="color: #DC2626; border-color: #FECACA;">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                <span>مسح كل التطبيقات</span>
+                            </button>
+                        </div>
+
+                        <div id="whitelistTagsContainer" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; min-height: 70px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                            <!-- Populated dynamically -->
+                        </div>
                     </div>
 
                     <!-- Selection Summary & Deploy Bar -->
-                    <div class="kiosk-selection-summary-bar">
+                    <div class="kiosk-selection-summary-bar" style="margin-top: 20px; padding: 16px 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 13.5px; font-weight: 700; color: #0F172A;">
-                                تم اختيار <span id="kioskSelectedCount"
-                                    style="color: #16A34A; font-size: 16px;">0</span> تطبيق مسموح في شاشة الكشك
+                                احفظ التغييرات وانشرها مباشرة على الأجهزة:
                             </span>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <button id="btnDeployWhitelist" class="btn btn-primary" onclick="deployWhitelist()"
-                                style="padding: 10px 24px; font-weight: 700; font-size: 14px;">
+                                style="padding: 10px 26px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 6px rgba(30, 64, 175, 0.25);">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                                 <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
                             </button>
                         </div>
                     </div>
-                    <div id="whitelistStatusMessage" class="status-box" style="display: none; margin-top: 14px;"></div>
 
-                    <!-- Collapsible Advanced: Custom Package Input -->
-                    <details
-                        style="margin-top: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
-                        <summary style="cursor: pointer; font-size: 12.5px; font-weight: 600; color: #64748B;">
-                            خيارات متقدمة: إضافة اسم حزمة تطبيق مخصص يدوياً (Custom Package Name)
-                        </summary>
-                        <div style="margin-top: 12px;">
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="customPackageInput" class="form-input"
-                                    placeholder="مثال: com.company.pos أو com.custom.app"
-                                    onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
-                                <button type="button" id="btnAddCustomPkg" class="btn btn-secondary"
-                                    onclick="addCustomPackage()" style="white-space: nowrap; padding: 0 20px;">+ إضافة
-                                    للقائمة</button>
-                            </div>
-                            <small style="color: #64748B; font-size: 11px; margin-top: 4px; display: block;">لإضافة أي
-                                تطبيق داخلي نادر بكتابة معرف الحزمة Package ID مباشرة.</small>
-                            <div style="margin-top: 10px;" id="whitelistTagsContainer"></div>
-                        </div>
-                    </details>
+                    <div id="whitelistStatusMessage" class="status-box" style="display: none; margin-top: 14px;"></div>
                 </div>
             </section>
 
@@ -1280,7 +1281,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js"></script>
-    <script src="app.js?v=20260906_3"></script>
+    <script src="app.js?v=20260906_4"></script>
 </body>
 
 </html>
