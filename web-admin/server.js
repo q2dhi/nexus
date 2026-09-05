@@ -105,30 +105,46 @@ app.post('/api/commands', (req, res) => {
 // ADMIN API: Deploy OTA App Update
 // --------------------------------------------------------------------------
 app.post('/api/apps/deploy', (req, res) => {
-    const { deviceId, apkUrl, packageName } = req.body;
+    const { deviceId, apkUrl, packageName, autoWhitelist } = req.body;
     if (!apkUrl) {
         return res.status(400).json({ error: 'APK download URL required' });
     }
 
+    const pkgName = (packageName || 'ota_update_app').trim();
     const installCommand = {
         command: 'INSTALL_APK_FROM_URL',
         url: apkUrl,
-        package_name: packageName || 'ota_update_app',
+        package_name: pkgName,
         timestamp: Date.now()
     };
 
-    if (deviceId === 'ALL') {
-        devices.forEach((_, id) => {
-            const queue = pendingCommands.get(id) || [];
-            queue.push(installCommand);
-            pendingCommands.set(id, queue);
-        });
-        addAuditLog('OTA_DEPLOY_BROADCAST', 'ALL_DEVICES', `Deployed APK: ${apkUrl}`);
-    } else {
-        const queue = pendingCommands.get(deviceId) || [];
+    const targetIds = deviceId === 'ALL' ? Array.from(devices.keys()) : [deviceId];
+    const isValidPkg = pkgName && pkgName !== 'ota_update_app' && pkgName !== 'ota_app';
+
+    targetIds.forEach(id => {
+        const queue = pendingCommands.get(id) || [];
         queue.push(installCommand);
-        pendingCommands.set(deviceId, queue);
-        addAuditLog('OTA_DEPLOY', deviceId, `Deployed APK: ${apkUrl}`);
+
+        if (autoWhitelist && isValidPkg) {
+            const dev = devices.get(id);
+            const currentPkgs = (dev && dev.whitelistedApps) ? [...dev.whitelistedApps] : [];
+            if (!currentPkgs.includes(pkgName)) {
+                currentPkgs.push(pkgName);
+                if (dev) dev.whitelistedApps = currentPkgs;
+            }
+            queue.push({
+                command: 'SET_WHITELIST',
+                packages: currentPkgs,
+                timestamp: Date.now()
+            });
+        }
+        pendingCommands.set(id, queue);
+    });
+
+    if (deviceId === 'ALL') {
+        addAuditLog('OTA_DEPLOY_BROADCAST', 'ALL_DEVICES', `Deployed APK: ${apkUrl} (Auto-Whitelist: ${!!autoWhitelist})`);
+    } else {
+        addAuditLog('OTA_DEPLOY', deviceId, `Deployed APK: ${apkUrl} (Auto-Whitelist: ${!!autoWhitelist})`);
     }
 
     res.json({ success: true, message: 'OTA silent installation command dispatched.' });

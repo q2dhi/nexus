@@ -1478,7 +1478,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         if path == '/api/apps/deploy':
             dev_id = data.get('deviceId')
             apk_url = data.get('apkUrl')
-            pkg_name = data.get('packageName', 'ota_update_app')
+            pkg_name = (data.get('packageName') or 'ota_update_app').strip()
+            auto_whitelist = bool(data.get('autoWhitelist', False))
 
             if not apk_url:
                 self._send_json(400, {"error": "APK download URL required"})
@@ -1491,13 +1492,36 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 "timestamp": int(time.time() * 1000)
             }
 
+            target_device_ids = list(devices.keys()) if dev_id == 'ALL' else ([dev_id] if dev_id in devices else [dev_id])
+            is_valid_pkg = bool(pkg_name and pkg_name not in ('ota_update_app', 'ota_app', 'managed_app'))
+
+            for did in target_device_ids:
+                pending_commands.setdefault(did, []).append(install_cmd)
+
+                if auto_whitelist and is_valid_pkg:
+                    current_pkgs = []
+                    if did in devices:
+                        current_pkgs = list(devices[did].get('whitelistedApps', []))
+                        if pkg_name not in current_pkgs:
+                            current_pkgs.append(pkg_name)
+                            devices[did]['whitelistedApps'] = current_pkgs
+                    else:
+                        current_pkgs = [pkg_name]
+
+                    whitelist_cmd = {
+                        "command": "SET_WHITELIST",
+                        "packages": current_pkgs,
+                        "timestamp": int(time.time() * 1000)
+                    }
+                    pending_commands.setdefault(did, []).append(whitelist_cmd)
+
+            if auto_whitelist and is_valid_pkg:
+                save_devices_cache(devices)
+
             if dev_id == 'ALL':
-                for did in devices.keys():
-                    pending_commands.setdefault(did, []).append(install_cmd)
-                add_audit_log('OTA_DEPLOY_BROADCAST', 'ALL_DEVICES', f"Deployed APK: {apk_url}")
+                add_audit_log('OTA_DEPLOY_BROADCAST', 'ALL_DEVICES', f"Deployed APK: {apk_url} (Auto-Whitelist: {auto_whitelist})")
             else:
-                pending_commands.setdefault(dev_id, []).append(install_cmd)
-                add_audit_log('OTA_DEPLOY', dev_id, f"Deployed APK: {apk_url}")
+                add_audit_log('OTA_DEPLOY', dev_id, f"Deployed APK: {apk_url} (Auto-Whitelist: {auto_whitelist})")
 
             self._send_json(200, {"success": True, "message": "OTA deployment scheduled"})
             return

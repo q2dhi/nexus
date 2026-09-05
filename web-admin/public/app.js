@@ -1572,6 +1572,7 @@ async function deployOtaUpdate() {
     const deviceId = document.getElementById('targetDeviceSelect').value;
     const apkUrl = document.getElementById('apkUrlInput').value.trim();
     const packageName = document.getElementById('apkPackageInput').value.trim() || 'ota_app';
+    const autoWhitelist = document.getElementById('chkOtaAutoWhitelist') ? document.getElementById('chkOtaAutoWhitelist').checked : true;
 
     if (!apkUrl) {
         showToast('يرجى اختيار ملف APK لرفعه أو إدخال رابط تحميل مباشر', 'error');
@@ -1589,14 +1590,17 @@ async function deployOtaUpdate() {
         const res = await fetch('/api/apps/deploy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deviceId, apkUrl, packageName })
+            body: JSON.stringify({ deviceId, apkUrl, packageName, autoWhitelist })
         });
         const data = await res.json();
         if (data.success) {
-            showToast('تمت جدولة تثبيت التطبيق بنجاح! ستقوم الأجهزة بتحميله وتثبيته فوراً.', 'success');
+            const successMsg = autoWhitelist && packageName && packageName !== 'ota_app'
+                ? 'تمت جدولة التثبيت وإضافة التطبيق تلقائياً لشاشة الكشك!'
+                : 'تمت جدولة تثبيت التطبيق بنجاح! ستقوم الأجهزة بتحميله وتثبيته فوراً.';
+            showToast(successMsg, 'success');
             if (statusBox) {
                 statusBox.className = 'status-box status-success';
-                statusBox.innerText = 'تم إرسال أمر التثبيت بنجاح! ستقوم الأجهزة بتحميل الـ APK وتثبيته فوراً في الخلفية.';
+                statusBox.innerText = successMsg;
             }
         } else {
             showToast(data.error || 'فشل الجدولة', 'error');

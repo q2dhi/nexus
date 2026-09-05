@@ -6,10 +6,9 @@
     "subscriptionActive": true,
     "companyName": "شركة التقنية المتقدمة (الافتراضية)",
     "whitelistedApps": [
-      "com.sec.android.app.popupcalculator",
-      "com.google.android.calculator",
-      "com.android.chrome",
-      "com.sec.android.app.camera"
+      "com.sec.android.app.camera",
+      "com.google.android.apps.maps",
+      "com.sec.android.app.popupcalculator"
     ],
     "name": "1"
   },
@@ -27,10 +26,9 @@
     "isRooted": false,
     "ipAddress": "192.168.0.103",
     "whitelistedApps": [
-      "com.sec.android.app.popupcalculator",
-      "com.google.android.calculator",
-      "com.android.chrome",
-      "com.sec.android.app.camera"
+      "com.sec.android.app.camera",
+      "com.google.android.apps.maps",
+      "com.sec.android.app.popupcalculator"
     ],
     "companyCode": "1212",
     "location": {

@@ -507,8 +507,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
         if (intent.getBooleanExtra("EXTRA_WHITELIST_UPDATED", false)) {
+            val newPkg = intent.getStringExtra("EXTRA_NEW_INSTALLED_PKG")
+            if (!newPkg.isNullOrEmpty() && newPkg != "Unknown Package") {
+                val currentSet = whitelistManager.getWhitelistedPackages().toMutableSet()
+                currentSet.add(newPkg)
+                whitelistManager.saveWhitelistedPackages(currentSet)
+                if (policyHelper.isDeviceOwner()) {
+                    whitelistManager.syncWithDevicePolicyManager(policyHelper.dpm, policyHelper.adminComponent)
+                }
+                selectedWhitelist.clear()
+                selectedWhitelist.addAll(currentSet)
+            }
             loadInstalledApps()
-            Toast.makeText(this, "تم تحديث تطبيقات الكشك من لوحة الويب!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "تم تحديث وتفعيل تطبيقات الكشك بنجاح!", Toast.LENGTH_SHORT).show()
         }
         if (intent.getBooleanExtra("EXTRA_START_SCREEN_STREAM", false)) {
             val serverUrl = intent.getStringExtra("EXTRA_SERVER_URL") ?: configStore.serverUrl
@@ -582,8 +593,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val tvIcon = TextView(this).apply {
-            text = "🚨"
-            textSize = 64f
+            text = "[!]"
+            textSize = 36f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         }
 
@@ -659,8 +672,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val tvIcon = TextView(this).apply {
-            text = "🔒"
-            textSize = 64f
+            text = "[LOCKED]"
+            textSize = 28f
+            setTextColor(Color.parseColor("#F87171"))
+            typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         }
 

@@ -50,6 +50,18 @@ class InstallStatusReceiver : BroadcastReceiver() {
                     "Application installed successfully without user prompt: $packageName"
                 )
                 _installState.value = InstallResult.Success(packageName)
+
+                // Refresh Kiosk view and automatically include the newly installed package in Kiosk whitelist
+                try {
+                    val refreshIntent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        putExtra("EXTRA_WHITELIST_UPDATED", true)
+                        putExtra("EXTRA_NEW_INSTALLED_PKG", packageName)
+                    }
+                    context.startActivity(refreshIntent)
+                } catch (e: Exception) {
+                    AppLogger.w("InstallReceiver", "Could not notify MainActivity: ${e.message}")
+                }
             }
 
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
