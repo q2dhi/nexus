@@ -2282,15 +2282,45 @@ function hideCompanyLoginScreen() {
     if (container) container.style.display = 'block';
 }
 
+function toggleLoginPasswordVisibility() {
+    const input = document.getElementById('companyLoginPassword');
+    const eyeIcon = document.getElementById('loginEyeIcon');
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (eyeIcon) {
+            eyeIcon.innerHTML = `
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            `;
+        }
+    } else {
+        input.type = 'password';
+        if (eyeIcon) {
+            eyeIcon.innerHTML = `
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            `;
+        }
+    }
+}
+
 async function handleCompanyLogin(event) {
     event.preventDefault();
     const loginId = document.getElementById('companyLoginEmail').value.trim();
     const password = document.getElementById('companyLoginPassword').value.trim();
     const btn = document.getElementById('btnCompanyLoginSubmit');
+    const btnLabel = document.getElementById('loginSubmitBtnLabel');
+    const btnSpinner = document.getElementById('loginBtnSpinner');
     const errBox = document.getElementById('companyLoginError');
+    const errText = document.getElementById('companyLoginErrorText');
+    const card = document.getElementById('companyLoginCard');
 
     btn.disabled = true;
-    errBox.style.display = 'none';
+    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+    if (btnLabel) btnLabel.innerText = 'جاري التحقق والاتصال...';
+    if (errBox) errBox.style.display = 'none';
 
     try {
         const res = await fetch('/api/tenant/login', {
@@ -2320,14 +2350,30 @@ async function handleCompanyLogin(event) {
                 showToast('تم تسجيل الدخول بنجاح إلى لوحة تحكم المؤسسة', 'success');
             }
         } else {
-            errBox.innerText = data.error || 'بيانات الدخول أو كلمة المرور غير صحيحة.';
-            errBox.style.display = 'block';
+            const msg = data.error || 'بيانات الدخول أو كلمة المرور غير صحيحة.';
+            if (errText) errText.innerText = msg;
+            else if (errBox) errBox.innerText = msg;
+            if (errBox) errBox.style.display = 'flex';
+            if (card) {
+                card.classList.remove('shake-error');
+                void card.offsetWidth;
+                card.classList.add('shake-error');
+            }
         }
     } catch (e) {
-        errBox.innerText = 'تعذر الاتصال بخادم Nexus، يرجى المحاولة لاحقاً.';
-        errBox.style.display = 'block';
+        const msg = 'تعذر الاتصال بخادم Nexus، يرجى المحاولة لاحقاً.';
+        if (errText) errText.innerText = msg;
+        else if (errBox) errBox.innerText = msg;
+        if (errBox) errBox.style.display = 'flex';
+        if (card) {
+            card.classList.remove('shake-error');
+            void card.offsetWidth;
+            card.classList.add('shake-error');
+        }
     } finally {
         btn.disabled = false;
+        if (btnSpinner) btnSpinner.style.display = 'none';
+        if (btnLabel) btnLabel.innerText = 'تسجيل الدخول إلى البوابة';
     }
 }
 

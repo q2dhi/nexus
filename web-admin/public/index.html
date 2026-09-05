@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260906_6">
+    <link rel="stylesheet" href="style.css?v=20260906_7">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,43 +15,103 @@
 </head>
 
 <body class="rtl-mode">
-    <!-- COMPANY LOGIN SCREEN (WHITE & ROYAL BLUE, ZERO GRADIENTS, LOGO + BLACK NEXUS + BLUE DOT) -->
+    <!-- COMPANY LOGIN SCREEN - ULTRA PREMIUM & EYE-FRIENDLY (ANIMATED MESH & FROSTED GLASS) -->
     <div id="companyLoginOverlay" class="company-login-overlay" style="display:none;">
-        <div class="company-login-card">
+        <!-- Ambient animated backdrop -->
+        <div class="login-ambient-canvas" aria-hidden="true">
+            <div class="ambient-orb orb-1"></div>
+            <div class="ambient-orb orb-2"></div>
+            <div class="ambient-orb orb-3"></div>
+            <div class="ambient-grid-overlay"></div>
+        </div>
+
+        <div class="company-login-card" id="companyLoginCard">
+            <!-- Brand Header -->
             <div class="login-brand-header">
-                <span class="brand-icon-mark" style="width:44px; height:44px; margin:0 auto 12px auto;">
-                    <svg viewBox="0 0 24 24" style="width:24px; height:24px;">
+                <div class="login-brand-icon">
+                    <svg viewBox="0 0 24 24">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                     </svg>
-                </span>
+                </div>
                 <h1 class="login-brand-text" dir="ltr">Nexus<span class="login-brand-dot">.</span></h1>
+                <div class="login-enterprise-tag">
+                    <span class="pulse-indicator-blue"></span>
+                    <span>ENTERPRISE CLOUD DPC</span>
+                </div>
             </div>
-            <p class="login-card-subtitle" id="loginCardSubtitle">بوابة إدارة الأجهزة </p>
 
-            <form onsubmit="handleCompanyLogin(event)" class="login-form">
-                <div id="companyLoginError" class="login-error-alert" style="display:none;"></div>
+            <p class="login-card-subtitle" id="loginCardSubtitle">
+                بوابة الإدارة والتحكم المركزي بالأجهزة والأسطول
+            </p>
 
-                <div class="form-group mb-3 text-start">
-                    <label for="companyLoginEmail" id="lblLoginEmail">البريد الإلكتروني للشركة، أو رقم دخول الفرع، أو
-                        كود الشركة</label>
-                    <input type="text" id="companyLoginEmail" class="form-input" dir="ltr"
-                        placeholder="رقم الفرع، أو البريد الإلكتروني، أو الكود" required autofocus>
+            <form onsubmit="handleCompanyLogin(event)" class="login-form" id="companyLoginForm">
+                <div id="companyLoginError" class="login-error-alert" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="error-alert-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span id="companyLoginErrorText"></span>
                 </div>
 
-                <div class="form-group mb-4 text-start">
-                    <label for="companyLoginPassword" id="lblLoginPassword">كلمة المرور</label>
-                    <input type="password" id="companyLoginPassword" class="form-input" dir="ltr" placeholder="••••••••"
-                        required>
+                <div class="form-group mb-3">
+                    <label for="companyLoginEmail" id="lblLoginEmail">رقم دخول الفرع، أو كود الشركة، أو البريد</label>
+                    <div class="input-with-icon">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
+                        <input type="text" id="companyLoginEmail" class="form-input login-input" dir="ltr"
+                            placeholder="مثال: 07701111111 أو CODE" required autofocus autocomplete="username">
+                    </div>
                 </div>
 
-                <button type="submit" id="btnCompanyLoginSubmit" class="btn btn-primary btn-block">
-                    <span id="loginSubmitBtnLabel">تسجيل الدخول</span>
+                <div class="form-group mb-4">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <label for="companyLoginPassword" id="lblLoginPassword" style="margin-bottom:0;">كلمة المرور</label>
+                        <span class="login-hint-text">حسابات الشركات والفروع</span>
+                    </div>
+                    <div class="input-with-icon">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        <input type="password" id="companyLoginPassword" class="form-input login-input" dir="ltr"
+                            placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="login-pwd-toggle-btn" onclick="toggleLoginPasswordVisibility()"
+                            title="إظهار / إخفاء كلمة المرور" id="btnLoginPwdToggle" aria-label="تبديل إظهار كلمة المرور">
+                            <svg id="loginEyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnCompanyLoginSubmit" class="btn btn-primary btn-block login-submit-btn">
+                    <span id="loginSubmitBtnLabel">تسجيل الدخول إلى البوابة</span>
+                    <svg id="loginBtnSpinner" class="login-spinner" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                    </svg>
                 </button>
             </form>
 
             <div class="login-card-footer">
-                <small id="loginFooterNote">إذا لم يكن لديك حساب، يرجى التواصل مع مزود الخدمة لإنشاء حساب شركتك وتفعيل
-                    الاشتراك.</small>
+                <div class="login-trust-badge">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <polyline points="9 12 11 14 15 10"></polyline>
+                    </svg>
+                    <span>اتصال سحابي آمن 256-bit TLS • Nexus Guard</span>
+                </div>
+                <small id="loginFooterNote" class="login-footer-desc">
+                    إذا لم يكن لديك حساب، يرجى التواصل مع إدارة النظام لإنشاء حساب شركتك وتفعيل الاشتراك.
+                </small>
             </div>
         </div>
     </div>
@@ -1395,7 +1455,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js"></script>
-    <script src="app.js?v=20260906_6"></script>
+    <script src="app.js?v=20260906_7"></script>
 </body>
 
 </html>
