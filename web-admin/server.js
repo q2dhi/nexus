@@ -157,6 +157,28 @@ app.get('/api/logs', (req, res) => {
     res.json(auditLogs);
 });
 
+// --------------------------------------------------------------------------
+// CLOUD REMOTE CONTROL: Touch & Screen Frame Stream
+// --------------------------------------------------------------------------
+const pendingTouchEvents = new Map();
+
+app.post('/api/devices/:id/screen-frame', (req, res) => {
+    const deviceId = req.params.id;
+    const actions = pendingTouchEvents.get(deviceId) || [];
+    pendingTouchEvents.set(deviceId, []);
+    res.json({ status: 'OK', actions });
+});
+
+app.post('/api/devices/:id/touch', (req, res) => {
+    const deviceId = req.params.id;
+    const queue = pendingTouchEvents.get(deviceId) || [];
+    if (queue.length < 10) {
+        queue.push(req.body);
+    }
+    pendingTouchEvents.set(deviceId, queue);
+    res.json({ success: true, queued: true });
+});
+
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);

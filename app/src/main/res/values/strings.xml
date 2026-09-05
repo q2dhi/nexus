@@ -52,4 +52,7 @@
 
     <string name="policy_factory_reset_title">Factory Reset Protection</string>
     <string name="policy_factory_reset_desc">Blocks users from triggering factory data reset from system settings.</string>
+
+    <string name="accessibility_service_label">Nexus Remote Cloud Control</string>
+    <string name="accessibility_service_description">Enables real-time enterprise remote touch, gestures, and cloud navigation for authorized MDM administrators.</string>
 </resources>

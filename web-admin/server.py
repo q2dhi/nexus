@@ -137,6 +137,7 @@ def save_devices_cache(data=None):
 devices = load_devices_cache()
 pending_commands = {}  # device_id -> list of commands
 latest_frames = {}     # device_id -> { 'frame': base64, 'timestamp': float }
+pending_touch_events = {} # device_id -> list of touch/gesture/key actions
 adb_stream_subscribers = {} # device_id -> expire_timestamp
 adb_executable_path = os.path.expandvars(r"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe")
 
@@ -1251,7 +1252,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     "frame": data.get('frame'),
                     "timestamp": time.time()
                 }
-            self._send_json(200, {"status": "OK"})
+            actions = pending_touch_events.pop(dev_id, [])
+            self._send_json(200, {"status": "OK", "actions": actions})
             return
 
         if path == '/api/geofence':
@@ -1529,6 +1531,13 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         if path.startswith('/api/devices/') and path.endswith('/touch'):
             dev_id = path.split('/')[3]
             action = data.get('action', 'tap')
+
+            # 1. Enqueue action for remote cloud device delivery
+            queue = pending_touch_events.setdefault(dev_id, [])
+            if len(queue) < 10:
+                queue.append(data)
+
+            # 2. Local ADB fallback (if device is plugged into local computer)
             adb_path = os.path.expandvars(r"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe")
             if os.path.exists(adb_path):
                 import subprocess
@@ -1569,13 +1578,10 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                             subprocess.run([adb_path, 'shell', 'input', 'text', text], timeout=2)
 
                     refresh_screen_frame_async(dev_id)
-                    self._send_json(200, {"success": True, "action": action})
-                    return
-                except Exception as e:
-                    self._send_json(500, {"error": str(e)})
-                    return
+                except Exception:
+                    pass
 
-            self._send_json(200, {"success": True, "message": "Touch received"})
+            self._send_json(200, {"success": True, "action": action, "queued": True})
             return
 
         self._send_json(404, {"error": "Not Found"})

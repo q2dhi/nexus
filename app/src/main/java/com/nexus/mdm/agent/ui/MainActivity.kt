@@ -122,8 +122,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    companion object {
+        @Volatile
+        var instance: MainActivity? = null
+            private set
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -573,6 +580,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (instance === this) {
+            instance = null
+        }
         super.onDestroy()
         antiTamperGuard.stopMonitoring()
         com.nexus.mdm.agent.remote.ScreenCaptureManager.stopStream()
@@ -1002,6 +1012,7 @@ class MainActivity : AppCompatActivity() {
             "لوحة تحكم المسؤول المتقدمة (Admin Console)",
             "خروج مؤقت إلى واجهة أندرويد (Exit Kiosk Temporarily)",
             "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
+            "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
             "إلغاء (Cancel)"
         )
         android.app.AlertDialog.Builder(this)
@@ -1036,6 +1047,22 @@ class MainActivity : AppCompatActivity() {
                         ensureDefaultHomeLauncher()
                     }
                     5 -> {
+                        val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
+                        if (isAccActive) {
+                            Toast.makeText(this, "خدمة التحكم السحابي باللمس مفعلة ونشطة بالفعل!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                startActivity(intent)
+                                Toast.makeText(this, "يرجى تفعيل خدمة Nexus Remote Cloud Control للتحكم باللمس عن بعد.", Toast.LENGTH_LONG).show()
+                            } catch (_: Exception) {
+                                Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    6 -> {
                         dialog.dismiss()
                     }
                 }
@@ -1218,5 +1245,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    fun dispatchWindowTap(xRatio: Float, yRatio: Float) {
+        runOnUiThread {
+            try {
+                val decor = window?.decorView ?: return@runOnUiThread
+                val w = decor.width.toFloat()
+                val h = decor.height.toFloat()
+                if (w <= 0f || h <= 0f) return@runOnUiThread
+
+                val pxX = (xRatio * w).coerceIn(0f, w)
+                val pxY = (yRatio * h).coerceIn(0f, h)
+
+                val now = android.os.SystemClock.uptimeMillis()
+                val down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, pxX, pxY, 0)
+                val up = android.view.MotionEvent.obtain(now, now + 50, android.view.MotionEvent.ACTION_UP, pxX, pxY, 0)
+
+                decor.dispatchTouchEvent(down)
+                decor.dispatchTouchEvent(up)
+                down.recycle()
+                up.recycle()
+                com.nexus.mdm.agent.util.AppLogger.i("MainActivity", "Direct in-app tap injected at ($pxX, $pxY)")
+            } catch (e: Exception) {
+                com.nexus.mdm.agent.util.AppLogger.w("MainActivity", "Error injecting in-app tap: ${e.message}")
+            }
+        }
     }
 }

@@ -42,7 +42,7 @@ object ScreenCaptureManager {
                 try {
                     val frameBase64 = captureFrame(activity)
                     if (frameBase64 != null) {
-                        pushFrameToServer(serverUrl, deviceId, frameBase64)
+                        pushFrameToServer(activity.applicationContext, serverUrl, deviceId, frameBase64)
                     }
                 } catch (e: Exception) {
                     AppLogger.w("ScreenCapture", "Frame capture/push error: ${e.message}")
@@ -115,7 +115,7 @@ object ScreenCaptureManager {
         }
     }
 
-    private fun pushFrameToServer(serverBaseUrl: String, deviceId: String, frameBase64: String) {
+    private suspend fun pushFrameToServer(context: android.content.Context, serverBaseUrl: String, deviceId: String, frameBase64: String) {
         var base = serverBaseUrl.trimEnd('/')
         if (!base.startsWith("http://") && !base.startsWith("https://")) {
             base = "http://$base"
@@ -141,9 +141,25 @@ object ScreenCaptureManager {
         }
 
         val code = conn.responseCode
-        conn.disconnect()
-        if (code != HttpURLConnection.HTTP_OK) {
+        if (code == HttpURLConnection.HTTP_OK) {
+            try {
+                val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                if (responseText.isNotEmpty()) {
+                    val respJson = org.json.JSONObject(responseText)
+                    val actionsArray = respJson.optJSONArray("actions")
+                    if (actionsArray != null && actionsArray.length() > 0) {
+                        for (i in 0 until actionsArray.length()) {
+                            val actionObj = actionsArray.getJSONObject(i)
+                            RemoteInputExecutor.executeAction(context, actionObj)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.w("ScreenCapture", "Error reading frame response: ${e.message}")
+            }
+        } else {
             AppLogger.w("ScreenCapture", "Push frame response code: $code")
         }
+        conn.disconnect()
     }
 }
