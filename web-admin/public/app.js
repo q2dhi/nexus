@@ -422,9 +422,19 @@ function applyScreensPermissions(screens) {
 // --------------------------------------------------------------------------
 // FLEET DEVICES
 // --------------------------------------------------------------------------
+let selectedFleetBranch = 'ALL';
+
 async function fetchDevices() {
     try {
-        const res = await fetch(`/api/devices?companyCode=${encodeURIComponent(currentCompanyCode)}`);
+        let url = `/api/devices?companyCode=${encodeURIComponent(currentCompanyCode)}`;
+        if (selectedFleetBranch && selectedFleetBranch !== 'ALL') {
+            url += `&branchId=${encodeURIComponent(selectedFleetBranch)}`;
+        }
+        const headers = {};
+        if (currentTenantToken) headers['X-Tenant-Token'] = currentTenantToken;
+        if (currentCompanyCode) headers['X-Company-Code'] = currentCompanyCode;
+
+        const res = await fetch(url, { headers });
         const devices = await res.json();
         lastDevicesCache = devices;
 
@@ -432,6 +442,16 @@ async function fetchDevices() {
         if (activeDacDeviceId) {
             const currentDacDevice = (devices || []).find(d => d.id === activeDacDeviceId);
             if (currentDacDevice) updateDacModalContent(currentDacDevice);
+        }
+
+        // If Branch Devices Modal is currently open, live-update its content
+        const branchModal = document.getElementById('modalBranchDevices');
+        if (branchModal && branchModal.style.display !== 'none') {
+            const activeBid = document.getElementById('currentActiveBranchId')?.value;
+            if (activeBid) {
+                populateBranchAssignSelect(activeBid);
+                renderBranchDevicesList(activeBid);
+            }
         }
 
         const currentOpenDropdown = openDropdownDeviceId ? document.getElementById(`dropdown-${openDropdownDeviceId}`) : null;
@@ -452,6 +472,29 @@ async function fetchDevices() {
     } catch (e) {
         console.error('Failed to fetch devices', e);
     }
+}
+
+function updateFleetBranchFilterDropdown() {
+    const sel = document.getElementById('selectFleetBranchFilter');
+    if (!sel) return;
+    const currentVal = sel.value || selectedFleetBranch || 'ALL';
+    let html = '<option value="ALL">جميع الأجهزة (كافة الفروع)</option>';
+    (branchesCache || []).forEach(b => {
+        html += `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.code || b.number || '')})</option>`;
+    });
+    sel.innerHTML = html;
+    sel.value = currentVal;
+    if (sel.value !== currentVal) {
+        sel.value = 'ALL';
+        selectedFleetBranch = 'ALL';
+    }
+}
+
+function onFleetBranchFilterChange() {
+    const sel = document.getElementById('selectFleetBranchFilter');
+    if (!sel) return;
+    selectedFleetBranch = sel.value;
+    fetchDevices();
 }
 
 function updateHeaderMetrics(devices) {
@@ -539,6 +582,7 @@ function renderDeviceTable(devices) {
                         <div>
                             <strong style="color:#0F172A; font-size:14px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong><br>
                             <small style="color:#64748B; font-family:monospace; font-size:11px;">${escapeHtml(d.id)}</small>
+                            ${d.branchName ? `<div style="margin-top:3px;"><span class="branch-pill-badge" title="الفرع: ${escapeHtml(d.branchName)}">${escapeHtml(d.branchName)}</span></div>` : ''}
                         </div>
                     </div>
                 </td>
@@ -1734,6 +1778,7 @@ async function fetchBranches() {
             }
 
             renderBranchesTable(branchesCache);
+            updateFleetBranchFilterDropdown();
         }
     } catch (e) {
         console.error('Failed to fetch branches', e);
@@ -1747,7 +1792,7 @@ function renderBranchesTable(branches) {
     if (!branches || branches.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="padding:40px; text-align:center; color:#64748B;">
+                <td colspan="7" style="padding:40px; text-align:center; color:#64748B;">
                     <div style="font-size:15px; font-weight:700; color:#0F172A; margin-bottom:6px;">لم يتم إنشاء ويبات فرعية بعد</div>
                     <div style="font-size:13px; color:#64748B;">انقر على زر "إضافة ويب فرعي جديد" لإنشاء حساب مستقل لمسؤولي فروعك برقم دخول خاص.</div>
                 </td>
@@ -1758,6 +1803,8 @@ function renderBranchesTable(branches) {
 
     tbody.innerHTML = branches.map(b => {
         const branchPwd = b.password || '123456';
+        const dCount = b.devicesCount || 0;
+        const oCount = b.onlineCount || 0;
         return `
         <tr>
             <td>
@@ -1770,6 +1817,16 @@ function renderBranchesTable(branches) {
             </td>
             <td>
                 <span style="font-family:monospace; color:#475569; font-weight:600;">${escapeHtml(b.code || '-')}</span>
+            </td>
+            <td>
+                <div style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="branch-devices-counter-badge" style="background:${dCount > 0 ? '#F0FDF4' : '#F8FAFC'}; border:1px solid ${dCount > 0 ? '#BBF7D0' : '#CBD5E1'}; color:${dCount > 0 ? '#166534' : '#64748B'}; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700;">
+                        ${dCount} أجهزة (${oCount} متصل)
+                    </span>
+                    <button type="button" class="btn btn-primary-soft btn-xs" onclick="openBranchDevicesModal('${b.id}')" title="استعراض أجهزة الفرع والتحكم بها من ويب الشركة الرئيسي">
+                        استعراض وتحكم
+                    </button>
+                </div>
             </td>
             <td>
                 <div style="display:inline-flex; align-items:center; gap:6px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:3px 8px;">
@@ -1798,6 +1855,228 @@ function renderBranchesTable(branches) {
         </tr>
     `;
     }).join('');
+}
+
+// --------------------------------------------------------------------------
+// BRANCH DEVICES & DIRECT CENTRAL CONTROL (أجهزة وتحكم الفرع المركزي)
+// --------------------------------------------------------------------------
+let currentActiveBranchId = null;
+
+function openBranchDevicesModal(branchId) {
+    const branch = (branchesCache || []).find(b => b.id === branchId);
+    if (!branch) {
+        showToast('لم يتم العثور على بيانات الفرع', 'error');
+        return;
+    }
+
+    currentActiveBranchId = branchId;
+    const idInput = document.getElementById('currentActiveBranchId');
+    if (idInput) idInput.value = branchId;
+
+    const titleEl = document.getElementById('branchDevicesModalTitle');
+    if (titleEl) titleEl.innerText = `أجهزة وتحكم فرع: ${branch.name}`;
+
+    const codeBadge = document.getElementById('branchDevicesModalCodeBadge');
+    if (codeBadge) codeBadge.innerText = `كود: ${branch.code || '-'}`;
+
+    const phoneBadge = document.getElementById('branchDevicesModalPhoneBadge');
+    if (phoneBadge) phoneBadge.innerText = `معرف الدخول: ${branch.number || '-'}`;
+
+    populateBranchAssignSelect(branchId);
+    renderBranchDevicesList(branchId);
+
+    const modal = document.getElementById('modalBranchDevices');
+    if (modal) {
+        modal.classList.add('show');
+        modal.style.display = 'flex';
+    }
+}
+
+function closeBranchDevicesModal() {
+    currentActiveBranchId = null;
+    const modal = document.getElementById('modalBranchDevices');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+}
+
+function populateBranchAssignSelect(currentBranchId) {
+    const sel = document.getElementById('branchAssignDeviceSelect');
+    if (!sel) return;
+
+    const allDevs = lastDevicesCache || [];
+    let html = '<option value="">-- اختر جهازاً لربطه بهذا الفرع --</option>';
+    allDevs.forEach(d => {
+        const isThisBranch = d.branchId === currentBranchId;
+        if (!isThisBranch) {
+            const currentBranchLabel = d.branchName ? `(حالياً في: ${d.branchName})` : '(غير مخصص)';
+            html += `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name || d.id)} - ${escapeHtml(d.model || '')} ${currentBranchLabel}</option>`;
+        }
+    });
+    sel.innerHTML = html;
+}
+
+function renderBranchDevicesList(branchId) {
+    const allDevs = lastDevicesCache || [];
+    const branchDevs = allDevs.filter(d => d.branchId === branchId);
+
+    // Update KPI counters
+    const totalCountEl = document.getElementById('branchTotalDevicesCount');
+    if (totalCountEl) totalCountEl.innerText = branchDevs.length;
+
+    const onlineCountEl = document.getElementById('branchOnlineDevicesCount');
+    if (onlineCountEl) onlineCountEl.innerText = branchDevs.filter(d => d.isOnline).length;
+
+    const kioskCountEl = document.getElementById('branchKioskDevicesCount');
+    if (kioskCountEl) kioskCountEl.innerText = branchDevs.filter(d => d.isKiosk).length;
+
+    const tbody = document.getElementById('branchDevicesTableBody');
+    if (!tbody) return;
+
+    if (branchDevs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="padding:36px; text-align:center; color:#64748B;">
+                    <div style="font-size:14px; font-weight:700; color:#0F172A; margin-bottom:4px;">لا توجد أجهزة مربوطة بهذا الفرع حالياً</div>
+                    <div style="font-size:12.5px; color:#64748B;">استخدم القائمة أعلاه لاختيار جهاز من أسطول الشركة وتعيينه لهذا الفرع.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = branchDevs.map(d => {
+        const brand = detectDeviceBrand(d);
+        const onlineTag = d.isOnline
+            ? '<span class="status-tag tag-online"><span class="dot online"></span> Online</span>'
+            : '<span class="status-tag tag-offline"><span class="dot" style="background:#94A3B8;"></span> Offline</span>';
+        const kioskTag = d.isKiosk
+            ? '<span class="status-tag tag-kiosk-active">Locked (مقيد)</span>'
+            : '<span class="status-tag tag-kiosk-idle">Unrestricted (حر)</span>';
+
+        return `
+            <tr>
+                <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="brand-chip brand-chip-${brand}" style="font-size:9px; padding:2px 5px;">${brand.toUpperCase()}</span>
+                        <div>
+                            <strong style="color:#0F172A; font-size:13.5px;">${escapeHtml(d.name || d.id)}</strong><br>
+                            <small style="color:#64748B; font-family:monospace; font-size:11px;">${escapeHtml(d.id)}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <strong style="color:#1E293B; font-size:12.5px;">${escapeHtml(d.model || 'Android')}</strong><br>
+                    <small style="color:#64748B;">v${escapeHtml(d.os || '')}</small>
+                </td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+                        <strong style="color:#0F172A; font-size:12px;">${d.battery || 0}%</strong>
+                        ${d.isCharging ? '<small style="color:#D97706; font-size:10.5px; font-weight:700;">(شحن)</small>' : ''}
+                    </div>
+                    ${onlineTag}
+                </td>
+                <td>${kioskTag}</td>
+                <td>
+                    <code style="background:#F1F5F9; padding:2px 6px; font-size:11px; color:#334155;">${escapeHtml(d.ipAddress || 'Unknown')}</code>
+                </td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-primary-soft btn-xs" onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}')" title="بث شاشة الجهاز والتحكم باللمس مباشرة">
+                            بث وتحكم
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="promptCommand('${d.id}', 'LOCK_NOW', 'قفل شاشة الجهاز')" title="قفل شاشة الجهاز فوراً">
+                            قفل
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', '${d.isKiosk ? 'إلغاء وضع الكشك' : 'تفعيل وضع الكشك'}', { enable: ${!d.isKiosk} })" title="تبديل وضع الكشك">
+                            ${d.isKiosk ? 'إلغاء الكشك' : 'تفعيل الكشك'}
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="openDeviceTrackModal('${d.id}', '${escapeHtml(d.name || d.id)}')" title="تتبع الموقع الجغرافي">
+                            GPS
+                        </button>
+                        <button type="button" class="btn btn-danger-soft btn-xs" onclick="unassignDeviceFromBranch('${d.id}')" title="فك ارتباط هذا الجهاز من هذا الفرع">
+                            فك الارتباط
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function submitAssignDeviceToCurrentBranch() {
+    const sel = document.getElementById('branchAssignDeviceSelect');
+    if (!sel || !sel.value) {
+        showToast('يرجى اختيار جهاز من القائمة أولاً', 'warning');
+        return;
+    }
+    const deviceId = sel.value;
+    const branchId = currentActiveBranchId || document.getElementById('currentActiveBranchId')?.value;
+    if (!branchId) {
+        showToast('حدث خطأ في تحديد الفرع', 'error');
+        return;
+    }
+    await assignDeviceToBranch(deviceId, branchId);
+}
+
+async function assignDeviceToBranch(deviceId, branchId) {
+    if (!deviceId || !branchId) return;
+    try {
+        const res = await fetch('/api/tenant/devices/assign-branch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({ deviceId, branchId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message || 'تم ربط الجهاز بالفرع بنجاح', 'success');
+            await fetchDevices();
+            await fetchBranches();
+            if (currentActiveBranchId) {
+                populateBranchAssignSelect(currentActiveBranchId);
+                renderBranchDevicesList(currentActiveBranchId);
+            }
+        } else {
+            showToast(data.error || 'فشل ربط الجهاز بالفرع', 'error');
+        }
+    } catch (e) {
+        console.error('Failed to assign branch', e);
+        showToast('حدث خطأ في الاتصال بالخادم', 'error');
+    }
+}
+
+async function unassignDeviceFromBranch(deviceId) {
+    if (!deviceId) return;
+    if (!confirm('هل أنت متأكد من فك ارتباط هذا الجهاز من الفرع وإرجاعه للإدارة العامة؟')) return;
+    try {
+        const res = await fetch('/api/tenant/devices/assign-branch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({ deviceId, branchId: 'UNASSIGN' })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message || 'تم فك ارتباط الجهاز بنجاح', 'success');
+            await fetchDevices();
+            await fetchBranches();
+            if (currentActiveBranchId) {
+                populateBranchAssignSelect(currentActiveBranchId);
+                renderBranchDevicesList(currentActiveBranchId);
+            }
+        } else {
+            showToast(data.error || 'فشل فك ارتباط الجهاز', 'error');
+        }
+    } catch (e) {
+        console.error('Failed to unassign branch', e);
+        showToast('حدث خطأ في الاتصال بالخادم', 'error');
+    }
 }
 
 function copyToClipboard(text, successMsg = 'تم النسخ!') {
@@ -2368,6 +2647,12 @@ function updateDacModalContent(d) {
     const specCompany = document.getElementById('dacSpecCompany');
     if (specCompany) specCompany.innerText = d.companyName || currentCompanyCode;
 
+    const specBranch = document.getElementById('dacSpecBranch');
+    if (specBranch) {
+        specBranch.innerText = d.branchName ? `${d.branchName} (${d.branchCode || ''})` : 'الإدارة العامة / غير مخصص';
+        specBranch.style.color = d.branchName ? '#1E40AF' : '#64748B';
+    }
+
     // Vitals
     const vBat = document.getElementById('dacVitalBattery');
     if (vBat) vBat.innerText = `${d.battery || 0}%`;
@@ -2522,6 +2807,37 @@ document.addEventListener('click', (e) => {
         closeDeviceActionCenter();
     }
 });
+
+function promptAssignDacBranch() {
+    if (!activeDacDeviceId) return;
+    const dev = (lastDevicesCache || []).find(d => d.id === activeDacDeviceId);
+    if (!dev) return;
+
+    if (!branchesCache || branchesCache.length === 0) {
+        showToast('لم يتم إنشاء فروع في هذه الشركة بعد. يمكنك إنشاء فروع من تبويب "إدارة الفروع".', 'info');
+        return;
+    }
+
+    let options = ['0: فك الارتباط (إرجاع الجهاز للإدارة العامة)'];
+    branchesCache.forEach((b, idx) => {
+        options.push(`${idx + 1}: ${b.name} (${b.code || b.number || ''})`);
+    });
+
+    const choice = prompt(`تعيين فرع للجهاز "${dev.name || dev.id}":\n\n` + options.join('\n') + `\n\nأدخل رقم الخيار (0 إلى ${branchesCache.length}):`);
+    if (choice === null) return;
+    const num = parseInt(choice.trim(), 10);
+    if (isNaN(num) || num < 0 || num > branchesCache.length) {
+        showToast('رقم الخيار غير صالح', 'error');
+        return;
+    }
+
+    if (num === 0) {
+        unassignDeviceFromBranch(dev.id);
+    } else {
+        const targetBranch = branchesCache[num - 1];
+        assignDeviceToBranch(dev.id, targetBranch.id);
+    }
+}
 
 // --------------------------------------------------------------------------
 // INITIALIZATION

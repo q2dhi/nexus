@@ -1743,6 +1743,48 @@ body:not(.rtl-mode) .fleet-table {
     border-color: #FCA5A5;
 }
 
+.btn-primary-soft {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1D4ED8;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-primary-soft:hover {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+    color: #1E40AF;
+}
+
+.branch-pill-badge {
+    display: inline-block;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1E40AF;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    line-height: 1.3;
+}
+
+.branch-devices-counter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
 .stream-status-badge {
     font-size: 11px;
     font-weight: 600;

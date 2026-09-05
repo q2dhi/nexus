@@ -401,9 +401,21 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             branches = matched.get('branches', [])
             max_branches = int(matched.get('subscription', {}).get('maxBranches', 5))
+            
+            now = time.time()
+            enriched_branches = []
+            for b in branches:
+                b_copy = dict(b)
+                bid = str(b.get('id', ''))
+                b_devs = [d for d in devices.values() if str(d.get('branchId', '')) == bid]
+                b_copy['devicesCount'] = len(b_devs)
+                b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 25)
+                b_copy['deviceIds'] = [d.get('id') for d in b_devs if d.get('id')]
+                enriched_branches.append(b_copy)
+
             self._send_json(200, {
                 "success": True,
-                "branches": branches,
+                "branches": enriched_branches,
                 "usedBranches": len(branches),
                 "maxBranches": max_branches,
                 "canAddMore": len(branches) < max_branches
@@ -468,11 +480,20 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # ---------------------------------------------------------
         if path == '/api/devices':
             now = time.time()
+            session_token = self.headers.get('X-Tenant-Token') or qs.get('token', [''])[0]
+            session = ACTIVE_TENANT_SESSIONS.get(session_token)
+
             req_company = qs.get('companyCode', [''])[0].strip().upper()
             # Also check header
             header_company = self.headers.get('X-Company-Code', '').strip().upper()
             if header_company:
                 req_company = header_company
+            if not req_company and session:
+                req_company = str(session.get('code', '')).upper()
+
+            req_branch = qs.get('branchId', [''])[0].strip()
+            if session and session.get('isBranch'):
+                req_branch = str(session.get('branchId', '')).strip()
 
             tenants_data = load_tenants_data()
             single_tenant_code = tenants_data['tenants'][0].get('code', '').upper() if len(tenants_data.get('tenants', [])) == 1 else None
@@ -484,6 +505,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     if d_company == 'NEXUS-DEFAULT' and single_tenant_code and req_company == single_tenant_code:
                         pass
                     else:
+                        continue
+                if req_branch and req_branch != 'ALL':
+                    if str(d.get('branchId', '')) != req_branch:
                         continue
                 d_copy = dict(d)
                 d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 25
@@ -1173,6 +1197,15 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             orig_len = len(branches)
             matched['branches'] = [b for b in branches if b.get('id') != branch_id]
             if len(matched['branches']) < orig_len:
+                devices_changed = False
+                for d in devices.values():
+                    if str(d.get('branchId', '')) == branch_id:
+                        d.pop('branchId', None)
+                        d.pop('branchName', None)
+                        d.pop('branchCode', None)
+                        devices_changed = True
+                if devices_changed:
+                    save_devices_cache(devices)
                 save_tenants_data(tenants_data)
                 add_audit_log('BRANCH_DELETED', matched.get('code'), f"Deleted branch id {branch_id}")
                 self._send_json(200, {
@@ -1239,6 +1272,84 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 "message": f"تم تحديث كلمة مرور الفرع '{branch.get('name')}' بنجاح.",
                 "branchId": branch_id
             })
+            return
+
+        # ---------------------------------------------------------
+        # ASSIGN / UNASSIGN DEVICE TO BRANCH
+        # ---------------------------------------------------------
+        if path == '/api/tenant/devices/assign-branch':
+            session_token = self.headers.get('X-Tenant-Token')
+            session = ACTIVE_TENANT_SESSIONS.get(session_token)
+
+            tenants_data = load_tenants_data()
+            matched = None
+            if session:
+                if session.get('isBranch'):
+                    self._send_json(403, {"error": "غير مصرح لمدراء الفروع بإعادة تعيين أجهزة الفروع."})
+                    return
+                for t in tenants_data.get('tenants', []):
+                    if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
+                        matched = t
+                        break
+            elif len(tenants_data.get('tenants', [])) == 1:
+                matched = tenants_data['tenants'][0]
+            else:
+                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً كشركة رئيسية."})
+                return
+
+            if not matched:
+                self._send_json(404, {"error": "الشركة غير موجودة."})
+                return
+
+            dev_id = str(data.get('deviceId', '')).strip()
+            branch_id = str(data.get('branchId', '')).strip()
+
+            if not dev_id:
+                self._send_json(400, {"error": "معرّف الجهاز مطلوب (deviceId)."})
+                return
+
+            if dev_id not in devices:
+                self._send_json(404, {"error": "الجهاز غير موجود في النظام."})
+                return
+
+            dev = devices[dev_id]
+            dev_company = str(dev.get('companyCode', 'NEXUS-DEFAULT')).upper()
+            tenant_code = str(matched.get('code', '')).upper()
+            if dev_company != tenant_code and dev_company != 'NEXUS-DEFAULT':
+                self._send_json(403, {"error": "هذا الجهاز لا يتبع شركتكم."})
+                return
+
+            if branch_id and branch_id != 'UNASSIGN':
+                target_branch = None
+                for b in matched.get('branches', []):
+                    if str(b.get('id', '')) == branch_id:
+                        target_branch = b
+                        break
+                if not target_branch:
+                    self._send_json(404, {"error": "الفرع المحدد غير موجود."})
+                    return
+
+                dev['branchId'] = target_branch.get('id')
+                dev['branchName'] = target_branch.get('name')
+                dev['branchCode'] = target_branch.get('code', '')
+                save_devices_cache(devices)
+                add_audit_log('DEVICE_BRANCH_ASSIGNED', tenant_code, f"تم ربط الجهاز '{dev.get('name', dev_id)}' بالفرع '{target_branch.get('name')}'")
+                self._send_json(200, {
+                    "success": True,
+                    "message": f"تم ربط الجهاز '{dev.get('name', dev_id)}' بالفرع '{target_branch.get('name')}' بنجاح.",
+                    "device": dev
+                })
+            else:
+                dev.pop('branchId', None)
+                dev.pop('branchName', None)
+                dev.pop('branchCode', None)
+                save_devices_cache(devices)
+                add_audit_log('DEVICE_BRANCH_UNASSIGNED', tenant_code, f"تم فك ارتباط الجهاز '{dev.get('name', dev_id)}' من الفرع")
+                self._send_json(200, {
+                    "success": True,
+                    "message": f"تم فك ارتباط الجهاز '{dev.get('name', dev_id)}' من الفرع وأصبح تابعاً للإدارة العامة.",
+                    "device": dev
+                })
             return
 
         # ---------------------------------------------------------

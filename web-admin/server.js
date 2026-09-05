@@ -62,11 +62,44 @@ app.post('/api/devices/heartbeat', (req, res) => {
 // --------------------------------------------------------------------------
 app.get('/api/devices', (req, res) => {
     const now = Date.now();
-    const deviceList = Array.from(devices.values()).map(dev => ({
+    const reqBranch = (req.query.branchId || '').trim();
+    let deviceList = Array.from(devices.values());
+    if (reqBranch && reqBranch !== 'ALL') {
+        deviceList = deviceList.filter(dev => String(dev.branchId || '') === reqBranch);
+    }
+    const result = deviceList.map(dev => ({
         ...dev,
-        isOnline: (now - dev.lastSeen) < 25000 // Considered online if seen in last 25s
+        isOnline: (now - dev.lastSeen) < 25000
     }));
-    res.json(deviceList);
+    res.json(result);
+});
+
+// --------------------------------------------------------------------------
+// ADMIN API: Assign Device to Branch
+// --------------------------------------------------------------------------
+app.post('/api/tenant/devices/assign-branch', (req, res) => {
+    const { deviceId, branchId, branchName, branchCode } = req.body;
+    if (!deviceId) {
+        return res.status(400).json({ error: 'Missing deviceId' });
+    }
+    const dev = devices.get(deviceId);
+    if (!dev) {
+        return res.status(404).json({ error: 'Device not found' });
+    }
+    if (branchId && branchId !== 'UNASSIGN') {
+        dev.branchId = branchId;
+        dev.branchName = branchName || 'فرع';
+        dev.branchCode = branchCode || '';
+        devices.set(deviceId, dev);
+        addAuditLog('DEVICE_BRANCH_ASSIGNED', deviceId, `Assigned to branch: ${dev.branchName}`);
+    } else {
+        delete dev.branchId;
+        delete dev.branchName;
+        delete dev.branchCode;
+        devices.set(deviceId, dev);
+        addAuditLog('DEVICE_BRANCH_UNASSIGNED', deviceId, 'Unassigned from branch');
+    }
+    res.json({ success: true, device: dev });
 });
 
 // --------------------------------------------------------------------------
