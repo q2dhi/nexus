@@ -6,9 +6,12 @@
     "subscriptionActive": true,
     "companyName": "شركة التقنية المتقدمة (الافتراضية)",
     "whitelistedApps": [
-      "com.sec.android.app.camera",
-      "com.google.android.apps.maps"
-    ]
+      "com.sec.android.app.popupcalculator",
+      "com.google.android.calculator",
+      "com.android.chrome",
+      "com.sec.android.app.camera"
+    ],
+    "name": "1"
   },
   "samsung_SM-S928B_0e818e": {
     "id": "samsung_SM-S928B_0e818e",
@@ -24,7 +27,9 @@
     "isRooted": false,
     "ipAddress": "192.168.0.103",
     "whitelistedApps": [
-      "com.google.android.apps.maps",
+      "com.sec.android.app.popupcalculator",
+      "com.google.android.calculator",
+      "com.android.chrome",
       "com.sec.android.app.camera"
     ],
     "companyCode": "1212",

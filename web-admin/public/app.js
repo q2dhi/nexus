@@ -49,7 +49,8 @@ const i18n = {
         thActions: "الإجراءات",
         btnRemoteControl: "التحكم المباشر",
         btnGpsTrack: "تتبع GPS",
-        btnActions: "خيارات ▾",
+        btnActions: "خيارات",
+        tabBranches: "إدارة الفروع (الويبات الفرعية)",
         actRename: "إعادة تسمية الجهاز",
         actLock: "قفل الشاشة فوراً",
         actExitKiosk: "خروج من وضع الكشك",
@@ -113,7 +114,8 @@ const i18n = {
         thActions: "Actions",
         btnRemoteControl: "Remote Control",
         btnGpsTrack: "GPS Track",
-        btnActions: "Actions ▾",
+        btnActions: "Options",
+        tabBranches: "Branch Management",
         actRename: "Rename Device",
         actLock: "Lock Screen",
         actExitKiosk: "Exit Kiosk Mode",
@@ -199,29 +201,32 @@ function applyLanguage() {
         document.body.classList.remove('rtl-mode');
     }
 
-    // Toggle button text (Pure text, no icons)
-    const btnLang = document.getElementById('btnLangToggle');
-    if (btnLang) {
-        btnLang.innerHTML = `<span>${isRtl ? 'English' : 'العربية'}</span>`;
+    // Toggle button text (preserves SVG icon)
+    const langLabel = document.getElementById('langLabel');
+    if (langLabel) {
+        langLabel.innerText = isRtl ? 'English' : 'العربية';
+    } else {
+        const btnLang = document.getElementById('btnLangToggle');
+        if (btnLang) btnLang.innerText = isRtl ? 'English' : 'العربية';
     }
 
-    // Navigation Tabs
-    const tabDevices = document.querySelector('.nav-tab[data-tab="devices"]');
-    if (tabDevices) tabDevices.innerText = t.tabDevices;
-
-    const tabWhitelist = document.querySelector('.nav-tab[data-tab="whitelist"]');
-    if (tabWhitelist) tabWhitelist.innerText = t.tabWhitelist;
-
-    const tabQr = document.querySelector('.nav-tab[data-tab="qr"]');
-    if (tabQr) {
-        tabQr.innerText = t.tabQr;
-    }
-
-    const tabOta = document.querySelector('.nav-tab[data-tab="ota"]');
-    if (tabOta) tabOta.innerText = t.tabOta;
-
-    const tabLogs = document.querySelector('.nav-tab[data-tab="logs"]');
-    if (tabLogs) tabLogs.innerText = t.tabLogs;
+    // Navigation Tabs (preserves tab SVG icons)
+    const updateTabLabel = (selector, text) => {
+        const tab = document.querySelector(selector);
+        if (!tab) return;
+        const label = tab.querySelector('.nav-tab-label');
+        if (label) {
+            label.innerText = text;
+        } else {
+            tab.innerText = text;
+        }
+    };
+    updateTabLabel('.nav-tab[data-tab="devices"]', t.tabDevices);
+    updateTabLabel('.nav-tab[data-tab="whitelist"]', t.tabWhitelist);
+    updateTabLabel('.nav-tab[data-tab="qr"]', t.tabQr);
+    updateTabLabel('.nav-tab[data-tab="ota"]', t.tabOta);
+    updateTabLabel('.nav-tab[data-tab="logs"]', t.tabLogs);
+    updateTabLabel('#tabNavBranches', t.tabBranches || (isRtl ? 'إدارة الفروع (الويبات الفرعية)' : 'Branch Management'));
 
     // QR Tab Labels
     const lblDeviceTag = document.getElementById('lblQrDeviceTag');
@@ -423,6 +428,12 @@ async function fetchDevices() {
         const devices = await res.json();
         lastDevicesCache = devices;
 
+        // If Device Action Center is currently open, live-update its content
+        if (activeDacDeviceId) {
+            const currentDacDevice = (devices || []).find(d => d.id === activeDacDeviceId);
+            if (currentDacDevice) updateDacModalContent(currentDacDevice);
+        }
+
         const currentOpenDropdown = openDropdownDeviceId ? document.getElementById(`dropdown-${openDropdownDeviceId}`) : null;
         if (currentOpenDropdown && currentOpenDropdown.classList.contains('show')) {
             updateDeviceSelect(devices);
@@ -476,6 +487,14 @@ function updateHeaderMetrics(devices) {
     if (kpiSec) kpiSec.innerText = isRtl ? '0 تهديدات' : '0 Threats';
 }
 
+function onDeviceRowClicked(event, deviceId) {
+    // Prevent trigger if user clicked an action button, select or dropdown item
+    if (event.target.closest('button, select, input, a, .dropdown-menu, .action-dropdown')) {
+        return;
+    }
+    openDeviceActionCenter(deviceId);
+}
+
 function renderDeviceTable(devices) {
     const tbody = document.getElementById('deviceTableBody');
     const t = i18n[currentLang];
@@ -510,13 +529,17 @@ function renderDeviceTable(devices) {
             : '<span class="status-tag tag-kiosk-idle">Unrestricted</span>';
 
         const batteryColor = (d.battery > 50) ? '#10B981' : (d.battery > 20 ? '#F59E0B' : '#EF4444');
+        const brand = detectDeviceBrand(d);
 
         return `
-            <tr>
+            <tr class="device-row" onclick="onDeviceRowClicked(event, '${d.id}')" title="${isRtl ? 'انقر لعرض تفاصيل وإجراءات الجهاز' : 'Click to view device details and actions'}">
                 <td>
-                    <div>
-                        <strong style="color:#0F172A; font-size:14px;">${escapeHtml(d.name || d.id)}</strong><br>
-                        <small style="color:#64748B; font-family:monospace; font-size:11px;">${escapeHtml(d.id)}</small>
+                    <div class="device-cell-brand">
+                        <span class="brand-chip brand-chip-${brand}" style="font-size:9.5px; padding:2px 6px;">${brand.toUpperCase()}</span>
+                        <div>
+                            <strong style="color:#0F172A; font-size:14px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong><br>
+                            <small style="color:#64748B; font-family:monospace; font-size:11px;">${escapeHtml(d.id)}</small>
+                        </div>
                     </div>
                 </td>
                 <td>
@@ -546,21 +569,29 @@ function renderDeviceTable(devices) {
                 <td>${onlineTag}</td>
                 <td>
                     <div class="actions-cell">
+                        <button class="btn-action btn-action-center" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();" title="${isRtl ? 'عرض تفاصيل وإجراءات الجهاز' : 'Device Actions & Details'}">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-left:4px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>${isRtl ? 'إجراءات الجهاز' : 'Device Actions'}</span>
+                        </button>
+
                         ${allowScreenControl ? `
-                            <button class="btn-action btn-screen" onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}')">
+                            <button class="btn-action btn-screen" onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}'); event.stopPropagation();">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                                 <span>${t.btnRemoteControl}</span>
                             </button>
                         ` : ''}
 
                         ${allowGps ? `
-                            <button class="btn-action btn-track" onclick="openDeviceTrackModal('${d.id}', '${escapeHtml(d.name || d.id)}')">
+                            <button class="btn-action btn-track" onclick="openDeviceTrackModal('${d.id}', '${escapeHtml(d.name || d.id)}'); event.stopPropagation();">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                                 <span>${t.btnGpsTrack}</span>
                             </button>
                         ` : ''}
 
                         <div class="action-dropdown">
                             <button class="btn-action btn-more" onclick="toggleDropdown(event, '${d.id}')">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
                                 <span>${t.btnActions}</span>
+                                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
                             <div id="dropdown-${d.id}" class="dropdown-menu">
                                 <button class="dropdown-item" onclick="openAdminRenameModal('${d.id}', '${escapeHtml(d.name || '')}')">
@@ -1151,14 +1182,48 @@ function closeDeviceTrackModal() {
 // --------------------------------------------------------------------------
 let activeStreamDeviceId = null;
 let isPollingScreen = false;
+let wasDacOpenBeforeStream = false;
 
 function openScreenStream(deviceId, deviceName) {
     activeStreamDeviceId = deviceId;
     isPollingScreen = false;
-    document.getElementById('screenModalTitle').innerText = `Live Remote: ${deviceName || deviceId}`;
-    document.getElementById('screenModal').style.display = 'flex';
-    document.getElementById('streamPlaceholder').style.display = 'flex';
-    document.getElementById('streamImg').style.display = 'none';
+
+    // If Device Action Center is open, hide it to prevent double-modal clutter
+    const dacModal = document.getElementById('deviceActionCenterModal');
+    if (dacModal && (dacModal.classList.contains('show') || dacModal.style.display === 'flex')) {
+        wasDacOpenBeforeStream = true;
+        dacModal.classList.remove('show');
+        dacModal.style.display = 'none';
+    } else {
+        wasDacOpenBeforeStream = false;
+    }
+
+    const titleEl = document.getElementById('screenModalTitle');
+    if (titleEl) titleEl.innerText = `التحكم المباشر: ${deviceName || deviceId}`;
+
+    const activeNameEl = document.getElementById('streamActiveDeviceName');
+    if (activeNameEl) activeNameEl.innerText = deviceName || deviceId;
+
+    const activeIdEl = document.getElementById('streamActiveDeviceId');
+    if (activeIdEl) activeIdEl.innerText = deviceId;
+
+    const dev = (lastDevicesCache || []).find(d => d.id === deviceId);
+    const kioskLabel = document.getElementById('streamKioskToggleLabel');
+    if (kioskLabel) {
+        kioskLabel.innerText = dev?.isKiosk ? 'إلغاء وضع الكشك' : 'تفعيل وضع الكشك';
+    }
+
+    const screenModal = document.getElementById('screenModal');
+    if (screenModal) {
+        screenModal.style.display = 'flex';
+        screenModal.classList.add('show');
+    }
+
+    const placeholder = document.getElementById('streamPlaceholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    const streamImg = document.getElementById('streamImg');
+    if (streamImg) streamImg.style.display = 'none';
 
     // Dispatch wake / start stream command
     fetch('/api/commands', {
@@ -1203,13 +1268,24 @@ async function pollScreenFrame() {
 }
 
 function closeScreenStream() {
-    document.getElementById('screenModal').style.display = 'none';
+    const screenModal = document.getElementById('screenModal');
+    if (screenModal) {
+        screenModal.style.display = 'none';
+        screenModal.classList.remove('show');
+    }
     if (streamInterval) {
         clearInterval(streamInterval);
         streamInterval = null;
     }
+    const prevDevice = activeStreamDeviceId;
     activeStreamDeviceId = null;
     isPollingScreen = false;
+
+    // If stream was launched from Device Action Center, seamlessly restore it
+    if (wasDacOpenBeforeStream && prevDevice) {
+        wasDacOpenBeforeStream = false;
+        openDeviceActionCenter(prevDevice);
+    }
 }
 
 function handlePhoneScreenClick(event) {
@@ -1292,6 +1368,31 @@ function sendRemoteTextInput() {
         setTimeout(pollScreenFrame, 150);
         setTimeout(pollScreenFrame, 350);
     }).catch(() => { });
+}
+
+function streamExecuteLock() {
+    if (!activeStreamDeviceId) return;
+    promptCommand(activeStreamDeviceId, 'LOCK_DEVICE', 'قفل شاشة الجهاز');
+}
+
+function streamExecuteKioskToggle() {
+    if (!activeStreamDeviceId) return;
+    const dev = (lastDevicesCache || []).find(d => d.id === activeStreamDeviceId);
+    if (dev?.isKiosk) {
+        promptCommand(activeStreamDeviceId, 'SET_KIOSK_MODE', 'Exit Kiosk Mode', { enable: false });
+    } else {
+        promptCommand(activeStreamDeviceId, 'SET_KIOSK_MODE', 'Enter Kiosk Mode', { enable: true });
+    }
+}
+
+function streamExecuteReboot() {
+    if (!activeStreamDeviceId) return;
+    promptCommand(activeStreamDeviceId, 'REBOOT', 'إعادة تشغيل الهاتف');
+}
+
+function streamExecuteSiren() {
+    if (!activeStreamDeviceId) return;
+    promptCommand(activeStreamDeviceId, 'TEST_TAMPER_ALARM', 'إطلاق صفارة الإنذار');
 }
 
 // --------------------------------------------------------------------------
@@ -1885,6 +1986,407 @@ async function syncFleetTime(deviceId = 'ALL') {
         showToast('Error syncing time: ' + e.message, 'error');
     }
 }
+
+// --------------------------------------------------------------------------
+// DEVICE ACTIONS & DETAILS CENTER (DAC)
+// --------------------------------------------------------------------------
+let activeDacDeviceId = null;
+let activeDacBrandOverride = 'auto';
+
+function detectDeviceBrand(d) {
+    if (!d) return 'generic';
+    const text = `${d.model || ''} ${d.name || ''} ${d.id || ''} ${d.manufacturer || ''} ${d.brand || ''}`.toLowerCase();
+    if (text.includes('honeywell') || text.includes('eda') || text.includes('ct40') || text.includes('ct60') || text.includes('ct45') || text.includes('scanpal') || text.includes('dolphin') || text.includes('ck65')) {
+        return 'honeywell';
+    }
+    if (text.includes('samsung') || text.includes('sm-') || text.includes('galaxy') || text.includes('sec_') || text.includes('s24') || text.includes('s23') || text.includes('s22') || text.includes('s21') || text.includes('a54') || text.includes('a34')) {
+        return 'samsung';
+    }
+    if (text.includes('zebra') || text.includes('tc5') || text.includes('tc2') || text.includes('tc7') || text.includes('mc3') || text.includes('mc9')) {
+        return 'zebra';
+    }
+    if (text.includes('sunmi') || text.includes('pos') || text.includes('v2') || text.includes('t2') || text.includes('p2') || text.includes('pax')) {
+        return 'pos';
+    }
+    return 'generic';
+}
+
+function openDeviceActionCenter(deviceId, forcedBrand = null) {
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === deviceId);
+    if (!device) {
+        showToast('لم يتم العثور على بيانات الجهاز', 'error');
+        return;
+    }
+
+    activeDacDeviceId = deviceId;
+    if (forcedBrand) {
+        activeDacBrandOverride = forcedBrand;
+        const brandSel = document.getElementById('dacBrandSelect');
+        if (brandSel) brandSel.value = forcedBrand;
+    } else {
+        activeDacBrandOverride = 'auto';
+        const brandSel = document.getElementById('dacBrandSelect');
+        if (brandSel) brandSel.value = 'auto';
+    }
+
+    const modal = document.getElementById('deviceActionCenterModal');
+    if (!modal) return;
+
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+
+    updateDacModalContent(device);
+}
+
+function closeDeviceActionCenter() {
+    activeDacDeviceId = null;
+    const modal = document.getElementById('deviceActionCenterModal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+}
+
+function onDacBrandOverride(val) {
+    activeDacBrandOverride = val;
+    if (activeDacDeviceId) {
+        const safeDevices = lastDevicesCache || [];
+        const device = safeDevices.find(d => d.id === activeDacDeviceId);
+        if (device) {
+            updateDacModalContent(device);
+        }
+    }
+}
+
+function renderDacChassis(d) {
+    const chassisContainer = document.getElementById('dacDeviceChassis');
+    if (!chassisContainer) return;
+
+    const detected = detectDeviceBrand(d);
+    const effectiveBrand = (activeDacBrandOverride && activeDacBrandOverride !== 'auto')
+        ? activeDacBrandOverride
+        : detected;
+
+    const battery = d.battery || 0;
+    const isCharging = !!d.isCharging;
+    const isKiosk = !!d.isKiosk;
+    const deviceName = d.name || d.id || 'Nexus Device';
+    const model = d.model || 'Android Terminal';
+
+    // Time string
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // Common screen HTML
+    const innerScreenHtml = `
+        <div class="device-screen-inner">
+            <div class="sim-status-bar">
+                <span>${timeStr}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span>4G / Wi-Fi</span>
+                    <span>${battery}%${isCharging ? ' (شحن)' : ''}</span>
+                </div>
+            </div>
+
+            <div class="sim-screen-center">
+                <div class="sim-shield-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                    </svg>
+                </div>
+                <div class="sim-device-title" title="${escapeHtml(deviceName)}">${escapeHtml(deviceName)}</div>
+                <span class="sim-lock-badge ${isKiosk ? 'sim-lock-active' : 'sim-lock-idle'}">
+                    ${isKiosk ? 'وضع الكشك: مقيد' : 'الوضع: غير مقيد'}
+                </span>
+                <small style="font-size:10px; color:#94A3B8;">${escapeHtml(model)}</small>
+            </div>
+
+            <div class="sim-screen-bottom">
+                <button class="sim-quick-stream-btn" onclick="dacExecuteStream()">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    <span>فتح البث المباشر للشاشة</span>
+                </button>
+            </div>
+        </div>
+    `;
+
+    let chassisHtml = '';
+
+    if (effectiveBrand === 'honeywell') {
+        chassisHtml = `
+            <div class="chassis-honeywell">
+                <div class="hw-scanner-aperture" title="Honeywell Barcode Laser Engine">
+                    <span class="hw-scanner-lens"></span>
+                    <span class="hw-scanner-laser"></span>
+                    <span class="hw-scanner-lens"></span>
+                </div>
+                <div class="hw-side-trigger-left" title="Scan Trigger Key"></div>
+                <div class="hw-side-trigger-right" title="Scan Trigger Key"></div>
+                
+                ${innerScreenHtml}
+
+                <div class="hw-brand-mark">HONEYWELL</div>
+            </div>
+        `;
+    } else if (effectiveBrand === 'samsung') {
+        chassisHtml = `
+            <div class="chassis-samsung">
+                <div class="samsung-punch-hole" title="Front Camera Infinity-O"></div>
+                
+                ${innerScreenHtml}
+
+                <div class="samsung-brand-mark">SAMSUNG</div>
+            </div>
+        `;
+    } else if (effectiveBrand === 'zebra') {
+        chassisHtml = `
+            <div class="chassis-zebra">
+                <div class="zebra-scan-bar" title="Zebra Red Laser Window"></div>
+                
+                ${innerScreenHtml}
+
+                <div style="text-align:center; margin-top:6px; font-weight:800; font-size:11px; color:#F59E0B; letter-spacing:1px;">ZEBRA</div>
+            </div>
+        `;
+    } else if (effectiveBrand === 'pos') {
+        chassisHtml = `
+            <div class="chassis-pos">
+                <div class="pos-printer-head" title="Thermal Receipt Printer">
+                    <div class="pos-printer-slot"></div>
+                </div>
+                
+                ${innerScreenHtml}
+
+                <div style="text-align:center; margin-top:6px; font-weight:800; font-size:11px; color:#EA580C; letter-spacing:1px;">SUNMI POS</div>
+            </div>
+        `;
+    } else {
+        chassisHtml = `
+            <div class="chassis-generic">
+                <div style="width:36px; height:4px; background:#475569; border-radius:2px; margin:0 auto 8px auto;"></div>
+                
+                ${innerScreenHtml}
+
+                <div style="text-align:center; margin-top:6px; font-weight:700; font-size:10px; color:#64748B;">NEXUS ENTERPRISE</div>
+            </div>
+        `;
+    }
+
+    chassisContainer.innerHTML = chassisHtml;
+}
+
+function updateDacModalContent(d) {
+    if (!d) return;
+
+    const detectedBrand = detectDeviceBrand(d);
+    const effectiveBrand = (activeDacBrandOverride && activeDacBrandOverride !== 'auto')
+        ? activeDacBrandOverride
+        : detectedBrand;
+
+    // Update Brand Badge
+    const brandBadge = document.getElementById('dacBrandBadge');
+    if (brandBadge) {
+        brandBadge.className = `brand-chip brand-chip-${effectiveBrand}`;
+        brandBadge.innerText = effectiveBrand.toUpperCase();
+    }
+
+    // Title & Subtitle
+    const nameEl = document.getElementById('dacDeviceName');
+    if (nameEl) nameEl.innerText = d.name || d.id;
+
+    const idEl = document.getElementById('dacDeviceId');
+    if (idEl) idEl.innerText = d.id;
+
+    const lastSeenEl = document.getElementById('dacLastSeen');
+    if (lastSeenEl) {
+        if (d.isOnline) {
+            lastSeenEl.innerText = 'متصل ونشط الآن';
+            lastSeenEl.style.color = '#10B981';
+        } else {
+            const diffSec = d.lastSeen ? Math.round(Date.now() / 1000 - d.lastSeen) : null;
+            lastSeenEl.innerText = diffSec ? `آخر ظهور منذ ${diffSec > 60 ? Math.round(diffSec / 60) + ' دقيقة' : diffSec + ' ثانية'}` : 'غير متصل';
+            lastSeenEl.style.color = '#64748B';
+        }
+    }
+
+    // Online & Kiosk Tags
+    const statusTag = document.getElementById('dacStatusTag');
+    if (statusTag) {
+        statusTag.className = d.isOnline ? 'status-tag tag-online' : 'status-tag tag-offline';
+        statusTag.innerHTML = d.isOnline ? '<span class="dot online"></span> Online' : '<span class="dot" style="background:#94A3B8;"></span> Offline';
+    }
+
+    const kioskTag = document.getElementById('dacKioskTag');
+    if (kioskTag) {
+        kioskTag.className = d.isKiosk ? 'status-tag tag-kiosk-active' : 'status-tag tag-kiosk-idle';
+        kioskTag.innerText = d.isKiosk ? 'Locked (مقيد)' : 'Unrestricted (حر)';
+    }
+
+    // Specs
+    const specModel = document.getElementById('dacSpecModel');
+    if (specModel) specModel.innerText = d.model || 'Unknown';
+
+    const specOs = document.getElementById('dacSpecOs');
+    if (specOs) specOs.innerText = `Android ${d.os || 'N/A'}`;
+
+    const specCompany = document.getElementById('dacSpecCompany');
+    if (specCompany) specCompany.innerText = d.companyName || currentCompanyCode;
+
+    // Vitals
+    const vBat = document.getElementById('dacVitalBattery');
+    if (vBat) vBat.innerText = `${d.battery || 0}%`;
+
+    const vBatBar = document.getElementById('dacVitalBatteryBar');
+    if (vBatBar) {
+        vBatBar.style.width = `${d.battery || 0}%`;
+        vBatBar.style.background = (d.battery > 50) ? '#10B981' : ((d.battery > 20) ? '#F59E0B' : '#EF4444');
+    }
+
+    const vCharging = document.getElementById('dacVitalCharging');
+    if (vCharging) vCharging.style.display = d.isCharging ? 'inline-block' : 'none';
+
+    const vTemp = document.getElementById('dacVitalTemp');
+    if (vTemp) vTemp.innerText = `${d.temperature || 0}°C حرارة`;
+
+    const vRam = document.getElementById('dacVitalRam');
+    if (vRam) vRam.innerText = `${d.ramUsedPercent || 0}%`;
+
+    const vRamBar = document.getElementById('dacVitalRamBar');
+    if (vRamBar) vRamBar.style.width = `${d.ramUsedPercent || 0}%`;
+
+    const vStorage = document.getElementById('dacVitalStorage');
+    if (vStorage) vStorage.innerText = `${d.storageUsedPercent || 0}%`;
+
+    const vStorageBar = document.getElementById('dacVitalStorageBar');
+    if (vStorageBar) vStorageBar.style.width = `${d.storageUsedPercent || 0}%`;
+
+    const vIp = document.getElementById('dacVitalIp');
+    if (vIp) vIp.innerText = d.ipAddress || 'غير معروف';
+
+    // Kiosk Button text
+    const btnKioskText = document.getElementById('dacKioskBtnText');
+    const btnKioskSub = document.getElementById('dacKioskBtnSub');
+    if (btnKioskText) {
+        btnKioskText.innerText = d.isKiosk ? 'إلغاء وضع الكشك' : 'تفعيل وضع الكشك';
+        btnKioskSub.innerText = d.isKiosk ? 'تحرير واجهة الهاتف' : 'قفل الهاتف على التطبيقات المسموحة';
+    }
+
+    // Whitelisted apps list
+    const wlContainer = document.getElementById('dacWhitelistedAppsList');
+    if (wlContainer) {
+        const apps = d.whitelistedApps || [];
+        if (apps.length > 0) {
+            wlContainer.innerHTML = apps.map(pkg => `<span class="dac-app-tag"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-left:3px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>${escapeHtml(pkg)}</span>`).join('');
+        } else {
+            wlContainer.innerHTML = '<span style="font-size:12px; color:#94A3B8;">لم يتم تقييد تطبيقات محددة، الهاتف يعمل بالوضع القياسي.</span>';
+        }
+    }
+
+    // Footer info
+    const fGps = document.getElementById('dacFooterGps');
+    if (fGps) {
+        if (d.location && d.location.lat) {
+            fGps.innerText = `الإحداثيات: ${d.location.lat.toFixed(5)}, ${d.location.lng.toFixed(5)} (دقة ${Math.round(d.location.accuracy || 0)}م)`;
+        } else {
+            fGps.innerText = 'الإحداثيات: غير متوفرة بعد';
+        }
+    }
+
+    const fTime = document.getElementById('dacFooterTime');
+    if (fTime) {
+        fTime.innerText = `آخر مزامنة: ${new Date().toLocaleTimeString('ar-EG')}`;
+    }
+
+    // Render the hardware chassis mockup
+    renderDacChassis(d);
+}
+
+function dacExecuteStream() {
+    if (!activeDacDeviceId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    const name = device ? (device.name || device.id) : activeDacDeviceId;
+    openScreenStream(activeDacDeviceId, name);
+}
+
+function dacExecuteGps() {
+    if (!activeDacDeviceId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    const name = device ? (device.name || device.id) : activeDacDeviceId;
+    openDeviceTrackModal(activeDacDeviceId, name);
+}
+
+function dacExecuteCommand(command, label, payload = {}) {
+    if (!activeDacDeviceId) return;
+    promptCommand(activeDacDeviceId, command, label, payload);
+}
+
+function dacExecuteKioskToggle() {
+    if (!activeDacDeviceId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    if (!device) return;
+
+    if (device.isKiosk) {
+        promptCommand(activeDacDeviceId, 'SET_KIOSK_MODE', 'Exit Kiosk Mode', { enable: false });
+    } else {
+        promptCommand(activeDacDeviceId, 'SET_KIOSK_MODE', 'Enter Kiosk Mode', { enable: true });
+    }
+}
+
+function dacExecuteSyncTime() {
+    if (!activeDacDeviceId) return;
+    syncFleetTime(activeDacDeviceId);
+}
+
+function dacExecuteRename() {
+    if (!activeDacDeviceId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    openAdminRenameModal(activeDacDeviceId, device ? (device.name || '') : '');
+}
+
+function dacExecuteWipe() {
+    if (!activeDacDeviceId) return;
+    promptCommand(activeDacDeviceId, 'WIPE_DEVICE', 'Remote Factory Wipe');
+}
+
+function dacTogglePolicy(policyKey, isEnabled) {
+    if (!activeDacDeviceId) return;
+    dispatchRemoteCommand(activeDacDeviceId, 'SET_PERIPHERAL_POLICY', {
+        policy_key: policyKey,
+        enabled: isEnabled
+    });
+}
+
+function dacGoToWhitelist() {
+    if (!activeDacDeviceId) return;
+    const devId = activeDacDeviceId;
+    closeDeviceActionCenter();
+    const tabBtn = document.querySelector('[onclick="switchTab(\'whitelist\')"]');
+    if (tabBtn) tabBtn.click();
+    const sel = document.getElementById('whitelistDeviceSelect');
+    if (sel) {
+        sel.value = devId;
+        if (typeof onWhitelistDeviceChanged === 'function') onWhitelistDeviceChanged();
+    }
+}
+
+// Global modal close handlers
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (activeDacDeviceId) closeDeviceActionCenter();
+    }
+});
+
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('deviceActionCenterModal');
+    if (modal && modal.style.display === 'flex' && e.target === modal) {
+        closeDeviceActionCenter();
+    }
+});
 
 // --------------------------------------------------------------------------
 // INITIALIZATION
