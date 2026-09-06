@@ -216,7 +216,7 @@ class CommandDispatcher(
         return try {
             AppLogger.securityAudit("REMOTE_WIPE", "Factory reset initiated via remote command (storage=$wipeStorage)")
             val flags = if (wipeStorage) 1 else 0
-            // policyHelper.dpm.wipeData(flags)
+            policyHelper.dpm.wipeData(flags)
             Result.success("Factory wipe command validated and dispatched.")
         } catch (e: Exception) {
             AppLogger.e("CommandDispatcher", "Wipe failed", e)

@@ -1037,6 +1037,9 @@ class MainActivity : AppCompatActivity() {
                 "تسمية / تعديل اسم الجهاز (Rename Device)",
                 "لوحة تحكم المسؤول المتقدمة (Admin Console)",
                 "خروج مؤقت إلى واجهة أندرويد (Exit Kiosk Temporarily)",
+                "فتح إعدادات أندرويد وشبكة الواي فاي (Android & Wi-Fi Settings)",
+                "تفعيل خيارات المطورين وتصحيح USB (Enable Developer / USB Debugging)",
+                "إعادة ضبط المصنع للجهاز (Factory Reset Device)",
                 "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
                 "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
                 "إلغاء (Cancel)"
@@ -1059,6 +1062,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         3 -> {
                             kioskManager.stopKiosk(this)
+                            policyHelper.clearDefaultHomeLauncher()
                             clearKioskWindowFlags()
                             try {
                                 val home = Intent(Intent.ACTION_MAIN).apply {
@@ -1067,12 +1071,64 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 startActivity(home)
                             } catch (_: Exception) {}
-                            Toast.makeText(this, "تم الخروج المؤقت من الكشك.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "تم الخروج المؤقت من الكشك وإلغاء تثبيت المشغل الافتراضي.", Toast.LENGTH_SHORT).show()
                         }
                         4 -> {
-                            ensureDefaultHomeLauncher()
+                            kioskManager.stopKiosk(this)
+                            clearKioskWindowFlags()
+                            try {
+                                val settings = Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                startActivity(settings)
+                            } catch (_: Exception) {
+                                try {
+                                    val wifiSettings = Intent(android.provider.Settings.ACTION_WIFI_SETTINGS).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    startActivity(wifiSettings)
+                                } catch (e2: Exception) {
+                                    Toast.makeText(this, "تعذر فتح الإعدادات: ${e2.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                         5 -> {
+                            try {
+                                if (policyHelper.isDeviceOwner()) {
+                                    policyHelper.dpm.clearUserRestriction(policyHelper.adminComponent, android.os.UserManager.DISALLOW_DEBUGGING_FEATURES)
+                                    policyHelper.dpm.setGlobalSetting(policyHelper.adminComponent, android.provider.Settings.Global.ADB_ENABLED, "1")
+                                }
+                                val devIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                startActivity(devIntent)
+                                Toast.makeText(this, "تم تفعيل تصحيح USB وفتح خيارات المطورين.", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(this, "تعذر فتح خيارات المطورين: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        6 -> {
+                            android.app.AlertDialog.Builder(this)
+                                .setTitle("تحذير: إعادة ضبط المصنع")
+                                .setMessage("هل أنت متأكد من رغبتك في مسح كافة بيانات الجهاز والعودة لحالة المصنع؟")
+                                .setPositiveButton("نعم، فرمت الجهاز") { _, _ ->
+                                    try {
+                                        if (policyHelper.isDeviceOwner()) {
+                                            policyHelper.dpm.wipeData(0)
+                                        } else {
+                                            Toast.makeText(this, "يتطلب صلاحية مالك الجهاز (Device Owner)", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(this, "فشل الفورمات: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .setNegativeButton("إلغاء", null)
+                                .show()
+                        }
+                        7 -> {
+                            ensureDefaultHomeLauncher()
+                        }
+                        8 -> {
                             val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
                             if (isAccActive) {
                                 Toast.makeText(this, "خدمة التحكم السحابي باللمس مفعلة ونشطة بالفعل!", Toast.LENGTH_SHORT).show()
@@ -1088,7 +1144,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         }
-                        6 -> {
+                        9 -> {
                             dialog.dismiss()
                         }
                     }
