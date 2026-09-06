@@ -127,11 +127,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Enterprise Keep-Alive Foreground Service -->
-        <service
-            android:name=".service.NexusKeepAliveService"
-            android:exported="false"
-            android:foregroundServiceType="systemExempted" />
 
         <!-- Background MDM Cloud Sync Service -->
         <service

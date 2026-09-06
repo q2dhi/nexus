@@ -40,8 +40,9 @@ class AntiTamperGuard(
     }
 
     fun startMonitoring() {
-        // Record baseline SIM operator on first start if not yet set
-        saveBaselineSimState()
+        try {
+            saveBaselineSimState()
+        } catch (_: Throwable) {}
 
         val filter = IntentFilter().apply {
             addAction("android.intent.action.SIM_STATE_CHANGED")
@@ -50,12 +51,19 @@ class AntiTamperGuard(
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
-                checkSimIntegrity()
+                try {
+                    checkSimIntegrity()
+                } catch (_: Throwable) {}
             }
         }
 
         try {
-            context.registerReceiver(receiver, filter)
+            androidx.core.content.ContextCompat.registerReceiver(
+                context,
+                receiver!!,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
             AppLogger.i("AntiTamper", "Anti-tamper hardware sentinel initialized.")
         } catch (e: Exception) {
             AppLogger.w("AntiTamper", "Failed to register SIM state receiver: ${e.message}")
@@ -71,29 +79,39 @@ class AntiTamperGuard(
     }
 
     fun checkSimIntegrity() {
-        val tm = telephonyManager ?: return
-        val state = tm.simState
+        try {
+            val tm = telephonyManager ?: return
+            val hasPhonePermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.READ_PHONE_STATE
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        when (state) {
-            TelephonyManager.SIM_STATE_ABSENT -> {
-                val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
-                val baselineOp = prefs.getString(PREF_SAVED_SIM_OPERATOR, null)
-                // Only trigger alarm if a SIM card was previously enrolled and was physically removed!
-                if (!baselineOp.isNullOrEmpty()) {
-                    triggerTamperAlarm("SIM Card Removed! (Expected: $baselineOp)")
+            val state = try { tm.simState } catch (_: Throwable) { return }
+
+            when (state) {
+                TelephonyManager.SIM_STATE_ABSENT -> {
+                    val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
+                    val baselineOp = prefs.getString(PREF_SAVED_SIM_OPERATOR, null)
+                    // Only trigger alarm if a SIM card was previously enrolled and was physically removed!
+                    if (!baselineOp.isNullOrEmpty()) {
+                        triggerTamperAlarm("SIM Card Removed! (Expected: $baselineOp)")
+                    }
+                }
+                TelephonyManager.SIM_STATE_READY -> {
+                    if (!hasPhonePermission) return
+                    val currentOp = try { tm.simOperator.orEmpty() } catch (_: Throwable) { "" }
+                    val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
+                    val baselineOp = prefs.getString(PREF_SAVED_SIM_OPERATOR, null)
+
+                    if (baselineOp.isNullOrEmpty() && currentOp.isNotEmpty()) {
+                        prefs.edit().putString(PREF_SAVED_SIM_OPERATOR, currentOp).apply()
+                    } else if (!baselineOp.isNullOrEmpty() && currentOp.isNotEmpty() && baselineOp != currentOp) {
+                        triggerTamperAlarm("Unauthorized SIM Swap Detected! Expected: $baselineOp, Found: $currentOp")
+                    }
                 }
             }
-            TelephonyManager.SIM_STATE_READY -> {
-                val currentOp = tm.simOperator.orEmpty()
-                val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
-                val baselineOp = prefs.getString(PREF_SAVED_SIM_OPERATOR, null)
-
-                if (baselineOp.isNullOrEmpty() && currentOp.isNotEmpty()) {
-                    prefs.edit().putString(PREF_SAVED_SIM_OPERATOR, currentOp).apply()
-                } else if (!baselineOp.isNullOrEmpty() && currentOp.isNotEmpty() && baselineOp != currentOp) {
-                    triggerTamperAlarm("Unauthorized SIM Swap Detected! Expected: $baselineOp, Found: $currentOp")
-                }
-            }
+        } catch (t: Throwable) {
+            AppLogger.w("AntiTamper", "checkSimIntegrity safely caught: ${t.message}")
         }
     }
 
@@ -127,13 +145,23 @@ class AntiTamperGuard(
     }
 
     private fun saveBaselineSimState() {
-        val tm = telephonyManager ?: return
-        val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
-        if (!prefs.contains(PREF_SAVED_SIM_OPERATOR)) {
-            val op = tm.simOperator.orEmpty()
-            if (op.isNotEmpty()) {
-                prefs.edit().putString(PREF_SAVED_SIM_OPERATOR, op).apply()
+        try {
+            val tm = telephonyManager ?: return
+            val hasPhonePermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.READ_PHONE_STATE
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasPhonePermission) return
+
+            val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
+            if (!prefs.contains(PREF_SAVED_SIM_OPERATOR)) {
+                val op = try { tm.simOperator.orEmpty() } catch (_: Throwable) { "" }
+                if (op.isNotEmpty()) {
+                    prefs.edit().putString(PREF_SAVED_SIM_OPERATOR, op).apply()
+                }
             }
+        } catch (t: Throwable) {
+            AppLogger.w("AntiTamper", "saveBaselineSimState safely caught: ${t.message}")
         }
     }
 

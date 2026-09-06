@@ -43,7 +43,6 @@ import com.nexus.mdm.agent.kiosk.AppWhitelistManager
 import com.nexus.mdm.agent.kiosk.KioskManager
 import com.nexus.mdm.agent.remote.MdmCloudSyncService
 import com.nexus.mdm.agent.security.PeripheralPolicyManager
-import com.nexus.mdm.agent.service.NexusKeepAliveService
 import com.nexus.mdm.agent.util.AppLogger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -80,9 +79,6 @@ class MainActivity : AppCompatActivity() {
     // Loading Screen UI
     private lateinit var pbLoadingApp: ProgressBar
     private lateinit var tvLoadingStatus: TextView
-
-    // Status Bar Blocker View
-    private var statusBarBlockerView: View? = null
 
     // 5-Press Back Button Counter
     private var backPressCount = 0
@@ -131,56 +127,65 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         instance = this
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
-        setContentView(R.layout.activity_main)
+        try {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+            setContentView(R.layout.activity_main)
 
-        policyHelper = PolicyManagerHelper(this)
-        kioskManager = KioskManager(this)
-        whitelistManager = AppWhitelistManager(this)
-        configStore = SecureConfigStore(this)
-        peripheralManager = PeripheralPolicyManager(this, policyHelper)
-        antiTamperGuard = com.nexus.mdm.agent.security.AntiTamperGuard(this) { reason ->
-            showTamperLockoutDialog(reason)
-        }
-        antiTamperGuard.startMonitoring()
+            policyHelper = PolicyManagerHelper(this)
+            kioskManager = KioskManager(this)
+            whitelistManager = AppWhitelistManager(this)
+            configStore = SecureConfigStore(this)
+            peripheralManager = PeripheralPolicyManager(this, policyHelper)
 
-        initViews()
-        setupBackNavigation()
-        setupListeners()
-        loadInstalledApps()
-        startClockUpdates()
-        handleIncomingIntent(intent)
+            initViews()
+            setupBackNavigation()
+            setupListeners()
+            loadInstalledApps()
+            startClockUpdates()
+            handleIncomingIntent(intent)
 
-        // Start Cloud Sync and Keep-Alive Services
-        MdmCloudSyncService.start(this)
-        if (policyHelper.isDeviceOwner()) {
-            policyHelper.setAsDefaultHomeLauncher()
+            // Start Cloud Sync Service
+            MdmCloudSyncService.start(this)
+
+            if (policyHelper.isDeviceOwner()) {
+                policyHelper.setAsDefaultHomeLauncher()
+                try {
+                    val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+                    val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)
+                    val enterprisePerms = listOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                        android.Manifest.permission.READ_PHONE_STATE
+                    )
+                    for (p in enterprisePerms) {
+                        try {
+                            dpm.setPermissionGrantState(admin, packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                        } catch (_: Exception) {}
+                    }
+                } catch (_: Exception) {}
+            }
+
             try {
-                val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-                val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)
-                val enterprisePerms = listOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                    android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                    android.Manifest.permission.READ_PHONE_STATE
-                )
-                for (p in enterprisePerms) {
-                    try {
-                        dpm.setPermissionGrantState(admin, packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
-                    } catch (_: Exception) {}
+                antiTamperGuard = com.nexus.mdm.agent.security.AntiTamperGuard(this) { reason ->
+                    showTamperLockoutDialog(reason)
                 }
-            } catch (_: Exception) {}
-            NexusKeepAliveService.start(this)
-        }
+                antiTamperGuard.startMonitoring()
+            } catch (e: Exception) {
+                AppLogger.w("MainActivity", "AntiTamperGuard init warning: ${e.message}")
+            }
 
-        // Always enforce Kiosk View by default
-        configStore.isKioskEnabled = true
-        activateKioskView()
-        showLoadingScreen(900)
+            // Always enforce Kiosk View by default
+            configStore.isKioskEnabled = true
+            activateKioskView()
+            showLoadingScreen(900)
+        } catch (t: Throwable) {
+            AppLogger.e("MainActivity", "Guarded startup error in onCreate: ${t.message}", t)
+        }
     }
 
     override fun onResume() {
@@ -264,50 +269,6 @@ class MainActivity : AppCompatActivity() {
         return if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 90
     }
 
-    private fun enableStatusBarTouchBlocker() {
-        if (statusBarBlockerView != null) return
-        window.decorView.post {
-            if (isFinishing || isDestroyed || statusBarBlockerView != null) return@post
-            try {
-                val decor = window?.decorView ?: return@post
-                val token = decor.windowToken ?: return@post
-                val blockerView = View(this).apply {
-                    setBackgroundColor(Color.TRANSPARENT)
-                    setOnTouchListener { _, _ ->
-                        collapseStatusBar()
-                        true // Consume touch to prevent system notification shade trigger
-                    }
-                }
-                val barHeight = getStatusBarHeight()
-                val params = WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    if (barHeight > 0) barHeight + 20 else 90,
-                    WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.TRANSLUCENT
-                ).apply {
-                    gravity = Gravity.TOP
-                    this.token = token
-                }
-                windowManager.addView(blockerView, params)
-                statusBarBlockerView = blockerView
-            } catch (e: Exception) {
-                AppLogger.w("MainActivity", "Status bar touch blocker attach warning: ${e.message}")
-            }
-        }
-    }
-
-    private fun disableStatusBarTouchBlocker() {
-        statusBarBlockerView?.let {
-            try {
-                windowManager.removeViewImmediate(it)
-            } catch (_: Exception) {}
-            statusBarBlockerView = null
-        }
-    }
-
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (configStore.isKioskEnabled && ev.y < (getStatusBarHeight() + 30)) {
             collapseStatusBar()
@@ -342,9 +303,7 @@ class MainActivity : AppCompatActivity() {
                     controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
                 }
             }
-            enableStatusBarTouchBlocker()
         } else {
-            disableStatusBarTouchBlocker()
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
             @Suppress("DEPRECATION")
@@ -360,7 +319,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearKioskWindowFlags() {
-        disableStatusBarTouchBlocker()
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         @Suppress("DEPRECATION")
@@ -605,9 +563,10 @@ class MainActivity : AppCompatActivity() {
             instance = null
         }
         super.onDestroy()
-        antiTamperGuard.stopMonitoring()
+        if (::antiTamperGuard.isInitialized) {
+            antiTamperGuard.stopMonitoring()
+        }
         com.nexus.mdm.agent.remote.ScreenCaptureManager.stopStream()
-        disableStatusBarTouchBlocker()
         securityActionDialog?.dismiss()
         securityActionDialog = null
     }
@@ -996,16 +955,33 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadInstalledApps() {
         lifecycleScope.launch {
-            allInstalledApps = whitelistManager.getInstalledLaunchableApps()
-            selectedWhitelist.clear()
-            selectedWhitelist.addAll(whitelistManager.getWhitelistedPackages())
+            try {
+                allInstalledApps = whitelistManager.getInstalledLaunchableApps()
+                selectedWhitelist.clear()
+                var currentWhitelisted = whitelistManager.getWhitelistedPackages()
+                if (currentWhitelisted.isEmpty()) {
+                    val defaults = allInstalledApps.filter { item ->
+                        AppWhitelistManager.DEFAULT_ENTERPRISE_APPS.contains(item.packageName) ||
+                        item.packageName.contains("calculator", ignoreCase = true) ||
+                        item.packageName.contains("chrome", ignoreCase = true) ||
+                        item.packageName.contains("camera", ignoreCase = true)
+                    }.map { it.packageName }.toSet()
+                    if (defaults.isNotEmpty()) {
+                        whitelistManager.saveWhitelistedPackages(defaults)
+                        currentWhitelisted = defaults
+                    }
+                }
+                selectedWhitelist.addAll(currentWhitelisted)
 
-            val adapter = WhitelistSelectorAdapter(allInstalledApps) { item, isChecked ->
-                if (isChecked) selectedWhitelist.add(item.packageName) else selectedWhitelist.remove(item.packageName)
+                val adapter = WhitelistSelectorAdapter(allInstalledApps) { item, isChecked ->
+                    if (isChecked) selectedWhitelist.add(item.packageName) else selectedWhitelist.remove(item.packageName)
+                    updateKioskGrid()
+                }
+                rvWhitelistSelector.adapter = adapter
                 updateKioskGrid()
+            } catch (t: Throwable) {
+                AppLogger.e("MainActivity", "Error in loadInstalledApps: ${t.message}", t)
             }
-            rvWhitelistSelector.adapter = adapter
-            updateKioskGrid()
         }
     }
 
@@ -1037,7 +1013,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun activateAdminView() {
         // Safely restore status bar and release Kiosk
-        disableStatusBarTouchBlocker()
         if (policyHelper.isDeviceOwner()) {
             policyHelper.setStatusBarDisabled(false)
         }

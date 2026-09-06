@@ -39,7 +39,7 @@ class AppWhitelistManager(private val context: Context) {
         } catch (_: Exception) {
             emptyList()
         }
-        val whitelistedSet = getWhitelistedPackages()
+        val whitelistedSet = configStore.whitelistedPackages
 
         return resolveInfos
             .filter { it.activityInfo != null && it.activityInfo.packageName != context.packageName }
@@ -78,29 +78,9 @@ class AppWhitelistManager(private val context: Context) {
 
     /**
      * Gets the currently saved set of whitelisted packages for Kiosk mode.
-     * Automatically pre-populates standard enterprise tools (Calculator, Chrome, Camera) if empty.
      */
     fun getWhitelistedPackages(): Set<String> {
-        val saved = configStore.whitelistedPackages
-        if (saved.isNotEmpty()) {
-            return saved
-        }
-
-        val installedMatches = getInstalledLaunchableApps()
-            .map { it.packageName }
-            .filter { pkg ->
-                DEFAULT_ENTERPRISE_APPS.contains(pkg) ||
-                pkg.contains("calculator", ignoreCase = true) ||
-                pkg.contains("chrome", ignoreCase = true)
-            }
-            .toSet()
-
-        if (installedMatches.isNotEmpty()) {
-            configStore.whitelistedPackages = installedMatches
-            return installedMatches
-        }
-
-        return emptySet()
+        return configStore.whitelistedPackages
     }
 
     /**

@@ -59,7 +59,15 @@ class NexusApp : Application() {
     private fun setupUncaughtExceptionHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            AppLogger.e("FATAL", "Uncaught exception on thread ${thread.name}", throwable)
+            try {
+                AppLogger.e("FATAL", "Uncaught exception on thread ${thread.name}", throwable)
+                val crashDumpFile = java.io.File(filesDir, "crash_dump.txt")
+                val sw = java.io.StringWriter()
+                val pw = java.io.PrintWriter(sw)
+                throwable.printStackTrace(pw)
+                val dumpContent = "[${java.util.Date()}] Thread: ${thread.name}\n${sw}\n\n"
+                crashDumpFile.appendText(dumpContent)
+            } catch (_: Throwable) {}
             defaultHandler?.uncaughtException(thread, throwable)
         }
     }
