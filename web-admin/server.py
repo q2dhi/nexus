@@ -30,6 +30,104 @@ os.makedirs(PUBLIC_DIR, exist_ok=True)
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
 
 # --------------------------------------------------------------------------
+# APK Management & Checksum Extraction Helpers
+# --------------------------------------------------------------------------
+import struct
+import shutil
+
+KNOWN_DEBUG_SIGNATURE_CHECKSUM = "186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8"
+
+def resolve_agent_apk():
+    """Locate the freshest agent APK, synchronizing debug build outputs to web-admin/apk/."""
+    gradle_apk = os.path.join(BASE_DIR, '..', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
+    primary_apk = os.path.join(BASE_DIR, 'apk', 'nexus-agent.apk')
+    downloads_apk = os.path.join(DOWNLOADS_DIR, 'nexus-agent-latest.apk')
+    intermediates_apk = os.path.join(BASE_DIR, '..', 'app', 'build', 'intermediates', 'apk', 'debug', 'app-debug.apk')
+
+    if os.path.exists(gradle_apk) and os.path.getsize(gradle_apk) > 0:
+        if not os.path.exists(primary_apk) or os.path.getmtime(gradle_apk) > os.path.getmtime(primary_apk):
+            try:
+                os.makedirs(os.path.dirname(primary_apk), exist_ok=True)
+                shutil.copy2(gradle_apk, primary_apk)
+            except Exception:
+                pass
+        return primary_apk
+
+    for cand in [primary_apk, downloads_apk, intermediates_apk]:
+        if os.path.exists(cand) and os.path.getsize(cand) > 0:
+            return cand
+    return primary_apk
+
+def get_apk_signature_checksum(apk_path):
+    """
+    Extracts the SHA-256 fingerprint of the signing certificate from an APK
+    in URL-safe Base64 without padding, matching Android Enterprise
+    android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM.
+    """
+    if not apk_path or not os.path.exists(apk_path):
+        return KNOWN_DEBUG_SIGNATURE_CHECKSUM
+
+    # 1. Try Android SDK apksigner if available
+    sdk_root = os.environ.get('ANDROID_HOME') or os.path.expandvars(r'%LOCALAPPDATA%\Android\Sdk')
+    build_tools = os.path.join(sdk_root, 'build-tools')
+    if os.path.isdir(build_tools):
+        for v in sorted(os.listdir(build_tools), reverse=True):
+            apksigner = os.path.join(build_tools, v, 'apksigner.bat')
+            if not os.path.exists(apksigner):
+                apksigner = os.path.join(build_tools, v, 'apksigner')
+            if os.path.exists(apksigner):
+                try:
+                    import re
+                    res = subprocess.run([apksigner, 'verify', '--print-certs', apk_path], capture_output=True, text=True, timeout=10)
+                    m = re.search(r'certificate SHA-256 digest:\s*([0-9a-fA-F]+)', res.stdout)
+                    if m:
+                        digest_hex = m.group(1).strip()
+                        raw_bytes = bytes.fromhex(digest_hex)
+                        return base64.urlsafe_b64encode(raw_bytes).decode('ascii').rstrip('=')
+                except Exception:
+                    pass
+
+    # 2. Pure Python parsing of APK Signing Block v2/v3
+    try:
+        with open(apk_path, 'rb') as f:
+            data = f.read()
+        eocd_idx = data.rfind(b'\x50\x4b\x05\x06')
+        if eocd_idx != -1:
+            cd_size, cd_offset = struct.unpack('<II', data[eocd_idx+12:eocd_idx+20])
+            magic = data[cd_offset-16:cd_offset]
+            if magic == b'APK Sig Block 42':
+                block_size = struct.unpack('<Q', data[cd_offset-24:cd_offset-16])[0]
+                block_start = cd_offset - 8 - block_size
+                pos = block_start + 8
+                while pos < cd_offset - 24:
+                    length = struct.unpack('<Q', data[pos:pos+8])[0]
+                    pos += 8
+                    scheme_id = struct.unpack('<I', data[pos:pos+4])[0]
+                    val = data[pos+4:pos+length]
+                    if scheme_id in (0x7109871a, 0xf05368c0):
+                        idx = val.find(b'\x30\x82')
+                        if idx != -1:
+                            seq_len = struct.unpack('>H', val[idx+2:idx+4])[0] + 4
+                            cert = val[idx:idx+seq_len]
+                            return base64.urlsafe_b64encode(hashlib.sha256(cert).digest()).decode('ascii').rstrip('=')
+                    pos += length
+    except Exception:
+        pass
+
+    return KNOWN_DEBUG_SIGNATURE_CHECKSUM
+
+def get_apk_file_checksum(apk_path):
+    """Computes URL-safe Base64 SHA-256 of the APK file itself (PACKAGE_CHECKSUM)."""
+    if not apk_path or not os.path.exists(apk_path):
+        return ""
+    try:
+        with open(apk_path, 'rb') as f:
+            h = hashlib.sha256(f.read()).digest()
+        return base64.urlsafe_b64encode(h).decode('ascii').rstrip('=')
+    except Exception:
+        return ""
+
+# --------------------------------------------------------------------------
 # Persistent Tenant & Subscription Storage
 # --------------------------------------------------------------------------
 DEFAULT_TENANTS = {
@@ -553,15 +651,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             return
 
         if path == '/api/qr-config':
-            apk_path = os.path.join(BASE_DIR, 'apk', 'nexus-agent.apk')
-            checksum = "RL__IU87QZW8GA66qikKZ-ySIY1r9UnQqxgyHU63bBU"
-            if os.path.exists(apk_path):
-                try:
-                    with open(apk_path, 'rb') as f:
-                        h = hashlib.sha256(f.read()).digest()
-                    checksum = base64.urlsafe_b64encode(h).decode('ascii').rstrip('=')
-                except Exception:
-                    pass
+            apk_path = resolve_agent_apk()
+            sig_checksum = get_apk_signature_checksum(apk_path)
+            pkg_checksum = get_apk_file_checksum(apk_path)
 
             local_ip = "192.168.0.101"
             try:
@@ -586,7 +678,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             self._send_json(200, {
                 "localIp": host.split(':')[0],
                 "port": PORT,
-                "apkChecksum": checksum,
+                "apkChecksum": sig_checksum,
+                "signatureChecksum": sig_checksum,
+                "packageChecksum": pkg_checksum,
                 "componentName": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
                 "defaultDownloadUrl": download_url,
                 "defaultServerUrl": server_url,
@@ -595,13 +689,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             return
 
         if path == '/download/nexus-agent.apk':
-            apk_path = os.path.join(BASE_DIR, 'apk', 'nexus-agent.apk')
-            if not os.path.exists(apk_path):
-                alt_path = os.path.join(BASE_DIR, '..', 'app', 'build', 'intermediates', 'apk', 'debug', 'app-debug.apk')
-                if os.path.exists(alt_path):
-                    apk_path = alt_path
+            apk_path = resolve_agent_apk()
 
-            if os.path.exists(apk_path):
+            if os.path.exists(apk_path) and os.path.getsize(apk_path) > 0:
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/vnd.android.package-archive')
                 self.send_header('Content-Length', str(os.path.getsize(apk_path)))

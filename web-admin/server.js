@@ -212,6 +212,51 @@ app.post('/api/devices/:id/touch', (req, res) => {
     res.json({ success: true, queued: true });
 });
 
+// --------------------------------------------------------------------------
+// QR PROVISIONING & APK DOWNLOAD
+// --------------------------------------------------------------------------
+const KNOWN_DEBUG_SIGNATURE_CHECKSUM = '186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8';
+
+function resolveAgentApkPath() {
+    const candidates = [
+        path.join(__dirname, '..', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk'),
+        path.join(__dirname, 'apk', 'nexus-agent.apk'),
+        path.join(__dirname, 'public', 'downloads', 'nexus-agent-latest.apk')
+    ];
+    for (const p of candidates) {
+        if (fs.existsSync(p) && fs.statSync(p).size > 0) return p;
+    }
+    return path.join(__dirname, 'apk', 'nexus-agent.apk');
+}
+
+app.get('/api/qr-config', (req, res) => {
+    const host = req.headers.host || `localhost:${PORT}`;
+    const proto = (req.headers['x-forwarded-proto'] || 'http');
+    const serverUrl = `${proto}://${host}`;
+    const downloadUrl = `${serverUrl}/download/nexus-agent.apk`;
+
+    res.json({
+        localIp: host.split(':')[0],
+        port: PORT,
+        apkChecksum: KNOWN_DEBUG_SIGNATURE_CHECKSUM,
+        signatureChecksum: KNOWN_DEBUG_SIGNATURE_CHECKSUM,
+        componentName: 'com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver',
+        defaultDownloadUrl: downloadUrl,
+        defaultServerUrl: serverUrl,
+        companies: [{ code: 'NEXUS-DEFAULT', name: 'شركة التقنية المتقدمة (الافتراضية)', status: 'ACTIVE' }]
+    });
+});
+
+app.get('/download/nexus-agent.apk', (req, res) => {
+    const apkPath = resolveAgentApkPath();
+    if (fs.existsSync(apkPath)) {
+        res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+        res.setHeader('Content-Disposition', 'attachment; filename="nexus-agent.apk"');
+        return res.sendFile(apkPath);
+    }
+    res.status(404).json({ error: 'APK not found' });
+});
+
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
