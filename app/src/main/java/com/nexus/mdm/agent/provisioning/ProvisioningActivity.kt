@@ -86,10 +86,11 @@ class ProvisioningActivity : AppCompatActivity() {
             AppLogger.e("ProvisioningActivity", "Error reading extras bundle in compliance activity", e)
         }
 
-        // Apply baseline security policies
+        // Apply baseline security policies and persistent home launcher
         try {
             val policyHelper = PolicyManagerHelper(this)
             policyHelper.applyBaselineSecurityPolicies()
+            policyHelper.setAsDefaultHomeLauncher()
         } catch (e: Exception) {
             AppLogger.e("ProvisioningActivity", "Error applying baseline policies", e)
         }

@@ -67,21 +67,39 @@ class KioskManager(private val context: Context) {
             )
 
             // 1. Whitelist packages permitted in LockTask mode
-            dpm.setLockTaskPackages(adminComponent, effectivePackages.toTypedArray())
+            try {
+                dpm.setLockTaskPackages(adminComponent, effectivePackages.toTypedArray())
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "setLockTaskPackages warning: ${e.message}")
+            }
 
             // 2. Configure LockTask features (Completely suppress Keyguard, Status Bar, Notifications, Quick Settings, Home, Overview)
-            dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+            try {
+                dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "setLockTaskFeatures warning: ${e.message}")
+            }
 
             // 3. Suppress Keyguard and Status Bar
-            dpm.setKeyguardDisabled(adminComponent, true)
-            dpm.setStatusBarDisabled(adminComponent, true)
+            try {
+                dpm.setKeyguardDisabled(adminComponent, true)
+                dpm.setStatusBarDisabled(adminComponent, true)
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "Keyguard/StatusBar disable warning: ${e.message}")
+            }
 
-            // 4. Dedicated device user restrictions
-            dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
+            // 4. Ensure DISALLOW_CREATE_WINDOWS is NOT enabled (It crashes dialogs/toasts)
+            try {
+                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
+            } catch (_: Exception) {}
 
             // 5. Engage LockTask on the Activity
-            activity.startLockTask()
-            AppLogger.i("KioskManager", "LockTask engaged successfully with multi-app support.")
+            try {
+                activity.startLockTask()
+                AppLogger.i("KioskManager", "LockTask engaged successfully with multi-app support.")
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "startLockTask warning: ${e.message}")
+            }
             true
         } catch (e: SecurityException) {
             AppLogger.e("KioskManager", "SecurityException during Kiosk configuration", e)

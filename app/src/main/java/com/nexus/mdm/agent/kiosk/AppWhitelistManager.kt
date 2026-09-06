@@ -34,15 +34,27 @@ class AppWhitelistManager(private val context: Context) {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
-        val resolveInfos = packageManager.queryIntentActivities(launcherIntent, 0)
+        val resolveInfos = try {
+            packageManager.queryIntentActivities(launcherIntent, 0)
+        } catch (_: Exception) {
+            emptyList()
+        }
         val whitelistedSet = getWhitelistedPackages()
 
         return resolveInfos
-            .filter { it.activityInfo.packageName != context.packageName }
+            .filter { it.activityInfo != null && it.activityInfo.packageName != context.packageName }
             .map { resolveInfo ->
                 val pkgName = resolveInfo.activityInfo.packageName
-                val label = resolveInfo.loadLabel(packageManager).toString()
-                val icon = resolveInfo.loadIcon(packageManager)
+                val label = try {
+                    resolveInfo.loadLabel(packageManager).toString()
+                } catch (_: Exception) {
+                    pkgName
+                }
+                val icon = try {
+                    resolveInfo.loadIcon(packageManager)
+                } catch (_: Exception) {
+                    packageManager.defaultActivityIcon
+                }
                 AppItem(
                     packageName = pkgName,
                     appName = label,

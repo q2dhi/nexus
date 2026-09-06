@@ -158,6 +158,7 @@ class MainActivity : AppCompatActivity() {
         // Start Cloud Sync and Keep-Alive Services
         MdmCloudSyncService.start(this)
         if (policyHelper.isDeviceOwner()) {
+            policyHelper.setAsDefaultHomeLauncher()
             try {
                 val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
                 val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)
@@ -180,13 +181,15 @@ class MainActivity : AppCompatActivity() {
         configStore.isKioskEnabled = true
         activateKioskView()
         showLoadingScreen(900)
-        handleIncomingIntent(intent)
     }
 
     override fun onResume() {
         super.onResume()
         isLaunchingWhitelistedApp = false
         refreshBadges()
+        if (policyHelper.isDeviceOwner()) {
+            policyHelper.setAsDefaultHomeLauncher()
+        }
         if (configStore.isKioskEnabled) {
             applyKioskWindowFlags()
             if (policyHelper.isDeviceOwner()) {
@@ -263,38 +266,43 @@ class MainActivity : AppCompatActivity() {
 
     private fun enableStatusBarTouchBlocker() {
         if (statusBarBlockerView != null) return
-        try {
-            val blockerView = View(this).apply {
-                setBackgroundColor(Color.TRANSPARENT)
-                setOnTouchListener { _, _ ->
-                    collapseStatusBar()
-                    true // Consume touch to prevent system notification shade trigger
+        window.decorView.post {
+            if (isFinishing || isDestroyed || statusBarBlockerView != null) return@post
+            try {
+                val decor = window?.decorView ?: return@post
+                val token = decor.windowToken ?: return@post
+                val blockerView = View(this).apply {
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setOnTouchListener { _, _ ->
+                        collapseStatusBar()
+                        true // Consume touch to prevent system notification shade trigger
+                    }
                 }
+                val barHeight = getStatusBarHeight()
+                val params = WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    if (barHeight > 0) barHeight + 20 else 90,
+                    WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT
+                ).apply {
+                    gravity = Gravity.TOP
+                    this.token = token
+                }
+                windowManager.addView(blockerView, params)
+                statusBarBlockerView = blockerView
+            } catch (e: Exception) {
+                AppLogger.w("MainActivity", "Status bar touch blocker attach warning: ${e.message}")
             }
-            val barHeight = getStatusBarHeight()
-            val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                if (barHeight > 0) barHeight + 20 else 90,
-                WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP
-                token = window.decorView.windowToken
-            }
-            windowManager.addView(blockerView, params)
-            statusBarBlockerView = blockerView
-        } catch (e: Exception) {
-            AppLogger.w("MainActivity", "Status bar touch blocker attach warning: ${e.message}")
         }
     }
 
     private fun disableStatusBarTouchBlocker() {
         statusBarBlockerView?.let {
             try {
-                windowManager.removeView(it)
+                windowManager.removeViewImmediate(it)
             } catch (_: Exception) {}
             statusBarBlockerView = null
         }
@@ -367,13 +375,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isCurrentDefaultHome(): Boolean {
+        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val resolveInfo = packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        if (resolveInfo?.activityInfo?.packageName == packageName) {
+            return true
+        }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(RoleManager::class.java)
             roleManager?.isRoleHeld(RoleManager.ROLE_HOME) == true
         } else {
-            val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-            val resolveInfo = packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
-            resolveInfo?.activityInfo?.packageName == packageName
+            false
         }
     }
 
@@ -384,7 +395,17 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // 1. Try official RoleManager (Android 10+)
+        // 1. If Device Owner, permanently and silently set Nexus as default launcher without ANY dialog
+        if (policyHelper.isDeviceOwner()) {
+            val ok = policyHelper.setAsDefaultHomeLauncher()
+            if (ok) {
+                refreshBadges()
+                Toast.makeText(this, "تم تعيين Nexus تلقائياً كمشغل رئيسي للجهاز.", Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+
+        // 2. Try official RoleManager (Android 10+) only if not Device Owner
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = getSystemService(RoleManager::class.java)
             if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
@@ -398,7 +419,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 2. Direct Fallback to Default Apps / Home Settings on Samsung / Android
+        // 3. Direct Fallback to Default Apps / Home Settings
         try {
             val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -592,142 +613,152 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTamperLockoutDialog(reason: String) {
+        if (isFinishing || isDestroyed) return
         if (tamperDialog?.isShowing == true) return
 
-        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#991B1B"))
-            setPadding(48, 48, 48, 48)
-        }
+        try {
+            val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+            val layout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setBackgroundColor(Color.parseColor("#991B1B"))
+                setPadding(48, 48, 48, 48)
+            }
 
-        val tvIcon = TextView(this).apply {
-            text = "[!]"
-            textSize = 36f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-        }
+            val tvIcon = TextView(this).apply {
+                text = "[!]"
+                textSize = 36f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+            }
 
-        val tvTitle = TextView(this).apply {
-            text = "خرق أمني: رصد تلاعب بالجهاز!"
-            textSize = 24f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setPadding(0, 16, 0, 8)
-        }
+            val tvTitle = TextView(this).apply {
+                text = "خرق أمني: رصد تلاعب بالجهاز!"
+                textSize = 24f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(0, 16, 0, 8)
+            }
 
-        val tvReason = TextView(this).apply {
-            text = "$reason\n\nتم إطلاق صفارة الإنذار وقفل الهاتف وإبلاغ الإدارة المركزية فوراً."
-            textSize = 15f
-            setTextColor(Color.parseColor("#FEE2E2"))
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 32)
-        }
+            val tvReason = TextView(this).apply {
+                text = "$reason\n\nتم إطلاق صفارة الإنذار وقفل الهاتف وإبلاغ الإدارة المركزية فوراً."
+                textSize = 15f
+                setTextColor(Color.parseColor("#FEE2E2"))
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, 32)
+            }
 
-        val etPin = TextInputEditText(this).apply {
-            hint = "أدخل رمز المشرف لتعطيل الإنذار"
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.parseColor("#FCA5A5"))
-            gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#7F1D1D"))
-            setPadding(24, 24, 24, 24)
-        }
+            val etPin = TextInputEditText(this).apply {
+                hint = "أدخل رمز المشرف لتعطيل الإنذار"
+                inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                setTextColor(Color.WHITE)
+                setHintTextColor(Color.parseColor("#FCA5A5"))
+                gravity = Gravity.CENTER
+                setBackgroundColor(Color.parseColor("#7F1D1D"))
+                setPadding(24, 24, 24, 24)
+            }
 
-        val btnDisarm = Button(this).apply {
-            text = "تعطيل الإنذار وفك القفل"
-            setBackgroundColor(Color.WHITE)
-            setTextColor(Color.parseColor("#991B1B"))
-            typeface = Typeface.DEFAULT_BOLD
-            setOnClickListener {
-                val entered = etPin.text?.toString().orEmpty().trim()
-                if (configStore.verifyPin(entered)) {
-                    antiTamperGuard.disarmAlarm()
-                    dialog.dismiss()
-                    tamperDialog = null
-                    Toast.makeText(this@MainActivity, "تم تعطيل الإنذار بنجاح.", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@MainActivity, "رمز المشرف غير صحيح!", Toast.LENGTH_SHORT).show()
-                    etPin.setText("")
+            val btnDisarm = Button(this).apply {
+                text = "تعطيل الإنذار وفك القفل"
+                setBackgroundColor(Color.WHITE)
+                setTextColor(Color.parseColor("#991B1B"))
+                typeface = Typeface.DEFAULT_BOLD
+                setOnClickListener {
+                    val entered = etPin.text?.toString().orEmpty().trim()
+                    if (configStore.verifyPin(entered)) {
+                        antiTamperGuard.disarmAlarm()
+                        dialog.dismiss()
+                        tamperDialog = null
+                        Toast.makeText(this@MainActivity, "تم تعطيل الإنذار بنجاح.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@MainActivity, "رمز المشرف غير صحيح!", Toast.LENGTH_SHORT).show()
+                        etPin.setText("")
+                    }
                 }
             }
+
+            layout.addView(tvIcon)
+            layout.addView(tvTitle)
+            layout.addView(tvReason)
+            layout.addView(etPin)
+            val spacer = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, 24) }
+            layout.addView(spacer)
+            layout.addView(btnDisarm)
+
+            dialog.setContentView(layout)
+            dialog.setCancelable(false)
+            tamperDialog = dialog
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing tamper lockout dialog", e)
         }
-
-        layout.addView(tvIcon)
-        layout.addView(tvTitle)
-        layout.addView(tvReason)
-        layout.addView(etPin)
-        val spacer = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, 24) }
-        layout.addView(spacer)
-        layout.addView(btnDisarm)
-
-        dialog.setContentView(layout)
-        dialog.setCancelable(false)
-        tamperDialog = dialog
-        dialog.show()
     }
 
     private fun showSubscriptionLockDialog(message: String, companyName: String) {
+        if (isFinishing || isDestroyed) return
         if (subscriptionLockDialog?.isShowing == true) return
 
-        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#0F172A"))
-            setPadding(48, 48, 48, 48)
-        }
-
-        val tvIcon = TextView(this).apply {
-            text = "[LOCKED]"
-            textSize = 28f
-            setTextColor(Color.parseColor("#F87171"))
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-        }
-
-        val tvTitle = TextView(this).apply {
-            text = "تطبيق Nexus DPC معطّل"
-            textSize = 24f
-            setTextColor(Color.parseColor("#F87171"))
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setPadding(0, 16, 0, 8)
-        }
-
-        val tvReason = TextView(this).apply {
-            val cName = if (companyName.isNotBlank()) companyName else configStore.companyCode
-            val statusDesc = if (message.isNotBlank()) message else "الاشتراك غير مفعّل أو انتهت فترة الصلاحية من قِبل المطور."
-            text = "$statusDesc\n\nالشركة المشتركة: $cName\nكود الشركة: ${configStore.companyCode}\nوسم / اسم الجهاز: ${configStore.deviceTag}\n\nيرجى التواصل مع المطور لتفعيل الاشتراك."
-            textSize = 14f
-            setTextColor(Color.parseColor("#CBD5E1"))
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 32)
-        }
-
-        val btnCheck = Button(this).apply {
-            text = "فحص حالة التفعيل الآن (Check Activation)"
-            setBackgroundColor(Color.parseColor("#0284C7"))
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            setOnClickListener {
-                Toast.makeText(this@MainActivity, "جاري فحص الاتصال والتفعيل مع السيرفر...", Toast.LENGTH_SHORT).show()
-                MdmCloudSyncService.start(this@MainActivity)
+        try {
+            val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+            val layout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setBackgroundColor(Color.parseColor("#0F172A"))
+                setPadding(48, 48, 48, 48)
             }
+
+            val tvIcon = TextView(this).apply {
+                text = "[LOCKED]"
+                textSize = 28f
+                setTextColor(Color.parseColor("#F87171"))
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+            }
+
+            val tvTitle = TextView(this).apply {
+                text = "تطبيق Nexus DPC معطّل"
+                textSize = 24f
+                setTextColor(Color.parseColor("#F87171"))
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(0, 16, 0, 8)
+            }
+
+            val tvReason = TextView(this).apply {
+                val cName = if (companyName.isNotBlank()) companyName else configStore.companyCode
+                val statusDesc = if (message.isNotBlank()) message else "الاشتراك غير مفعّل أو انتهت فترة الصلاحية من قِبل المطور."
+                text = "$statusDesc\n\nالشركة المشتركة: $cName\nكود الشركة: ${configStore.companyCode}\nوسم / اسم الجهاز: ${configStore.deviceTag}\n\nيرجى التواصل مع المطور لتفعيل الاشتراك."
+                textSize = 14f
+                setTextColor(Color.parseColor("#CBD5E1"))
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, 32)
+            }
+
+            val btnCheck = Button(this).apply {
+                text = "فحص حالة التفعيل الآن (Check Activation)"
+                setBackgroundColor(Color.parseColor("#0284C7"))
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                setOnClickListener {
+                    Toast.makeText(this@MainActivity, "جاري فحص الاتصال والتفعيل مع السيرفر...", Toast.LENGTH_SHORT).show()
+                    MdmCloudSyncService.start(this@MainActivity)
+                }
+            }
+
+            layout.addView(tvIcon)
+            layout.addView(tvTitle)
+            layout.addView(tvReason)
+            layout.addView(btnCheck)
+
+            dialog.setContentView(layout)
+            dialog.setCancelable(false)
+            subscriptionLockDialog = dialog
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing subscription lock dialog", e)
         }
-
-        layout.addView(tvIcon)
-        layout.addView(tvTitle)
-        layout.addView(tvReason)
-        layout.addView(btnCheck)
-
-        dialog.setContentView(layout)
-        dialog.setCancelable(false)
-        subscriptionLockDialog = dialog
-        dialog.show()
     }
 
     private fun dismissSubscriptionLockDialog() {
@@ -736,24 +767,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRenameDeviceDialog() {
-        val input = TextInputEditText(this).apply {
-            setText(configStore.deviceTag)
-            hint = "أدخل اسم الجهاز الجديد (مثال: كاشير 1)"
-            setPadding(32, 32, 32, 32)
-        }
-        android.app.AlertDialog.Builder(this)
-            .setTitle("تسمية الجهاز (Device Name)")
-            .setView(input)
-            .setPositiveButton("حفظ") { _, _ ->
-                val newName = input.text?.toString().orEmpty().trim()
-                if (newName.isNotEmpty()) {
-                    configStore.deviceTag = newName
-                    etDeviceTag.setText(newName)
-                    Toast.makeText(this, "تم حفظ اسم الجهاز: $newName", Toast.LENGTH_SHORT).show()
-                }
+        if (isFinishing || isDestroyed) return
+        try {
+            val input = TextInputEditText(this).apply {
+                setText(configStore.deviceTag)
+                hint = "أدخل اسم الجهاز الجديد (مثال: كاشير 1)"
+                setPadding(32, 32, 32, 32)
             }
-            .setNegativeButton("إلغاء", null)
-            .show()
+            android.app.AlertDialog.Builder(this)
+                .setTitle("تسمية الجهاز (Device Name)")
+                .setView(input)
+                .setPositiveButton("حفظ") { _, _ ->
+                    val newName = input.text?.toString().orEmpty().trim()
+                    if (newName.isNotEmpty()) {
+                        configStore.deviceTag = newName
+                        etDeviceTag.setText(newName)
+                        Toast.makeText(this, "تم حفظ اسم الجهاز: $newName", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("إلغاء", null)
+                .show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing rename device dialog", e)
+        }
     }
 
     private fun handleKioskBackPress() {
@@ -801,46 +837,57 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showKioskSecurityActionDialog() {
+        if (isFinishing || isDestroyed) return
         if (securityActionDialog?.isShowing == true) return
 
-        val dialog = Dialog(this, R.style.Theme_NexusDPC)
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_kiosk_security_menu, null)
-        dialog.setContentView(view)
+        try {
+            val dialog = Dialog(this, R.style.Theme_NexusDPC)
+            val view = LayoutInflater.from(this).inflate(R.layout.dialog_kiosk_security_menu, null)
+            dialog.setContentView(view)
 
-        val btnAdminPin = view.findViewById<View>(R.id.btnSecurityAdminPin)
-        val btnReboot = view.findViewById<View>(R.id.btnSecurityReboot)
-        val btnCancel = view.findViewById<Button>(R.id.btnSecurityCancel)
+            val btnAdminPin = view.findViewById<View>(R.id.btnSecurityAdminPin)
+            val btnReboot = view.findViewById<View>(R.id.btnSecurityReboot)
+            val btnCancel = view.findViewById<Button>(R.id.btnSecurityCancel)
 
-        btnAdminPin.setOnClickListener {
-            dialog.dismiss()
-            showAdminPasswordDialog()
-        }
+            btnAdminPin.setOnClickListener {
+                dialog.dismiss()
+                showAdminPasswordDialog()
+            }
 
-        btnReboot.setOnClickListener {
-            dialog.dismiss()
-            android.app.AlertDialog.Builder(this)
-                .setTitle("إعادة تشغيل الجهاز")
-                .setMessage("هل أنت متأكد من رغبتك في إعادة تشغيل الجهاز فوراً؟")
-                .setPositiveButton("إعادة التشغيل الآن") { _, _ ->
-                    if (policyHelper.isDeviceOwner()) {
-                        val rebootSuccess = policyHelper.rebootDevice()
-                        if (!rebootSuccess) {
-                            Toast.makeText(this, "تعذر إعادة تشغيل الجهاز تلقائياً.", Toast.LENGTH_LONG).show()
-                        }
-                    } else {
-                        Toast.makeText(this, "تتطلب إعادة التشغيل التلقائي تفعيل صلاحية Device Owner.", Toast.LENGTH_LONG).show()
+            btnReboot.setOnClickListener {
+                dialog.dismiss()
+                if (!isFinishing && !isDestroyed) {
+                    try {
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("إعادة تشغيل الجهاز")
+                            .setMessage("هل أنت متأكد من رغبتك في إعادة تشغيل الجهاز فوراً؟")
+                            .setPositiveButton("إعادة التشغيل الآن") { _, _ ->
+                                if (policyHelper.isDeviceOwner()) {
+                                    val rebootSuccess = policyHelper.rebootDevice()
+                                    if (!rebootSuccess) {
+                                        Toast.makeText(this, "تعذر إعادة تشغيل الجهاز تلقائياً.", Toast.LENGTH_LONG).show()
+                                    }
+                                } else {
+                                    Toast.makeText(this, "تتطلب إعادة التشغيل التلقائي تفعيل صلاحية Device Owner.", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            .setNegativeButton("إلغاء", null)
+                            .show()
+                    } catch (e: Exception) {
+                        AppLogger.w("MainActivity", "Failed showing reboot alert: ${e.message}")
                     }
                 }
-                .setNegativeButton("إلغاء", null)
-                .show()
-        }
+            }
 
-        btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
+            btnCancel.setOnClickListener {
+                dialog.dismiss()
+            }
 
-        securityActionDialog = dialog
-        dialog.show()
+            securityActionDialog = dialog
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing security action dialog", e)
+        }
     }
 
     private fun setupListeners() {
@@ -1006,139 +1053,149 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminActionMenu() {
-        val options = arrayOf(
-            "إعدادات السيرفر وكود الشركة (Server & Company Setup)",
-            "تسمية / تعديل اسم الجهاز (Rename Device)",
-            "لوحة تحكم المسؤول المتقدمة (Admin Console)",
-            "خروج مؤقت إلى واجهة أندرويد (Exit Kiosk Temporarily)",
-            "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
-            "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
-            "إلغاء (Cancel)"
-        )
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Nexus MDM - خيارات المسؤول")
-            .setItems(options) { dialog, which ->
-                when (which) {
-                    0 -> {
-                        showServerSettingsDialog()
-                    }
-                    1 -> {
-                        showRenameDeviceDialog()
-                    }
-                    2 -> {
-                        layoutKioskSurface.visibility = View.GONE
-                        layoutAdminConsole.visibility = View.VISIBLE
-                        clearKioskWindowFlags()
-                        refreshBadges()
-                    }
-                    3 -> {
-                        kioskManager.stopKiosk(this)
-                        clearKioskWindowFlags()
-                        try {
-                            val home = Intent(Intent.ACTION_MAIN).apply {
-                                addCategory(Intent.CATEGORY_HOME)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(home)
-                        } catch (_: Exception) {}
-                        Toast.makeText(this, "تم الخروج المؤقت من الكشك.", Toast.LENGTH_SHORT).show()
-                    }
-                    4 -> {
-                        ensureDefaultHomeLauncher()
-                    }
-                    5 -> {
-                        val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
-                        if (isAccActive) {
-                            Toast.makeText(this, "خدمة التحكم السحابي باللمس مفعلة ونشطة بالفعل!", Toast.LENGTH_SHORT).show()
-                        } else {
+        if (isFinishing || isDestroyed) return
+        try {
+            val options = arrayOf(
+                "إعدادات السيرفر وكود الشركة (Server & Company Setup)",
+                "تسمية / تعديل اسم الجهاز (Rename Device)",
+                "لوحة تحكم المسؤول المتقدمة (Admin Console)",
+                "خروج مؤقت إلى واجهة أندرويد (Exit Kiosk Temporarily)",
+                "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
+                "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
+                "إلغاء (Cancel)"
+            )
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Nexus MDM - خيارات المسؤول")
+                .setItems(options) { dialog, which ->
+                    when (which) {
+                        0 -> {
+                            showServerSettingsDialog()
+                        }
+                        1 -> {
+                            showRenameDeviceDialog()
+                        }
+                        2 -> {
+                            layoutKioskSurface.visibility = View.GONE
+                            layoutAdminConsole.visibility = View.VISIBLE
+                            clearKioskWindowFlags()
+                            refreshBadges()
+                        }
+                        3 -> {
+                            kioskManager.stopKiosk(this)
+                            clearKioskWindowFlags()
                             try {
-                                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                val home = Intent(Intent.ACTION_MAIN).apply {
+                                    addCategory(Intent.CATEGORY_HOME)
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                 }
-                                startActivity(intent)
-                                Toast.makeText(this, "يرجى تفعيل خدمة Nexus Remote Cloud Control للتحكم باللمس عن بعد.", Toast.LENGTH_LONG).show()
-                            } catch (_: Exception) {
-                                Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول.", Toast.LENGTH_SHORT).show()
+                                startActivity(home)
+                            } catch (_: Exception) {}
+                            Toast.makeText(this, "تم الخروج المؤقت من الكشك.", Toast.LENGTH_SHORT).show()
+                        }
+                        4 -> {
+                            ensureDefaultHomeLauncher()
+                        }
+                        5 -> {
+                            val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
+                            if (isAccActive) {
+                                Toast.makeText(this, "خدمة التحكم السحابي باللمس مفعلة ونشطة بالفعل!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                try {
+                                    val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    startActivity(intent)
+                                    Toast.makeText(this, "يرجى تفعيل خدمة Nexus Remote Cloud Control للتحكم باللمس عن بعد.", Toast.LENGTH_LONG).show()
+                                } catch (_: Exception) {
+                                    Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
-                    }
-                    6 -> {
-                        dialog.dismiss()
+                        6 -> {
+                            dialog.dismiss()
+                        }
                     }
                 }
-            }
-            .show()
+                .show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing admin action menu", e)
+        }
     }
 
     private fun showServerSettingsDialog() {
-        val dialog = Dialog(this, R.style.Theme_NexusDPC)
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_server_settings, null)
-        dialog.setContentView(view)
+        if (isFinishing || isDestroyed) return
+        try {
+            val dialog = Dialog(this, R.style.Theme_NexusDPC)
+            val view = LayoutInflater.from(this).inflate(R.layout.dialog_server_settings, null)
+            dialog.setContentView(view)
 
-        val etUrl = view.findViewById<TextInputEditText>(R.id.etDialogServerUrl)
-        val etComp = view.findViewById<TextInputEditText>(R.id.etDialogCompanyCode)
-        val etTag = view.findViewById<TextInputEditText>(R.id.etDialogDeviceTag)
-        val btnCancel = view.findViewById<Button>(R.id.btnCancelServerSettings)
-        val btnSave = view.findViewById<Button>(R.id.btnSaveServerSettings)
+            val etUrl = view.findViewById<TextInputEditText>(R.id.etDialogServerUrl)
+            val etComp = view.findViewById<TextInputEditText>(R.id.etDialogCompanyCode)
+            val etTag = view.findViewById<TextInputEditText>(R.id.etDialogDeviceTag)
+            val btnCancel = view.findViewById<Button>(R.id.btnCancelServerSettings)
+            val btnSave = view.findViewById<Button>(R.id.btnSaveServerSettings)
 
-        etUrl.setText(configStore.serverUrl)
-        etComp.setText(configStore.companyCode)
-        etTag.setText(configStore.deviceTag)
+            etUrl.setText(configStore.serverUrl)
+            etComp.setText(configStore.companyCode)
+            etTag.setText(configStore.deviceTag)
 
-        btnCancel.setOnClickListener { dialog.dismiss() }
+            btnCancel.setOnClickListener { dialog.dismiss() }
 
-        btnSave.setOnClickListener {
-            var url = etUrl.text?.toString().orEmpty().trim()
-            val comp = etComp.text?.toString().orEmpty().trim()
-            val tag = etTag.text?.toString().orEmpty().trim()
+            btnSave.setOnClickListener {
+                var url = etUrl.text?.toString().orEmpty().trim()
+                val comp = etComp.text?.toString().orEmpty().trim()
+                val tag = etTag.text?.toString().orEmpty().trim()
 
-            if (url.isNotEmpty()) {
-                if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                    url = "http://$url"
+                if (url.isNotEmpty()) {
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                        url = "http://$url"
+                    }
+                    configStore.serverUrl = url
+                    etServerUrl.setText(url)
                 }
-                configStore.serverUrl = url
-                etServerUrl.setText(url)
-            }
-            if (comp.isNotEmpty()) {
-                configStore.companyCode = comp
-                etCompanyCode?.setText(comp)
-            }
-            if (tag.isNotEmpty()) {
-                configStore.deviceTag = tag
-                etDeviceTag.setText(tag)
-            }
+                if (comp.isNotEmpty()) {
+                    configStore.companyCode = comp
+                    etCompanyCode?.setText(comp)
+                }
+                if (tag.isNotEmpty()) {
+                    configStore.deviceTag = tag
+                    etDeviceTag.setText(tag)
+                }
 
-            MdmCloudSyncService.start(this)
-            Toast.makeText(this, "تم الحفظ! جاري فحص الاتصال بالسيرفر...", Toast.LENGTH_SHORT).show()
+                MdmCloudSyncService.start(this)
+                Toast.makeText(this, "تم الحفظ! جاري فحص الاتصال بالسيرفر...", Toast.LENGTH_SHORT).show()
 
-            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                try {
-                    val testUrl = java.net.URL("${configStore.serverUrl.trimEnd('/')}/api/devices")
-                    val conn = testUrl.openConnection() as java.net.HttpURLConnection
-                    conn.connectTimeout = 3500
-                    conn.readTimeout = 3500
-                    val code = conn.responseCode
-                    conn.disconnect()
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        val testUrl = java.net.URL("${configStore.serverUrl.trimEnd('/')}/api/devices")
+                        val conn = testUrl.openConnection() as java.net.HttpURLConnection
+                        conn.connectTimeout = 3500
+                        conn.readTimeout = 3500
+                        val code = conn.responseCode
+                        conn.disconnect()
 
-                    lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                        if (code == 200) {
-                            tvCloudStatusBadge.text = "Cloud: Connected"
-                            tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_green))
-                            Toast.makeText(this@MainActivity, "✅ تم الاتصال بنجاح وسيبدأ الجهاز بالظهور في لوحة الويب!", Toast.LENGTH_LONG).show()
-                            dialog.dismiss()
-                        } else {
-                            Toast.makeText(this@MainActivity, "استجاب السيرفر برمز HTTP: $code", Toast.LENGTH_LONG).show()
+                        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                            if (code == 200) {
+                                tvCloudStatusBadge.text = "Cloud: Connected"
+                                tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_green))
+                                Toast.makeText(this@MainActivity, "✅ تم الاتصال بنجاح وسيبدأ الجهاز بالظهور في لوحة الويب!", Toast.LENGTH_LONG).show()
+                                dialog.dismiss()
+                            } else {
+                                Toast.makeText(this@MainActivity, "استجاب السيرفر برمز HTTP: $code", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "❌ تعذر الاتصال بالسيرفر: ${e.message}\nتأكد من اتصال الهاتف بالواي فاي وصحة الـ IP", Toast.LENGTH_LONG).show()
                         }
                     }
-                } catch (e: Exception) {
-                    lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "❌ تعذر الاتصال بالسيرفر: ${e.message}\nتأكد من اتصال الهاتف بالواي فاي وصحة الـ IP", Toast.LENGTH_LONG).show()
-                    }
                 }
             }
-        }
 
-        dialog.show()
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing server settings dialog", e)
+        }
     }
 
     private fun refreshBadges() {
@@ -1200,51 +1257,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAdminPasswordDialog() {
-        val dialog = Dialog(this, R.style.Theme_NexusDPC)
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_admin_password, null)
-        dialog.setContentView(view)
+        if (isFinishing || isDestroyed) return
+        try {
+            val dialog = Dialog(this, R.style.Theme_NexusDPC)
+            val view = LayoutInflater.from(this).inflate(R.layout.dialog_admin_password, null)
+            dialog.setContentView(view)
 
-        val etPassword = view.findViewById<TextInputEditText>(R.id.etAdminPassword)
-        val btnCancel = view.findViewById<Button>(R.id.btnCancelPassword)
-        val btnConfirm = view.findViewById<Button>(R.id.btnConfirmPassword)
+            val etPassword = view.findViewById<TextInputEditText>(R.id.etAdminPassword)
+            val btnCancel = view.findViewById<Button>(R.id.btnCancelPassword)
+            val btnConfirm = view.findViewById<Button>(R.id.btnConfirmPassword)
 
-        btnCancel.setOnClickListener { dialog.dismiss() }
-        btnConfirm.setOnClickListener {
-            val entered = etPassword.text?.toString().orEmpty().trim()
-            if (configStore.verifyPin(entered)) {
-                dialog.dismiss()
-                showAdminActionMenu()
-            } else {
-                Toast.makeText(this, "رمز الأدمن غير صحيح.", Toast.LENGTH_SHORT).show()
-                etPassword.setText("")
+            btnCancel.setOnClickListener { dialog.dismiss() }
+            btnConfirm.setOnClickListener {
+                val entered = etPassword.text?.toString().orEmpty().trim()
+                if (configStore.verifyPin(entered)) {
+                    dialog.dismiss()
+                    showAdminActionMenu()
+                } else {
+                    Toast.makeText(this, "رمز الأدمن غير صحيح.", Toast.LENGTH_SHORT).show()
+                    etPassword.setText("")
+                }
             }
-        }
 
-        dialog.show()
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing admin password dialog", e)
+        }
     }
 
     private fun showChangePasswordDialog() {
-        val dialog = Dialog(this, R.style.Theme_NexusDPC)
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null)
-        dialog.setContentView(view)
+        if (isFinishing || isDestroyed) return
+        try {
+            val dialog = Dialog(this, R.style.Theme_NexusDPC)
+            val view = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null)
+            dialog.setContentView(view)
 
-        val etNewPin = view.findViewById<TextInputEditText>(R.id.etNewPin)
-        val btnCancel = view.findViewById<Button>(R.id.btnCancelChangePin)
-        val btnSave = view.findViewById<Button>(R.id.btnSaveNewPin)
+            val etNewPin = view.findViewById<TextInputEditText>(R.id.etNewPin)
+            val btnCancel = view.findViewById<Button>(R.id.btnCancelChangePin)
+            val btnSave = view.findViewById<Button>(R.id.btnSaveNewPin)
 
-        btnCancel.setOnClickListener { dialog.dismiss() }
-        btnSave.setOnClickListener {
-            val pin = etNewPin.text?.toString().orEmpty().trim()
-            if (pin.length in 4..8) {
-                configStore.updatePin(pin)
-                dialog.dismiss()
-                Toast.makeText(this, "تم تحديث رمز الأدمن بنجاح.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "يجب أن يتكون الرمز من 4 إلى 8 أرقام.", Toast.LENGTH_SHORT).show()
+            btnCancel.setOnClickListener { dialog.dismiss() }
+            btnSave.setOnClickListener {
+                val pin = etNewPin.text?.toString().orEmpty().trim()
+                if (pin.length in 4..8) {
+                    configStore.updatePin(pin)
+                    dialog.dismiss()
+                    Toast.makeText(this, "تم تحديث رمز الأدمن بنجاح.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "يجب أن يتكون الرمز من 4 إلى 8 أرقام.", Toast.LENGTH_SHORT).show()
+                }
             }
-        }
 
-        dialog.show()
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed showing change password dialog", e)
+        }
     }
 
     fun dispatchWindowTap(xRatio: Float, yRatio: Float) {

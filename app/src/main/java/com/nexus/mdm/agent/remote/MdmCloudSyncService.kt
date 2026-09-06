@@ -36,13 +36,21 @@ class MdmCloudSyncService : Service() {
         private const val SYNC_INTERVAL_MS = 8000L // Poll every 8 seconds
 
         fun start(context: Context) {
-            val intent = Intent(context, MdmCloudSyncService::class.java)
-            context.startService(intent)
+            try {
+                val intent = Intent(context, MdmCloudSyncService::class.java)
+                context.startService(intent)
+            } catch (e: Exception) {
+                AppLogger.w("CloudSync", "Failed to start service: ${e.message}")
+            }
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, MdmCloudSyncService::class.java)
-            context.stopService(intent)
+            try {
+                val intent = Intent(context, MdmCloudSyncService::class.java)
+                context.stopService(intent)
+            } catch (e: Exception) {
+                AppLogger.w("CloudSync", "Failed to stop service: ${e.message}")
+            }
         }
     }
 
@@ -155,15 +163,23 @@ class MdmCloudSyncService : Service() {
                 val subscriptionMessage = resObj.optString("subscriptionMessage", "")
                 val companyName = resObj.optString("companyName", "")
 
+                val wasActive = configStore.isSubscriptionActive
                 configStore.isSubscriptionActive = subscriptionActive
 
-                val subIntent = Intent(this@MdmCloudSyncService, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    putExtra("EXTRA_SUBSCRIPTION_STATE", subscriptionActive)
-                    putExtra("EXTRA_SUBSCRIPTION_MESSAGE", subscriptionMessage)
-                    putExtra("EXTRA_COMPANY_NAME", companyName)
+                // Only notify/launch MainActivity if subscription became inactive or state changed
+                if (!subscriptionActive || wasActive != subscriptionActive) {
+                    try {
+                        val subIntent = Intent(this@MdmCloudSyncService, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            putExtra("EXTRA_SUBSCRIPTION_STATE", subscriptionActive)
+                            putExtra("EXTRA_SUBSCRIPTION_MESSAGE", subscriptionMessage)
+                            putExtra("EXTRA_COMPANY_NAME", companyName)
+                        }
+                        startActivity(subIntent)
+                    } catch (e: Exception) {
+                        AppLogger.w("CloudSync", "Could not start MainActivity for subscription state: ${e.message}")
+                    }
                 }
-                startActivity(subIntent)
 
                 // 2. Check for commands array in response
                 val commandsArray = resObj.optJSONArray("commands")

@@ -76,7 +76,12 @@ class AntiTamperGuard(
 
         when (state) {
             TelephonyManager.SIM_STATE_ABSENT -> {
-                triggerTamperAlarm("SIM Card Removed / Missing!")
+                val prefs = context.getSharedPreferences("nexus_sim_guard", Context.MODE_PRIVATE)
+                val baselineOp = prefs.getString(PREF_SAVED_SIM_OPERATOR, null)
+                // Only trigger alarm if a SIM card was previously enrolled and was physically removed!
+                if (!baselineOp.isNullOrEmpty()) {
+                    triggerTamperAlarm("SIM Card Removed! (Expected: $baselineOp)")
+                }
             }
             TelephonyManager.SIM_STATE_READY -> {
                 val currentOp = tm.simOperator.orEmpty()
@@ -99,8 +104,17 @@ class AntiTamperGuard(
 
         AppLogger.securityAudit("TAMPER_BREACH", "EMERGENCY: $reason")
 
-        startSirenLoop()
-        onTamperDetected(reason)
+        try {
+            startSirenLoop()
+        } catch (e: Exception) {
+            AppLogger.w("AntiTamper", "Failed starting siren: ${e.message}")
+        }
+
+        try {
+            onTamperDetected(reason)
+        } catch (e: Exception) {
+            AppLogger.e("AntiTamper", "Error executing onTamperDetected callback", e)
+        }
     }
 
     fun disarmAlarm() {

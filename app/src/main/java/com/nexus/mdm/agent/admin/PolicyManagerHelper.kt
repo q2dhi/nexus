@@ -57,28 +57,47 @@ class PolicyManagerHelper(private val context: Context) {
             )
 
             for (restriction in criticalRestrictions) {
-                dpm.addUserRestriction(adminComponent, restriction)
+                try {
+                    dpm.addUserRestriction(adminComponent, restriction)
+                } catch (e: Exception) {
+                    AppLogger.w("PolicyManager", "Failed applying restriction $restriction: ${e.message}")
+                }
             }
 
             // 2. Automated Time & Timezone Enforcement
-            dpm.setAutoTimeRequired(adminComponent, true)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                dpm.setAutoTimeEnabled(adminComponent, true)
-                dpm.setAutoTimeZoneEnabled(adminComponent, true)
+            try {
+                dpm.setAutoTimeRequired(adminComponent, true)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    dpm.setAutoTimeEnabled(adminComponent, true)
+                    dpm.setAutoTimeZoneEnabled(adminComponent, true)
+                }
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting auto time: ${e.message}")
             }
 
             // 3. Automated OS System Update Policy (Immediate Automatic Updates)
-            val updatePolicy = SystemUpdatePolicy.createAutomaticInstallPolicy()
-            dpm.setSystemUpdatePolicy(adminComponent, updatePolicy)
+            try {
+                val updatePolicy = SystemUpdatePolicy.createAutomaticInstallPolicy()
+                dpm.setSystemUpdatePolicy(adminComponent, updatePolicy)
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting update policy: ${e.message}")
+            }
 
             // 4. Stay Awake while Charging (for dedicated/COSU continuous operation)
-            dpm.setGlobalSetting(
-                adminComponent,
-                android.provider.Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
-                (android.os.BatteryManager.BATTERY_PLUGGED_AC or
-                        android.os.BatteryManager.BATTERY_PLUGGED_USB or
-                        android.os.BatteryManager.BATTERY_PLUGGED_WIRELESS).toString()
-            )
+            try {
+                dpm.setGlobalSetting(
+                    adminComponent,
+                    android.provider.Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
+                    (android.os.BatteryManager.BATTERY_PLUGGED_AC or
+                            android.os.BatteryManager.BATTERY_PLUGGED_USB or
+                            android.os.BatteryManager.BATTERY_PLUGGED_WIRELESS).toString()
+                )
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting STAY_ON_WHILE_PLUGGED_IN: ${e.message}")
+            }
+
+            // 5. Automatically set Nexus as Persistent Default Home Launcher (No system chooser dialog!)
+            setAsDefaultHomeLauncher()
 
             AppLogger.i("PolicyManager", "Baseline enterprise security profile applied successfully.")
             return true
@@ -179,6 +198,45 @@ class PolicyManagerHelper(private val context: Context) {
             true
         } catch (e: Exception) {
             AppLogger.e("PolicyManager", "Reboot failed", e)
+            false
+        }
+    }
+
+    /**
+     * Sets Nexus DPC as the persistent default Home Launcher without showing any system chooser dialog.
+     * Requires Device Owner privileges.
+     */
+    fun setAsDefaultHomeLauncher(): Boolean {
+        if (!isDeviceOwner()) {
+            AppLogger.w("PolicyManager", "Cannot set persistent home launcher: not Device Owner")
+            return false
+        }
+        return try {
+            val filter = android.content.IntentFilter(android.content.Intent.ACTION_MAIN).apply {
+                addCategory(android.content.Intent.CATEGORY_HOME)
+                addCategory(android.content.Intent.CATEGORY_DEFAULT)
+            }
+            val activityComponent = ComponentName(context.packageName, com.nexus.mdm.agent.ui.MainActivity::class.java.name)
+            dpm.addPersistentPreferredActivity(adminComponent, filter, activityComponent)
+            AppLogger.securityAudit("HOME_POLICY", "Persistent preferred Home Activity set to Nexus MainActivity")
+            true
+        } catch (e: Exception) {
+            AppLogger.e("PolicyManager", "Failed to set persistent preferred Home Activity", e)
+            false
+        }
+    }
+
+    /**
+     * Clears the persistent preferred Home Launcher assignment.
+     */
+    fun clearDefaultHomeLauncher(): Boolean {
+        if (!isDeviceOwner()) return false
+        return try {
+            dpm.clearPackagePersistentPreferredActivities(adminComponent, context.packageName)
+            AppLogger.securityAudit("HOME_POLICY", "Cleared persistent preferred Home Activity for ${context.packageName}")
+            true
+        } catch (e: Exception) {
+            AppLogger.e("PolicyManager", "Failed to clear persistent preferred Home Activity", e)
             false
         }
     }
