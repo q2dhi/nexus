@@ -687,6 +687,10 @@ function renderDeviceTable(devices) {
                                         <span>${t.actWipe}</span>
                                     </button>
                                 ` : ''}
+                                <div class="dropdown-divider"></div>
+                                <button class="dropdown-item dropdown-item-danger" onclick="confirmDeleteDevice('${d.id}', '${escapeHtml(d.name || d.id)}')">
+                                    <span style="color:#DC2626; font-weight:700;">🗑️ حذف الجهاز من النظام (Delete Device)</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -751,6 +755,31 @@ async function confirmDeviceRename() {
         }
     } catch (e) {
         showToast('خطأ في الاتصال بالسيرفر', 'error');
+    }
+}
+
+async function confirmDeleteDevice(deviceId, deviceName) {
+    if (!confirm(`هل أنت متأكد تماماً من حذف الجهاز '${deviceName}' (${deviceId}) من النظام؟\n\nسيتم مسح الجهاز وإزالته من لوحة التحكم وقائمة الأجهزة نهائياً.`)) {
+        return;
+    }
+    try {
+        const res = await fetch('/api/devices/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({ deviceId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`تم حذف الجهاز '${deviceName}' من النظام بنجاح!`, 'success');
+            fetchDevices();
+        } else {
+            showToast(data.error || 'فشل حذف الجهاز', 'error');
+        }
+    } catch (e) {
+        showToast('خطأ في الاتصال بالسيرفر أثناء حذف الجهاز', 'error');
     }
 }
 

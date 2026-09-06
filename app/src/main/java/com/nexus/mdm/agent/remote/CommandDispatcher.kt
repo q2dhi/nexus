@@ -230,7 +230,7 @@ class CommandDispatcher(
             configStore.isKioskEnabled = enable
 
             if (activity != null) {
-                if (enable) kioskManager.startKiosk(activity) else kioskManager.stopKiosk(activity)
+                if (enable) kioskManager.startKiosk(activity) else kioskManager.launchStockAndroidHome(activity)
             } else {
                 // Background Service invocation: Wake MainActivity to update UI
                 val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {

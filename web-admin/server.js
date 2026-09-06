@@ -103,6 +103,24 @@ app.post('/api/tenant/devices/assign-branch', (req, res) => {
 });
 
 // --------------------------------------------------------------------------
+// ADMIN API: Delete Device from Registry
+// --------------------------------------------------------------------------
+app.post('/api/devices/delete', (req, res) => {
+    const { deviceId } = req.body;
+    if (!deviceId) {
+        return res.status(400).json({ error: 'Missing deviceId' });
+    }
+    if (devices.has(deviceId)) {
+        const dev = devices.get(deviceId);
+        devices.delete(deviceId);
+        pendingCommands.delete(deviceId);
+        addAuditLog('DEVICE_DELETED', deviceId, `Deleted device ${dev.name || deviceId}`);
+        return res.json({ success: true, message: 'Device deleted successfully' });
+    }
+    return res.status(404).json({ error: 'Device not found' });
+});
+
+// --------------------------------------------------------------------------
 // ADMIN API: Push Remote Command to Device
 // --------------------------------------------------------------------------
 app.post('/api/commands', (req, res) => {

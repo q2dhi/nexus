@@ -1615,6 +1615,32 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             return
 
         # ---------------------------------------------------------
+        # DEVICE DELETE API (Remove device from fleet registry)
+        # ---------------------------------------------------------
+        if path == '/api/devices/delete':
+            dev_id = data.get('deviceId')
+            if not dev_id:
+                self._send_json(400, {"error": "deviceId is required"})
+                return
+
+            if dev_id in devices:
+                dev_info = devices.pop(dev_id)
+                save_devices_cache(devices)
+                pending_commands.pop(dev_id, None)
+                latest_frames.pop(dev_id, None)
+                pending_touch_events.pop(dev_id, None)
+                dev_name = dev_info.get('name', dev_id)
+                add_audit_log('DEVICE_DELETED', dev_id, f"Deleted device '{dev_name}' ({dev_id})")
+                self._send_json(200, {
+                    "success": True,
+                    "deviceId": dev_id,
+                    "message": f"تم حذف الجهاز '{dev_name}' من النظام بنجاح."
+                })
+            else:
+                self._send_json(404, {"error": "الجهاز غير موجود في النظام."})
+            return
+
+        # ---------------------------------------------------------
         # COMMAND DISPATCH
         # ---------------------------------------------------------
         if path == '/api/commands':

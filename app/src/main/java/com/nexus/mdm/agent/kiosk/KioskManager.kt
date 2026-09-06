@@ -133,6 +133,10 @@ class KioskManager(private val context: Context) {
                 dpm.setKeyguardDisabled(adminComponent, false)
                 dpm.setStatusBarDisabled(adminComponent, false)
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
+                // Clear persistent default Home assignment so stock Android launcher can open
+                try {
+                    dpm.clearPackagePersistentPreferredActivities(adminComponent, context.packageName)
+                } catch (_: Exception) {}
                 // Reset lock task packages to agent only
                 dpm.setLockTaskPackages(adminComponent, arrayOf(context.packageName))
             }
@@ -142,6 +146,52 @@ class KioskManager(private val context: Context) {
         } catch (e: Exception) {
             AppLogger.e("KioskManager", "Error while stopping Kiosk Mode", e)
             false
+        }
+    }
+
+    /**
+     * Safely releases Kiosk Mode, restores system defaults, and explicitly launches the stock Android Home launcher.
+     */
+    fun launchStockAndroidHome(activity: Activity): Boolean {
+        val stopped = stopKiosk(activity)
+        return try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+            }
+            val resolveList = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                activity.packageManager.queryIntentActivities(
+                    homeIntent,
+                    android.content.pm.PackageManager.ResolveInfoFlags.of(android.content.pm.PackageManager.MATCH_DEFAULT_ONLY.toLong())
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                activity.packageManager.queryIntentActivities(homeIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            }
+
+            // Find non-Nexus stock launcher (e.g. Honeywell Launcher, Launcher3, Quickstep, Pixel Launcher, etc.)
+            val stock = resolveList.firstOrNull { it.activityInfo.packageName != context.packageName }
+            if (stock != null) {
+                val launchIntent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    component = ComponentName(stock.activityInfo.packageName, stock.activityInfo.name)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                }
+                activity.startActivity(launchIntent)
+            } else {
+                val genericHome = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                activity.startActivity(genericHome)
+            }
+
+            // Step aside and move Nexus task to back so Android launcher displays immediately
+            activity.moveTaskToBack(true)
+            AppLogger.i("KioskManager", "Stock Android launcher opened successfully.")
+            true
+        } catch (e: Exception) {
+            AppLogger.e("KioskManager", "Failed to launch stock Android launcher", e)
+            stopped
         }
     }
 

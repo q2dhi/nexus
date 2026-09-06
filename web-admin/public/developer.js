@@ -507,11 +507,15 @@ function renderDevDevicesTable(devices) {
                 <td>${onlineTag}</td>
                 <td>
                     <span style="font-size:12px; color:var(--text-muted);">${d.lastSeenStr || 'قبل لحظات'}</span>
-                </td>
                 <td>
-                    <button class="btn btn-secondary btn-xs" onclick="openRenameModal('${d.id}', '${escapeHtml(d.name || '')}')">
-                        إعادة التسمية
-                    </button>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="btn btn-secondary btn-xs" onclick="openRenameModal('${d.id}', '${escapeHtml(d.name || '')}')">
+                            إعادة التسمية
+                        </button>
+                        <button class="btn btn-danger-soft btn-xs" onclick="confirmDeleteDevDevice('${d.id}', '${escapeHtml(d.name || d.id)}')" title="حذف الجهاز من النظام">
+                            حذف الجهاز
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -551,6 +555,31 @@ async function submitDeviceRename(event) {
         }
     } catch (e) {
         showDevToast('خطأ في الاتصال.', 'error');
+    }
+}
+
+async function confirmDeleteDevDevice(deviceId, deviceName) {
+    if (!confirm(`هل أنت متأكد من حذف الجهاز '${deviceName}' (${deviceId}) نهائياً من قاعدة بيانات النظام؟`)) {
+        return;
+    }
+    try {
+        const res = await fetch('/api/devices/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Developer-Token': devToken || ''
+            },
+            body: JSON.stringify({ deviceId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showDevToast(`تم حذف الجهاز '${deviceName}' بنجاح.`, 'success');
+            fetchDevDevices();
+        } else {
+            showDevToast(data.error || 'فشل حذف الجهاز.', 'error');
+        }
+    } catch (e) {
+        showDevToast('خطأ أثناء الاتصال بالسيرفر لحذف الجهاز.', 'error');
     }
 }
 

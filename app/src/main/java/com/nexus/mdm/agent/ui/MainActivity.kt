@@ -1018,15 +1018,8 @@ class MainActivity : AppCompatActivity() {
         if (policyHelper.isDeviceOwner()) {
             policyHelper.setStatusBarDisabled(false)
         }
-        kioskManager.stopKiosk(this)
+        kioskManager.launchStockAndroidHome(this)
         clearKioskWindowFlags()
-        try {
-            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_HOME)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            startActivity(homeIntent)
-        } catch (_: Exception) {}
     }
 
     private fun showAdminActionMenu() {
@@ -1061,17 +1054,9 @@ class MainActivity : AppCompatActivity() {
                             refreshBadges()
                         }
                         3 -> {
-                            kioskManager.stopKiosk(this)
-                            policyHelper.clearDefaultHomeLauncher()
+                            kioskManager.launchStockAndroidHome(this)
                             clearKioskWindowFlags()
-                            try {
-                                val home = Intent(Intent.ACTION_MAIN).apply {
-                                    addCategory(Intent.CATEGORY_HOME)
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                startActivity(home)
-                            } catch (_: Exception) {}
-                            Toast.makeText(this, "تم الخروج المؤقت من الكشك وإلغاء تثبيت المشغل الافتراضي.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "تم الخروج من وضع الكشك وفتح واجهة أندرويد.", Toast.LENGTH_SHORT).show()
                         }
                         4 -> {
                             kioskManager.stopKiosk(this)
