@@ -70,6 +70,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Android Enterprise Provisioning & Policy Compliance Activity (Android 10+ / 12+) -->
+        <activity
+            android:name=".provisioning.ProvisioningActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Device Admin Receiver (Guarded with BIND_DEVICE_ADMIN) -->
         <receiver
             android:name=".admin.NexusAdminReceiver"
