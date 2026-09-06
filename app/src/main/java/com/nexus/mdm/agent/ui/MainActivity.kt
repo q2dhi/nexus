@@ -277,50 +277,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyKioskWindowFlags() {
-        if (configStore.isKioskEnabled) {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-            }
+        // Keep status bar and navigation bars VISIBLE at all times
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.nexus_bg_light)
 
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            )
-            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)
-            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.insetsController?.let { controller ->
-                    controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                    controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
-                }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.let { controller ->
+                controller.show(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
             }
         } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_VISIBLE
-                or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.insetsController?.show(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-            }
         }
     }
 
     private fun clearKioskWindowFlags() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        window.statusBarColor = ContextCompat.getColor(this, R.color.nexus_royal_blue)
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.nexus_bg_light)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_VISIBLE
@@ -464,6 +448,24 @@ class MainActivity : AppCompatActivity() {
                 putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Nexus DPC requires Device Administrator privileges to execute remote screen locking and enterprise security policies.")
             }
             startActivity(intent)
+        }
+
+        // On-screen Enterprise Bottom Navigation Bar
+        findViewById<View>(R.id.btnKioskNavBack)?.setOnClickListener {
+            handleKioskBackPress()
+        }
+
+        findViewById<View>(R.id.btnKioskNavHome)?.setOnClickListener {
+            rvKioskApps.smoothScrollToPosition(0)
+            updateKioskGrid()
+        }
+
+        findViewById<View>(R.id.btnKioskNavAdmin)?.setOnClickListener {
+            showKioskSecurityActionDialog()
+        }
+
+        findViewById<View>(R.id.btnAdminNavHome)?.setOnClickListener {
+            activateKioskView()
         }
     }
 

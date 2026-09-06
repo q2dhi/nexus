@@ -73,9 +73,12 @@ class KioskManager(private val context: Context) {
                 AppLogger.w("KioskManager", "setLockTaskPackages warning: ${e.message}")
             }
 
-            // 2. Configure LockTask features (Completely suppress Keyguard, Status Bar, Notifications, Quick Settings, Home, Overview)
+            // 2. Configure LockTask features: Keep status bar system info (battery, wifi, clock) and navigation buttons visible, but suppress notifications
             try {
-                dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+                val lockTaskFeatures = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
+                                       DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
+                                       DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW
+                dpm.setLockTaskFeatures(adminComponent, lockTaskFeatures)
             } catch (e: Exception) {
                 AppLogger.w("KioskManager", "setLockTaskFeatures warning: ${e.message}")
             }

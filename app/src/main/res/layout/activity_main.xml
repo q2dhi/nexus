@@ -201,6 +201,108 @@
                 android:textColor="@color/nexus_text_muted"
                 android:textSize="11sp" />
         </LinearLayout>
+
+        <!-- ========================================================================= -->
+        <!-- ON-SCREEN ENTERPRISE NAVIGATION BAR (Always Visible at Bottom of Screen)  -->
+        <!-- ========================================================================= -->
+        <LinearLayout
+            android:id="@+id/layoutKioskBottomBar"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp">
+
+            <!-- 1. Back Navigation Button -->
+            <LinearLayout
+                android:id="@+id/btnKioskNavBack"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_nav_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_nav_back"
+                    app:tint="#334155"
+                    android:contentDescription="رجوع" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="رجوع"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 2. Home Navigation Button -->
+            <LinearLayout
+                android:id="@+id/btnKioskNavHome"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_nav_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_nav_home"
+                    app:tint="#1E40AF"
+                    android:contentDescription="الرئيسية" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="الرئيسية"
+                    android:textColor="#1E40AF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 3. Admin Console / Security Button -->
+            <LinearLayout
+                android:id="@+id/btnKioskNavAdmin"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_nav_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_nav_admin"
+                    app:tint="#334155"
+                    android:contentDescription="المسؤول" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="المسؤول"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+        </LinearLayout>
     </LinearLayout>
 
     <!-- ========================================================================= -->
@@ -633,6 +735,45 @@
 
             </LinearLayout>
         </ScrollView>
+
+        <!-- Admin Console Bottom Return Bar -->
+        <LinearLayout
+            android:id="@+id/layoutAdminBottomBar"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:id="@+id/btnAdminNavHome"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_nav_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_nav_home"
+                    app:tint="#1E40AF"
+                    android:contentDescription="العودة للكشك" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="العودة لشاشة الكشك الرئيسية (Exit Admin)"
+                    android:textColor="#1E40AF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- ========================================================================= -->
