@@ -34,7 +34,7 @@ import java.net.URL
 class MdmCloudSyncService : Service() {
 
     companion object {
-        private const val SYNC_INTERVAL_MS = 8000L // Poll every 8 seconds
+        private const val SYNC_INTERVAL_MS = 60_000L // Transmit location and telemetry every 60 seconds (1 minute)
 
         fun start(context: Context) {
             try {

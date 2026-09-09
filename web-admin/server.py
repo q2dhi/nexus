@@ -603,7 +603,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             dev_list = []
             for d in devices.values():
                 d_copy = dict(d)
-                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 25
+                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
                 dev_list.append(d_copy)
             self._send_json(200, dev_list)
             return
@@ -643,7 +643,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     if str(d.get('branchId', '')) != req_branch:
                         continue
                 d_copy = dict(d)
-                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 25
+                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
                 device_list.append(d_copy)
             self._send_json(200, device_list)
             return

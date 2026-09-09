@@ -69,7 +69,7 @@ app.get('/api/devices', (req, res) => {
     }
     const result = deviceList.map(dev => ({
         ...dev,
-        isOnline: (now - dev.lastSeen) < 25000
+        isOnline: (now - dev.lastSeen) < 120000
     }));
     res.json(result);
 });
