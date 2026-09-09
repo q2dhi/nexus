@@ -791,9 +791,20 @@ async function initQrTab() {
         const res = await fetch('/api/qr-config');
         const cfg = await res.json();
         if (cfg) {
-            document.getElementById('qrDownloadUrl').value = cfg.defaultDownloadUrl;
-            document.getElementById('qrServerUrl').value = cfg.defaultServerUrl;
-            document.getElementById('qrApkChecksum').value = cfg.apkChecksum;
+            const origin = window.location.origin;
+            const dlInput = document.getElementById('qrDownloadUrl');
+            const srvInput = document.getElementById('qrServerUrl');
+            const chkInput = document.getElementById('qrApkChecksum');
+
+            if (dlInput && (!dlInput.value || dlInput.value.includes('192.168.0.101'))) {
+                dlInput.value = cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`;
+            }
+            if (srvInput && (!srvInput.value || srvInput.value.includes('192.168.0.101'))) {
+                srvInput.value = cfg.defaultServerUrl || origin;
+            }
+            if (chkInput && cfg.apkChecksum) {
+                chkInput.value = cfg.apkChecksum;
+            }
 
             // Populate Company Selection Dropdown
             const compSelect = document.getElementById('qrCompanySelect');
@@ -817,13 +828,19 @@ function onQrCompanyChange() {
 }
 
 function generateQrCode() {
-    const downloadUrl = document.getElementById('qrDownloadUrl').value.trim();
-    const serverUrl = document.getElementById('qrServerUrl').value.trim();
-    const checksum = document.getElementById('qrApkChecksum').value.trim();
-    const wifiSsid = document.getElementById('qrWifiSsid').value.trim();
-    const wifiPassword = document.getElementById('qrWifiPassword').value.trim();
+    const dlInput = document.getElementById('qrDownloadUrl');
+    const srvInput = document.getElementById('qrServerUrl');
+    const chkInput = document.getElementById('qrApkChecksum');
+    const wifiSsidInput = document.getElementById('qrWifiSsid');
+    const wifiPasswordInput = document.getElementById('qrWifiPassword');
 
-    // Read the user-defined device name and selected company code!
+    const downloadUrl = (dlInput ? dlInput.value.trim() : '') || `${window.location.origin}/download/nexus-agent.apk`;
+    const serverUrl = (srvInput ? srvInput.value.trim() : '') || window.location.origin;
+    const checksum = (chkInput ? chkInput.value.trim() : '') || '186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8';
+    const wifiSsid = wifiSsidInput ? wifiSsidInput.value.trim() : '';
+    const wifiPassword = wifiPasswordInput ? wifiPasswordInput.value.trim() : '';
+
+    // Read the user-defined device name and selected company code
     const deviceTagInput = document.getElementById('qrDeviceTag');
     const deviceTag = deviceTagInput ? deviceTagInput.value.trim() || 'POS-TERMINAL-01' : 'POS-TERMINAL-01';
 
@@ -853,23 +870,26 @@ function generateQrCode() {
     lastQrPayload = payload;
     const jsonStr = JSON.stringify(payload);
     const canvas = document.getElementById('qrcodeCanvas');
+    if (!canvas) return;
     canvas.innerHTML = '';
 
     try {
         if (typeof QRCode !== 'undefined') {
             qrcodeInstance = new QRCode(canvas, {
                 text: jsonStr,
-                width: 220,
-                height: 220,
+                width: 224,
+                height: 224,
                 colorDark: "#0F172A",
                 colorLight: "#FFFFFF",
-                correctLevel: QRCode.CorrectLevel.M
+                correctLevel: QRCode.CorrectLevel.L
             });
         } else {
-            canvas.innerText = 'QR Library loading... Click Regenerate';
+            canvas.innerHTML = '<div style="padding: 20px; color: var(--text-muted); font-size: 12px; text-align: center;">جاري تحميل مكتبة الـ QR... انقر لإعادة التوليد</div>';
+            setTimeout(generateQrCode, 500);
         }
     } catch (e) {
         console.error('QR rendering error', e);
+        canvas.innerHTML = `<div style="padding: 16px; color: #DC2626; font-size: 12px; font-weight: 600; text-align: center;">تعذر توليد كود الـ QR: ${e.message || 'بيانات كبيرة جداً'}</div>`;
     }
 }
 

@@ -339,6 +339,30 @@ body.ltr-mode {
 }
 
 /* ==========================================================================
+   TAB CONTENT PANES (Zero Overlap, Smooth Transition)
+   ========================================================================== */
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+    animation: paneFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes paneFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
    FLEET KPI CARDS (Minimal, High Information Density)
    ========================================================================== */
 
@@ -395,27 +419,31 @@ body.ltr-mode {
    ENTERPRISE DATA TABLE
    ========================================================================== */
 
-.table-responsive-container {
+.table-responsive-container,
+.table-container {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    overflow: hidden;
+    overflow-x: auto;
     box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 
-.enterprise-data-table {
+.enterprise-data-table,
+.fleet-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
     text-align: right;
 }
 
-body.ltr-mode .enterprise-data-table {
+body.ltr-mode .enterprise-data-table,
+body.ltr-mode .fleet-table {
     text-align: left;
 }
 
-.enterprise-data-table th {
+.enterprise-data-table th,
+.fleet-table th {
     background: var(--slate-50);
     color: var(--slate-600);
     font-weight: 700;
@@ -427,18 +455,21 @@ body.ltr-mode .enterprise-data-table {
     white-space: nowrap;
 }
 
-.enterprise-data-table td {
+.enterprise-data-table td,
+.fleet-table td {
     padding: 10px 14px;
     border-bottom: 1px solid var(--slate-100);
     color: var(--slate-800);
     vertical-align: middle;
 }
 
-.enterprise-data-table tr:last-child td {
+.enterprise-data-table tr:last-child td,
+.fleet-table tr:last-child td {
     border-bottom: none;
 }
 
-.enterprise-data-table tr:hover td {
+.enterprise-data-table tr:hover td,
+.fleet-table tr:hover td {
     background-color: var(--slate-50);
 }
 
@@ -838,4 +869,302 @@ body.ltr-mode .dropdown-item {
 .section-desc {
     font-size: 12px;
     color: var(--text-muted);
+}
+
+/* ==========================================================================
+   FORM CONTAINERS & CARDS
+   ========================================================================== */
+
+.form-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+}
+
+/* ==========================================================================
+   ZERO-TOUCH QR ENROLLMENT (High Reliability Rendering)
+   ========================================================================== */
+
+.qr-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .qr-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.qr-display-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.qr-box {
+    background: #FFFFFF;
+    border: 2px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-md);
+    min-width: 256px;
+    min-height: 256px;
+    box-sizing: border-box;
+}
+
+#qrcodeCanvas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 224px;
+    height: 224px;
+}
+
+#qrcodeCanvas img,
+#qrcodeCanvas canvas,
+#qrcodeCanvas svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+}
+
+.qr-instructions {
+    width: 100%;
+    background: var(--slate-50);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--slate-700);
+}
+
+.qr-instructions h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--slate-900);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.qr-instructions ol {
+    padding-inline-start: 18px;
+    margin: 0;
+}
+
+.qr-instructions li {
+    margin-bottom: 6px;
+}
+
+/* ==========================================================================
+   KIOSK APP WHITELIST & SUGGESTIONS
+   ========================================================================== */
+
+.kiosk-suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.kiosk-suggestion-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.kiosk-suggestion-card:hover {
+    border-color: var(--border-strong);
+    background: var(--slate-50);
+}
+
+.kiosk-suggestion-card.selected {
+    background: #EFF6FF;
+    border-color: #93C5FD;
+}
+
+.kiosk-suggestion-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--slate-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.kiosk-suggestion-card.selected .kiosk-suggestion-icon {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.kiosk-suggestion-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.kiosk-suggestion-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--slate-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kiosk-suggestion-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kiosk-suggestion-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--slate-100);
+    color: var(--slate-600);
+}
+
+.kiosk-suggestion-card.selected .kiosk-suggestion-badge {
+    background: #2563EB;
+    color: #FFFFFF;
+}
+
+.whitelist-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--slate-800);
+}
+
+.whitelist-tag-pkg {
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background: var(--slate-200);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.whitelist-tag-del {
+    background: none;
+    border: none;
+    color: var(--slate-400);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+}
+
+.whitelist-tag-del:hover {
+    color: #DC2626;
+}
+
+/* ==========================================================================
+   AUDIT LOGS TERMINAL
+   ========================================================================== */
+
+.logs-terminal {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #94A3B8;
+    max-height: 480px;
+    overflow-y: auto;
+    box-shadow: var(--shadow-sm);
+}
+
+.logs-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.logs-list li {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    border-inline-start: 3px solid #3B82F6;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   SECURITY & EMERGENCY BANNER
+   ========================================================================== */
+
+.security-banner {
+    background: #991B1B;
+    color: #FFFFFF;
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+.security-banner .banner-text strong {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 800;
+}
+
+.security-banner .banner-text p {
+    font-size: 12px;
+    opacity: 0.9;
+    margin: 2px 0 0;
+}
+
+.branches-quota-badge {
+    border-radius: var(--radius-sm);
 }
