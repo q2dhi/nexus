@@ -1444,16 +1444,26 @@ async function deployWhitelist() {
     const deviceId = select ? select.value : 'ALL';
     const statusBox = document.getElementById('whitelistStatusMessage');
     const btn = document.getElementById('btnDeployWhitelist');
+    const btnTop = document.getElementById('btnDeployWhitelistTop');
 
     if (currentWhitelistPackages.length === 0) {
         showToast('يرجى إضافة تطبيق واحد على الأقل قبل التوزيع', 'warning');
         return;
     }
 
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span>جاري النشر والتوزيع...</span>';
-    }
+    const setButtonsLoading = (loading) => {
+        [btn, btnTop].forEach(b => {
+            if (!b) return;
+            b.disabled = loading;
+            if (loading) {
+                b.innerHTML = '<span>جاري النشر والتوزيع...</span>';
+            } else {
+                b.innerHTML = '<span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>';
+            }
+        });
+    };
+
+    setButtonsLoading(true);
     if (statusBox) {
         statusBox.style.display = 'block';
         statusBox.className = 'status-box status-loading';
@@ -1476,7 +1486,14 @@ async function deployWhitelist() {
             })
         });
 
-        const data = await res.json();
+        const rawText = await res.text();
+        let data = {};
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            data = { error: `خطأ من السيرفر (${res.status}): ${rawText.substring(0, 100) || res.statusText}` };
+        }
+
         if (res.ok && data.success) {
             showToast(`تم نشر وتفعيل ${currentWhitelistPackages.length} تطبيق بنجاح على أجهزة الكشك!`, 'success');
             if (statusBox) {
@@ -1501,10 +1518,7 @@ async function deployWhitelist() {
             statusBox.innerText = `فشل الإرسال: ${err.message}`;
         }
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>';
-        }
+        setButtonsLoading(false);
     }
 }
 

@@ -1676,10 +1676,11 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     devices[dev_id]['whitelistedApps'] = pkgs
                 save_devices_cache(devices)
 
-                if os.path.exists(adb_executable_path):
+                adb_bin = find_adb_executable()
+                if adb_bin and os.path.exists(adb_bin):
                     try:
                         subprocess.run([
-                            adb_executable_path, 'shell', 'am', 'start',
+                            adb_bin, 'shell', 'am', 'start',
                             '-n', 'com.nexus.mdm.agent/.ui.MainActivity',
                             '--ez', 'EXTRA_WHITELIST_UPDATED', 'true'
                         ], timeout=2)
