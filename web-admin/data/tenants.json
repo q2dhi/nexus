@@ -13,30 +13,30 @@
       "subscription": {
         "status": "ACTIVE",
         "startDate": "2026-09-04",
-        "expiryDate": "2027-09-03",
-        "maxDevices": 30,
-        "maxBranches": 1,
-        "planName": "باقة الشركات الممتازة"
+        "expiryDate": "2027-03-08",
+        "maxDevices": 100,
+        "maxBranches": 2,
+        "planName": "باقة تجريبية"
       },
       "branches": [
         {
-          "id": "br_1788480547_1",
+          "id": "br_1788953810_1",
           "name": "فرع المنصور",
           "number": "07701111111",
           "code": "BR-MANSOUR",
-          "password": "branch_secret_2026",
-          "createdAt": "2026-09-04T03:09:07.790026"
+          "password": "bpass123",
+          "createdAt": "2026-09-09T14:36:50.711274"
         }
       ],
       "allowedScreens": {
         "fleet": true,
         "whitelist": true,
         "qr": true,
-        "ota": true,
-        "logs": true,
+        "ota": false,
+        "logs": false,
         "screenControl": true,
         "gpsGeofence": true,
-        "remoteWipe": true
+        "remoteWipe": false
       }
     }
   ],

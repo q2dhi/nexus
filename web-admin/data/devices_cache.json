@@ -1,16 +1,10 @@
 {
   "TEST_DEVICE_01": {
     "id": "TEST_DEVICE_01",
-    "companyCode": "NEXUS-DEFAULT",
-    "lastSeen": 1788475421.9275954,
+    "companyCode": "1212",
+    "lastSeen": 1788953809.801693,
     "subscriptionActive": true,
-    "companyName": "شركة التقنية المتقدمة (الافتراضية)",
-    "whitelistedApps": [
-      "com.sec.android.app.camera",
-      "com.google.android.apps.maps",
-      "com.sec.android.app.popupcalculator"
-    ],
-    "name": "1"
+    "companyName": "تيست"
   },
   "samsung_SM-S928B_0e818e": {
     "id": "samsung_SM-S928B_0e818e",

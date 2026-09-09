@@ -10,7 +10,11 @@ import datetime
 import io
 import threading
 import subprocess
-from PIL import Image
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 from datetime import datetime, timedelta, date
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -58,6 +62,23 @@ def resolve_agent_apk():
             return cand
     return primary_apk
 
+def find_android_sdk_root():
+    """Locate Android SDK root across macOS, Linux, and Windows."""
+    for env in ('ANDROID_HOME', 'ANDROID_SDK_ROOT'):
+        val = os.environ.get(env)
+        if val and os.path.isdir(val):
+            return val
+    mac_sdk = os.path.expanduser('~/Library/Android/sdk')
+    if os.path.isdir(mac_sdk):
+        return mac_sdk
+    linux_sdk = os.path.expanduser('~/Android/Sdk')
+    if os.path.isdir(linux_sdk):
+        return linux_sdk
+    win_sdk = os.path.expandvars(r'%LOCALAPPDATA%\Android\Sdk')
+    if os.path.isdir(win_sdk):
+        return win_sdk
+    return ''
+
 def get_apk_signature_checksum(apk_path):
     """
     Extracts the SHA-256 fingerprint of the signing certificate from an APK
@@ -68,24 +89,24 @@ def get_apk_signature_checksum(apk_path):
         return KNOWN_DEBUG_SIGNATURE_CHECKSUM
 
     # 1. Try Android SDK apksigner if available
-    sdk_root = os.environ.get('ANDROID_HOME') or os.path.expandvars(r'%LOCALAPPDATA%\Android\Sdk')
-    build_tools = os.path.join(sdk_root, 'build-tools')
-    if os.path.isdir(build_tools):
-        for v in sorted(os.listdir(build_tools), reverse=True):
-            apksigner = os.path.join(build_tools, v, 'apksigner.bat')
-            if not os.path.exists(apksigner):
-                apksigner = os.path.join(build_tools, v, 'apksigner')
-            if os.path.exists(apksigner):
-                try:
-                    import re
-                    res = subprocess.run([apksigner, 'verify', '--print-certs', apk_path], capture_output=True, text=True, timeout=10)
-                    m = re.search(r'certificate SHA-256 digest:\s*([0-9a-fA-F]+)', res.stdout)
-                    if m:
-                        digest_hex = m.group(1).strip()
-                        raw_bytes = bytes.fromhex(digest_hex)
-                        return base64.urlsafe_b64encode(raw_bytes).decode('ascii').rstrip('=')
-                except Exception:
-                    pass
+    sdk_root = find_android_sdk_root()
+    if sdk_root:
+        build_tools = os.path.join(sdk_root, 'build-tools')
+        if os.path.isdir(build_tools):
+            for v in sorted(os.listdir(build_tools), reverse=True):
+                for apksigner_name in ('apksigner', 'apksigner.bat'):
+                    apksigner = os.path.join(build_tools, v, apksigner_name)
+                    if os.path.isfile(apksigner) and (os.access(apksigner, os.X_OK) or os.name == 'nt'):
+                        try:
+                            import re
+                            res = subprocess.run([apksigner, 'verify', '--print-certs', apk_path], capture_output=True, text=True, timeout=10)
+                            m = re.search(r'certificate SHA-256 digest:\s*([0-9a-fA-F]+)', res.stdout)
+                            if m:
+                                digest_hex = m.group(1).strip()
+                                raw_bytes = bytes.fromhex(digest_hex)
+                                return base64.urlsafe_b64encode(raw_bytes).decode('ascii').rstrip('=')
+                        except Exception:
+                            pass
 
     # 2. Pure Python parsing of APK Signing Block v2/v3
     try:
@@ -237,13 +258,26 @@ pending_commands = {}  # device_id -> list of commands
 latest_frames = {}     # device_id -> { 'frame': base64, 'timestamp': float }
 pending_touch_events = {} # device_id -> list of touch/gesture/key actions
 adb_stream_subscribers = {} # device_id -> expire_timestamp
-adb_executable_path = os.path.expandvars(r"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe")
+
+def find_adb_executable():
+    """Locate adb binary across macOS, Linux, and Windows."""
+    in_path = shutil.which('adb') or shutil.which('adb.exe')
+    if in_path:
+        return in_path
+    sdk = find_android_sdk_root()
+    if sdk:
+        for name in ('adb', 'adb.exe'):
+            cand = os.path.join(sdk, 'platform-tools', name)
+            if os.path.isfile(cand) and (os.access(cand, os.X_OK) or os.name == 'nt'):
+                return cand
+    return None
 
 def get_connected_adb_serial():
-    if not os.path.exists(adb_executable_path):
+    adb_bin = find_adb_executable()
+    if not adb_bin:
         return None
     try:
-        res = subprocess.run([adb_executable_path, 'devices'], capture_output=True, text=True, timeout=2)
+        res = subprocess.run([adb_bin, 'devices'], capture_output=True, text=True, timeout=2)
         lines = [l.strip().split()[0] for l in res.stdout.strip().splitlines()[1:] if '\tdevice' in l or ' device' in l]
         if lines:
             return lines[0]
@@ -254,12 +288,13 @@ def get_connected_adb_serial():
 adb_lock = threading.Lock()
 
 def capture_adb_screen_frame(target_serial=None):
-    if not os.path.exists(adb_executable_path):
+    adb_bin = find_adb_executable()
+    if not adb_bin:
         return None
     if not adb_lock.acquire(blocking=False):
         return None
     try:
-        cmd = [adb_executable_path]
+        cmd = [adb_bin]
         if target_serial:
             cmd.extend(['-s', target_serial])
         cmd.extend(['exec-out', 'screencap', '-p'])
@@ -275,14 +310,17 @@ def capture_adb_screen_frame(target_serial=None):
         elif b'\r\n' in raw_bytes[:64]:
             raw_bytes = raw_bytes.replace(b'\r\n', b'\n')
 
-        img = Image.open(io.BytesIO(raw_bytes))
-        orig_w, orig_h = img.size
-        new_w = 360
-        new_h = int(orig_h * (new_w / orig_w))
-        resized = img.resize((new_w, new_h), Image.Resampling.BILINEAR).convert('RGB')
-        buf = io.BytesIO()
-        resized.save(buf, format='JPEG', quality=65)
-        return base64.b64encode(buf.getvalue()).decode('ascii')
+        if HAS_PIL:
+            img = Image.open(io.BytesIO(raw_bytes))
+            orig_w, orig_h = img.size
+            new_w = 360
+            new_h = int(orig_h * (new_w / orig_w))
+            resized = img.resize((new_w, new_h), Image.Resampling.BILINEAR).convert('RGB')
+            buf = io.BytesIO()
+            resized.save(buf, format='JPEG', quality=65)
+            return base64.b64encode(buf.getvalue()).decode('ascii')
+        else:
+            return base64.b64encode(raw_bytes).decode('ascii')
     except Exception:
         return None
     finally:
@@ -909,7 +947,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             if matched_parent:
                 is_active, status_msg = is_subscription_active(matched_parent)
-                session_token = f"tenant_{int(time.time())}_{hashlib.md5(f'{matched_parent.get('id')}:{password}'.encode()).hexdigest()[:10]}"
+                parent_id = matched_parent.get('id', '')
+                hash_token = hashlib.md5(f"{parent_id}:{password}".encode()).hexdigest()[:10]
+                session_token = f"tenant_{int(time.time())}_{hash_token}"
                 ACTIVE_TENANT_SESSIONS[session_token] = {
                     "tenantId": matched_parent.get('id'),
                     "code": matched_parent.get('code'),
@@ -969,7 +1009,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     })
                     return
 
-                session_token = f"branch_{int(time.time())}_{hashlib.md5(f'{matched_branch.get('id')}:{password}'.encode()).hexdigest()[:10]}"
+                branch_id = matched_branch.get('id', '')
+                hash_token = hashlib.md5(f"{branch_id}:{password}".encode()).hexdigest()[:10]
+                session_token = f"branch_{int(time.time())}_{hash_token}"
                 ACTIVE_TENANT_SESSIONS[session_token] = {
                     "tenantId": parent_for_branch.get('id'),
                     "code": parent_for_branch.get('code'),
@@ -1765,8 +1807,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 queue.append(data)
 
             # 2. Local ADB fallback (if device is plugged into local computer)
-            adb_path = os.path.expandvars(r"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe")
-            if os.path.exists(adb_path):
+            adb_path = find_adb_executable()
+            if adb_path:
                 import subprocess
                 try:
                     if action == 'tap':

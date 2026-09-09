@@ -124,6 +124,42 @@ NexusDPC/
 ├── build.gradle.kts                             # Root build script
 ├── settings.gradle.kts                          # Root settings
 ├── gradle.properties                            # JVM & AndroidX settings
+├── gradlew                                      # macOS/Linux Gradle wrapper (executable)
 ├── gradlew.bat                                  # Windows Gradle wrapper
+├── start-web-admin.sh                           # macOS/Linux quick-launcher for Web Admin
+├── web-admin/
+│   ├── start-server.sh                          # macOS/Linux server launcher
+│   ├── start-server.bat                         # Windows server launcher
+│   ├── server.py                                # Multi-tenant backend & live remote control
+│   └── public/                                  # Web dashboard frontend
 └── README.md
 ```
+
+---
+
+## macOS Development Quickstart
+
+### 1. Requirements
+- **Java 17 JDK** (e.g. via Android Studio, Homebrew `brew install openjdk@17`, or Temurin)
+- **Android SDK & Platform Tools** (located at `~/Library/Android/sdk`)
+- **Python 3** (included with macOS)
+
+### 2. Configure Environment (zsh)
+Add the following to your `~/.zshrc`:
+```bash
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin
+```
+Then reload: `source ~/.zshrc`
+
+### 3. Run Web Admin Server
+```bash
+./start-web-admin.sh
+```
+Opens the web console on [http://localhost:3000](http://localhost:3000).
+
+### 4. Build Android Agent APK
+```bash
+./gradlew assembleDebug
+```
+
