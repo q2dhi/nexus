@@ -993,7 +993,7 @@ class MainActivity : AppCompatActivity() {
                     lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
                         tvCloudStatusBadge.text = "Cloud: Offline"
                         tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_red))
-                        Toast.makeText(this@MainActivity, "❌ تعذر الوصول للسيرفر: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "تعذر الوصول للسيرفر: ${e.message}", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -1129,19 +1129,19 @@ class MainActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
         try {
             val options = arrayOf(
-                "🚪 الخروج إلى نظام أندرويد (Exit to Android OS)",
-                "⚙️ إعدادات السيرفر وكود الشركة (Server & Company Setup)",
-                "🏷️ تسمية / تعديل اسم الجهاز (Rename Device)",
-                "💻 لوحة تحكم المسؤول المتقدمة (Admin Console)",
-                "🌐 فتح إعدادات أندرويد وشبكة الواي فاي (Android & Wi-Fi Settings)",
-                "🛠️ تفعيل خيارات المطورين وتصحيح USB (Enable Developer / USB Debugging)",
-                "⚠️ إعادة ضبط المصنع للجهاز (Factory Reset Device)",
-                "🏠 تعيين Nexus كمشغل رئيسي (Set as Default Home)",
-                "📱 تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
-                "❌ إلغاء (Cancel)"
+                "الخروج إلى نظام أندرويد (Exit to Android OS)",
+                "إعدادات السيرفر وكود الشركة (Server & Company Setup)",
+                "تسمية / تعديل اسم الجهاز (Rename Device)",
+                "لوحة تحكم المسؤول المتقدمة (Admin Console)",
+                "فتح إعدادات أندرويد وشبكة الواي فاي (Android & Wi-Fi Settings)",
+                "تفعيل خيارات المطورين وتصحيح USB (Enable Developer / USB Debugging)",
+                "إعادة ضبط المصنع للجهاز (Factory Reset Device)",
+                "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
+                "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
+                "إلغاء (Cancel)"
             )
             android.app.AlertDialog.Builder(this)
-                .setTitle("Nexus MDM - خيارات المسؤول")
+                .setTitle("Nexus MDM - خيارات المسؤول (Admin Options)")
                 .setItems(options) { dialog, which ->
                     when (which) {
                         0 -> {
@@ -1297,7 +1297,7 @@ class MainActivity : AppCompatActivity() {
                             if (code == 200) {
                                 tvCloudStatusBadge.text = "Cloud: Connected"
                                 tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_green))
-                                Toast.makeText(this@MainActivity, "✅ تم الاتصال بنجاح وسيبدأ الجهاز بالظهور في لوحة الويب!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this@MainActivity, "تم الاتصال بنجاح وسيبدأ الجهاز بالظهور في لوحة الويب.", Toast.LENGTH_LONG).show()
                                 dialog.dismiss()
                             } else {
                                 Toast.makeText(this@MainActivity, "استجاب السيرفر برمز HTTP: $code", Toast.LENGTH_LONG).show()
@@ -1305,7 +1305,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "❌ تعذر الاتصال بالسيرفر: ${e.message}\nتأكد من اتصال الهاتف بالواي فاي وصحة الـ IP", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, "تعذر الاتصال بالسيرفر: ${e.message}\nتأكد من اتصال الجهاز بالشبكة وصحة العنوان.", Toast.LENGTH_LONG).show()
                         }
                     }
                 }

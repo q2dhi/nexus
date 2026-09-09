@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="خيارات المشرف والأمان"
+            android:text="Administrator Security Menu"
             android:textColor="@color/nexus_text_primary"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="NEXUS"
-            android:textColor="@color/nexus_royal_blue"
+            android:textColor="@color/nexus_blue"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -36,7 +36,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="يرجى تحديد الإجراء المطلوب:"
+        android:text="Select authorized maintenance action:"
         android:textColor="@color/nexus_text_secondary"
         android:textSize="13sp"
         android:layout_marginBottom="20dp" />
@@ -46,7 +46,7 @@
         android:id="@+id/btnSecurityExitToAndroid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_card"
+        android:background="@drawable/bg_flat_item"
         android:backgroundTint="#0F172A"
         android:orientation="vertical"
         android:padding="16dp"
@@ -57,7 +57,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🚪 الخروج إلى نظام أندرويد (Exit to Android OS)"
+            android:text="Exit to Android OS"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -65,7 +65,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="الخروج من وضع الكشك والعودة لواجهة أندرويد الرئيسية (يتطلب رمز الأدمن)"
+            android:text="Disengage dedicated LockTask and restore system launcher"
             android:textColor="#94A3B8"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
@@ -76,7 +76,8 @@
         android:id="@+id/btnSecurityAdminPin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/nexus_royal_blue"
+        android:background="@drawable/bg_flat_item"
+        android:backgroundTint="#1E293B"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -86,7 +87,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚙️ لوحة تحكم وإعدادات المشرف (Admin Console)"
+            android:text="Administrator Console"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -94,8 +95,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="إعدادات السيرفر، الشركة، التطبيقات المسموحة وتسمية الجهاز"
-            android:textColor="#E0E7FF"
+            android:text="Server configuration, tenant assignment, and peripheral policies"
+            android:textColor="#CBD5E1"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
     </LinearLayout>
@@ -105,7 +106,7 @@
         android:id="@+id/btnSecurityWifiSettings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_card"
+        android:background="@drawable/bg_flat_item"
         android:backgroundTint="#F8FAFC"
         android:orientation="vertical"
         android:padding="16dp"
@@ -116,15 +117,15 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="📶 إعدادات الواي فاي والشبكة (Wi-Fi &amp; Settings)"
-            android:textColor="@color/nexus_royal_blue"
+            android:text="Wi-Fi and Network Settings"
+            android:textColor="@color/nexus_text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="فتح إعدادات الشبكة، الباركود والاتصال في نظام أندرويد"
+            android:text="Configure wireless connectivity, APN, and hardware scanner profiles"
             android:textColor="@color/nexus_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
@@ -135,7 +136,8 @@
         android:id="@+id/btnSecurityReboot"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/nexus_surface_light"
+        android:background="@drawable/bg_flat_item"
+        android:backgroundTint="#FEE2E2"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -145,7 +147,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔄 إعادة تشغيل الجهاز (Reboot Device)"
+            android:text="Reboot Device"
             android:textColor="@color/nexus_red"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -153,7 +155,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="إعادة تشغيل النظام فوراً للصيانة الدورية"
+            android:text="Trigger clean hardware reboot via Device Owner API"
             android:textColor="@color/nexus_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
@@ -165,7 +167,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:backgroundTint="@color/nexus_surface_subtle"
-        android:text="إلغاء (Cancel)"
+        android:text="Cancel"
         android:textAllCaps="false"
         android:textColor="@color/nexus_text_secondary"
         android:textSize="14sp" />

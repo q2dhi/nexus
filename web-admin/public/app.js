@@ -689,7 +689,7 @@ function renderDeviceTable(devices) {
                                 ` : ''}
                                 <div class="dropdown-divider"></div>
                                 <button class="dropdown-item dropdown-item-danger" onclick="confirmDeleteDevice('${d.id}', '${escapeHtml(d.name || d.id)}')">
-                                    <span style="color:#DC2626; font-weight:700;">🗑️ حذف الجهاز من النظام (Delete Device)</span>
+                                    <span style="color:#DC2626; font-weight:700;">حذف الجهاز (Delete Device)</span>
                                 </button>
                             </div>
                         </div>
