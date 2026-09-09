@@ -712,6 +712,44 @@ async function executeBulkCommand(action, label, extraPayload = {}) {
     fetchDevices();
 }
 
+async function executeBulkDelete() {
+    const ids = Array.from(selectedFleetDeviceIds);
+    if (ids.length === 0) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد جهاز واحد على الأقل للحذف' : 'Please select at least one device to delete', 'warning');
+        return;
+    }
+    const isRtl = currentLang === 'ar';
+    const confirmMsg = isRtl
+        ? `هل أنت متأكد تماماً من حذف ${ids.length} جهاز محدد نهائياً من الأسطول والنظام؟\n\nلا يمكن التراجع عن هذا الإجراء.`
+        : `Are you sure you want to permanently delete ${ids.length} selected devices from the fleet?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    showToast(isRtl ? `جاري حذف ${ids.length} جهاز...` : `Deleting ${ids.length} devices...`, 'info');
+
+    let successCount = 0;
+    for (const deviceId of ids) {
+        try {
+            const res = await fetch('/api/devices/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Token': currentTenantToken || ''
+                },
+                body: JSON.stringify({ deviceId })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+        } catch (e) {
+            console.error('Bulk delete error for device', deviceId, e);
+        }
+    }
+
+    showToast(isRtl ? `تم حذف ${successCount} من أصل ${ids.length} جهاز بنجاح!` : `Successfully deleted ${successCount} devices!`, 'success');
+    deselectAllDevices();
+    fetchDevices();
+}
+
 function renderDeviceTable(devices) {
     const tbody = document.getElementById('deviceTableBody');
     const isRtl = currentLang === 'ar';
@@ -3137,23 +3175,28 @@ function dacExecuteSyncTime() {
 
 function dacExecuteRename() {
     if (!activeDacDeviceId) return;
+    const devId = activeDacDeviceId;
     const safeDevices = lastDevicesCache || [];
-    const device = safeDevices.find(d => d.id === activeDacDeviceId);
-    openAdminRenameModal(activeDacDeviceId, device ? (device.name || '') : '');
+    const device = safeDevices.find(d => d.id === devId);
+    closeDeviceActionCenter();
+    openAdminRenameModal(devId, device ? (device.name || '') : '');
 }
 
 function dacExecuteWipe() {
     if (!activeDacDeviceId) return;
-    promptCommand(activeDacDeviceId, 'WIPE_DEVICE', 'Remote Factory Wipe');
+    const devId = activeDacDeviceId;
+    closeDeviceActionCenter();
+    promptCommand(devId, 'WIPE_DEVICE', 'Remote Factory Wipe');
 }
 
 function dacExecuteDeleteDevice() {
     if (!activeDacDeviceId) return;
+    const devId = activeDacDeviceId;
     const safeDevices = lastDevicesCache || [];
-    const device = safeDevices.find(d => d.id === activeDacDeviceId);
-    const name = device ? (device.name || device.id) : activeDacDeviceId;
+    const device = safeDevices.find(d => d.id === devId);
+    const name = device ? (device.name || device.id) : devId;
     closeDeviceActionCenter();
-    confirmDeleteDevice(activeDacDeviceId, name);
+    confirmDeleteDevice(devId, name);
 }
 
 function dacTogglePolicy(policyKey, isEnabled) {
