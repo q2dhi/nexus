@@ -161,7 +161,7 @@ class KioskManager(private val context: Context) {
             
             val resolveList = activity.packageManager.queryIntentActivities(homeIntent, 0)
 
-            // Find non-Nexus stock launcher (e.g. Samsung OneUI, MIUI Home, Pixel Launcher, Launcher3, etc.)
+            // 1. Find non-Nexus stock launcher (e.g. Samsung OneUI, MIUI Home, Pixel Launcher, Launcher3, etc.)
             val stock = resolveList.firstOrNull { it.activityInfo.packageName != context.packageName }
             if (stock != null) {
                 AppLogger.i("KioskManager", "Found stock launcher: ${stock.activityInfo.packageName}/${stock.activityInfo.name}")
@@ -172,16 +172,48 @@ class KioskManager(private val context: Context) {
                 }
                 activity.startActivity(launchIntent)
             } else {
-                val genericHome = Intent(Intent.ACTION_MAIN).apply {
-                    addCategory(Intent.CATEGORY_HOME)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                // 2. Try common OEM launcher package names
+                val commonLaunchers = listOf(
+                    "com.sec.android.app.launcher",
+                    "com.miui.home",
+                    "com.google.android.apps.nexuslauncher",
+                    "com.android.launcher3",
+                    "com.transsion.hilauncher",
+                    "com.oppo.launcher",
+                    "com.huawei.android.launcher",
+                    "com.tblenovo.launcher"
+                )
+                var launched = false
+                for (pkg in commonLaunchers) {
+                    val intent = activity.packageManager.getLaunchIntentForPackage(pkg)
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        activity.startActivity(intent)
+                        launched = true
+                        break
+                    }
                 }
-                activity.startActivity(genericHome)
+
+                // 3. Fallback to Android Settings if no separate launcher is registered
+                if (!launched) {
+                    try {
+                        val settingsIntent = Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        activity.startActivity(settingsIntent)
+                    } catch (_: Exception) {
+                        val genericHome = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        activity.startActivity(genericHome)
+                    }
+                }
             }
 
             // Step aside and move Nexus task to back so Android launcher displays immediately
             activity.moveTaskToBack(true)
-            AppLogger.i("KioskManager", "Stock Android launcher opened successfully.")
+            AppLogger.i("KioskManager", "Stock Android launcher / system opened successfully.")
             true
         } catch (e: Exception) {
             AppLogger.e("KioskManager", "Failed to launch stock Android launcher", e)
