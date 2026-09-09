@@ -20,12 +20,12 @@
       },
       "branches": [
         {
-          "id": "br_1788953810_1",
+          "id": "br_1788957388_1",
           "name": "فرع المنصور",
           "number": "07701111111",
           "code": "BR-MANSOUR",
           "password": "bpass123",
-          "createdAt": "2026-09-09T14:36:50.711274"
+          "createdAt": "2026-09-09T15:36:28.161248"
         }
       ],
       "allowedScreens": {

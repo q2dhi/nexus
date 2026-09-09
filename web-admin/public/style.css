@@ -3656,3 +3656,133 @@ body:not(.rtl-mode) .dac-btn {
     font-size: 11px;
     color: #64748B;
 }
+
+/* ========================================================================= */
+/* SOTI-GRADE FLEET COMMAND CENTER ENHANCEMENTS                              */
+/* ========================================================================= */
+
+/* Glassmorphic Command Cards */
+.soti-kpi-card,
+.device-row {
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.device-row:hover {
+    background-color: #F8FAFC !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+/* Glowing Telemetry Live Dot */
+.soti-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+
+.soti-live-dot.online {
+    background-color: #10B981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    animation: sotiPulseGreen 2s infinite ease-in-out;
+}
+
+.soti-live-dot.offline {
+    background-color: #94A3B8;
+}
+
+@keyframes sotiPulseGreen {
+    0%, 100% {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1);
+    }
+}
+
+/* High-Tech SOTI Remote Control Overlay */
+.soti-stream-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0F172A;
+    color: #F8FAFC;
+    padding: 10px 16px;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.soti-stream-badge {
+    background: rgba(37, 99, 235, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #93C5FD;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.soti-stream-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.soti-btn-tool {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #F8FAFC;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+}
+
+.soti-btn-tool:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.soti-btn-tool.danger:hover {
+    background: #EF4444;
+    border-color: #DC2626;
+    color: #FFFFFF;
+}
+
+/* SOTI Hardware Gauge Mini Bar */
+.soti-gauge-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 90px;
+}
+
+.soti-gauge-track {
+    width: 100%;
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.soti-gauge-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.soti-gauge-fill.green { background: linear-gradient(90deg, #10B981, #059669); }
+.soti-gauge-fill.amber { background: linear-gradient(90deg, #F59E0B, #D97706); }
+.soti-gauge-fill.red { background: linear-gradient(90deg, #EF4444, #DC2626); }
+.soti-gauge-fill.blue { background: linear-gradient(90deg, #3B82F6, #1D4ED8); }
+.soti-gauge-fill.purple { background: linear-gradient(90deg, #8B5CF6, #6D28D9); }
