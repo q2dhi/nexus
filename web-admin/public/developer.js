@@ -475,8 +475,8 @@ function renderDevDevicesTable(devices) {
     let html = '';
     devices.forEach(d => {
         const isOnline = d.isOnline;
-        const onlineTag = isOnline 
-            ? '<span class="badge badge-active"><span class="dot active"></span> متصل</span>' 
+        const onlineTag = isOnline
+            ? '<span class="badge badge-active"><span class="dot active"></span> متصل</span>'
             : '<span class="badge" style="background:#F1F5F9; color:#64748B;"><span class="dot offline"></span> غير متصل</span>';
 
         const batteryColor = (d.battery > 50) ? '#059669' : (d.battery > 20 ? '#D97706' : '#DC2626');

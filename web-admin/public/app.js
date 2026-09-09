@@ -35,13 +35,13 @@ const i18n = {
         brandSubtitle: "نظام إدارة الأجهزة المركزية",
         metricOnline: "أجهزة متصلة",
         metricKiosk: "في وضع الكشك",
-        tabDevices: "الأسطول المدار",
+        tabDevices: "الاجهزة المدارة",
         tabWhitelist: "تطبيقات الكشك",
         tabQr: "تجهيز الـ QR السريع",
         tabOta: "توزيع التطبيقات OTA",
         tabLogs: "سجلات التدقيق",
         kpiFleet: "الأجهزة المدارة",
-        kpiKiosk: "حصار الكشك",
+        kpiKiosk: "قفل الكشك",
         kpiGps: "تتبع الأقمار الصناعية",
         kpiSecurity: "درع الأمان الفوري",
         thDevice: "معرّف ووسم الجهاز",
@@ -55,7 +55,7 @@ const i18n = {
         btnRemoteControl: "التحكم المباشر",
         btnGpsTrack: "تتبع GPS",
         btnActions: "خيارات",
-        tabBranches: "إدارة الفروع (الويبات الفرعية)",
+        tabBranches: "إدارة الفروع",
         actRename: "إعادة تسمية الجهاز",
         actLock: "قفل الشاشة فوراً",
         actExitKiosk: "خروج من وضع الكشك",
@@ -1157,7 +1157,7 @@ const PRESET_APP_LABELS = {
     "com.honeywell.enterprisebrowser": "متصفح هني ويل (Honeywell Enterprise Browser)",
     "com.honeywell.tools.ezconfig": "تكوين الأجهزة (Honeywell EZConfig)",
     "com.honeywell.filebrowser": "مدير ملفات هني ويل (Honeywell File Manager)",
-    
+
     // Honeywell Android System Apps
     "com.android.camera2": "كاميرا النظام (Honeywell Camera)",
     "org.codeaurora.snapcam": "كاميرا هني ويل سناب (Snap Camera)",
@@ -2031,7 +2031,7 @@ function handleOtaFileUpload(event) {
                 if (data.success) {
                     const urlInput = document.getElementById('apkUrlInput');
                     if (urlInput) urlInput.value = data.url;
-                    
+
                     // Suggest package name if empty
                     const pkgInput = document.getElementById('apkPackageInput');
                     if (pkgInput && !pkgInput.value) {
