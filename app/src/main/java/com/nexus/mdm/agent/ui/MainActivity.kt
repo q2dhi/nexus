@@ -193,6 +193,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        MdmCloudSyncService.start(this)
         isLaunchingWhitelistedApp = false
         refreshBadges()
         if (configStore.isKioskEnabled) {
