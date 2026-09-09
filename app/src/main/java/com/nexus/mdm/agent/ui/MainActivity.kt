@@ -467,6 +467,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnAdminNavHome)?.setOnClickListener {
             activateKioskView()
         }
+
+        findViewById<View>(R.id.btnAdminNavExitAndroid)?.setOnClickListener {
+            kioskManager.launchStockAndroidHome(this)
+            clearKioskWindowFlags()
+            Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -806,13 +812,33 @@ class MainActivity : AppCompatActivity() {
             val view = LayoutInflater.from(this).inflate(R.layout.dialog_kiosk_security_menu, null)
             dialog.setContentView(view)
 
+            val btnExitToAndroid = view.findViewById<View>(R.id.btnSecurityExitToAndroid)
             val btnAdminPin = view.findViewById<View>(R.id.btnSecurityAdminPin)
             val btnReboot = view.findViewById<View>(R.id.btnSecurityReboot)
             val btnCancel = view.findViewById<Button>(R.id.btnSecurityCancel)
 
+            btnExitToAndroid?.setOnClickListener {
+                dialog.dismiss()
+                showAdminPasswordDialog(
+                    title = "الخروج إلى نظام أندرويد",
+                    subtitle = "أدخل رمز المشرف / الأدمن للخروج من وضع الكشك والعودة لواجهة أندرويد.",
+                    actionButtonText = "تأكيد الخروج للأندرويد"
+                ) {
+                    kioskManager.launchStockAndroidHome(this)
+                    clearKioskWindowFlags()
+                    Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_LONG).show()
+                }
+            }
+
             btnAdminPin.setOnClickListener {
                 dialog.dismiss()
-                showAdminPasswordDialog()
+                showAdminPasswordDialog(
+                    title = "لوحة تحكم المشرف",
+                    subtitle = "أدخل رمز المشرف لفتح لوحة تحكم وإعدادات الجهاز.",
+                    actionButtonText = "فتح لوحة التحكم"
+                ) {
+                    showAdminActionMenu()
+                }
             }
 
             btnReboot.setOnClickListener {
@@ -852,6 +878,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        // Multi-tap emergency cryptographic escape hatch on kiosk logo
+        findViewById<View>(R.id.ivKioskLogo)?.let { logoView ->
+            val escapeHatch = com.nexus.mdm.agent.kiosk.SecurityEscapeHatch(this) {
+                kioskManager.launchStockAndroidHome(this)
+                clearKioskWindowFlags()
+                Toast.makeText(this, "تم الخروج من وضع الكشك بنجاح والعودة لنظام أندرويد.", Toast.LENGTH_SHORT).show()
+            }
+            escapeHatch.attachTo(logoView)
+        }
+
         // Subtle stealth header hold as secondary administrator access trigger
         findViewById<View>(R.id.layoutKioskHeader)?.setOnLongClickListener {
             showKioskSecurityActionDialog()
@@ -1026,37 +1062,37 @@ class MainActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
         try {
             val options = arrayOf(
-                "إعدادات السيرفر وكود الشركة (Server & Company Setup)",
-                "تسمية / تعديل اسم الجهاز (Rename Device)",
-                "لوحة تحكم المسؤول المتقدمة (Admin Console)",
-                "خروج مؤقت إلى واجهة أندرويد (Exit Kiosk Temporarily)",
-                "فتح إعدادات أندرويد وشبكة الواي فاي (Android & Wi-Fi Settings)",
-                "تفعيل خيارات المطورين وتصحيح USB (Enable Developer / USB Debugging)",
-                "إعادة ضبط المصنع للجهاز (Factory Reset Device)",
-                "تعيين Nexus كمشغل رئيسي (Set as Default Home)",
-                "تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
-                "إلغاء (Cancel)"
+                "🚪 الخروج إلى نظام أندرويد (Exit to Android OS)",
+                "⚙️ إعدادات السيرفر وكود الشركة (Server & Company Setup)",
+                "🏷️ تسمية / تعديل اسم الجهاز (Rename Device)",
+                "💻 لوحة تحكم المسؤول المتقدمة (Admin Console)",
+                "🌐 فتح إعدادات أندرويد وشبكة الواي فاي (Android & Wi-Fi Settings)",
+                "🛠️ تفعيل خيارات المطورين وتصحيح USB (Enable Developer / USB Debugging)",
+                "⚠️ إعادة ضبط المصنع للجهاز (Factory Reset Device)",
+                "🏠 تعيين Nexus كمشغل رئيسي (Set as Default Home)",
+                "📱 تفعيل خدمة التحكم السحابي باللمس (Enable Cloud Remote Control)",
+                "❌ إلغاء (Cancel)"
             )
             android.app.AlertDialog.Builder(this)
                 .setTitle("Nexus MDM - خيارات المسؤول")
                 .setItems(options) { dialog, which ->
                     when (which) {
                         0 -> {
-                            showServerSettingsDialog()
+                            kioskManager.launchStockAndroidHome(this)
+                            clearKioskWindowFlags()
+                            Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_SHORT).show()
                         }
                         1 -> {
-                            showRenameDeviceDialog()
+                            showServerSettingsDialog()
                         }
                         2 -> {
+                            showRenameDeviceDialog()
+                        }
+                        3 -> {
                             layoutKioskSurface.visibility = View.GONE
                             layoutAdminConsole.visibility = View.VISIBLE
                             clearKioskWindowFlags()
                             refreshBadges()
-                        }
-                        3 -> {
-                            kioskManager.launchStockAndroidHome(this)
-                            clearKioskWindowFlags()
-                            Toast.makeText(this, "تم الخروج من وضع الكشك وفتح واجهة أندرويد.", Toast.LENGTH_SHORT).show()
                         }
                         4 -> {
                             kioskManager.stopKiosk(this)
@@ -1274,23 +1310,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAdminPasswordDialog() {
+    private fun showAdminPasswordDialog(
+        title: String = "التحقق من هوية المسؤول",
+        subtitle: String = "أدخل رمز المشرف للمتابعة والوصول للإعدادات.",
+        actionButtonText: String = "تأكيد",
+        onSuccess: () -> Unit = { showAdminActionMenu() }
+    ) {
         if (isFinishing || isDestroyed) return
         try {
             val dialog = Dialog(this, R.style.Theme_NexusDPC)
             val view = LayoutInflater.from(this).inflate(R.layout.dialog_admin_password, null)
             dialog.setContentView(view)
 
+            val tvTitle = view.findViewById<TextView>(R.id.tvAdminPasswordTitle)
+            val tvSubtitle = view.findViewById<TextView>(R.id.tvAdminPasswordSubtitle)
             val etPassword = view.findViewById<TextInputEditText>(R.id.etAdminPassword)
             val btnCancel = view.findViewById<Button>(R.id.btnCancelPassword)
             val btnConfirm = view.findViewById<Button>(R.id.btnConfirmPassword)
+
+            tvTitle?.text = title
+            tvSubtitle?.text = subtitle
+            btnConfirm.text = actionButtonText
 
             btnCancel.setOnClickListener { dialog.dismiss() }
             btnConfirm.setOnClickListener {
                 val entered = etPassword.text?.toString().orEmpty().trim()
                 if (configStore.verifyPin(entered)) {
                     dialog.dismiss()
-                    showAdminActionMenu()
+                    onSuccess()
                 } else {
                     Toast.makeText(this, "رمز الأدمن غير صحيح.", Toast.LENGTH_SHORT).show()
                     etPassword.setText("")
