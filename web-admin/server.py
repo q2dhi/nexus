@@ -195,6 +195,60 @@ def save_devices_cache(data=None):
     except Exception:
         pass
 
+WHITELIST_PACKAGE_FAMILIES = [
+    # Camera family: Snapdragon SnapCam (Honeywell CT47/Qualcomm), AOSP Camera2, Google Camera, Honeywell Camera, Samsung Camera
+    [
+        "org.codeaurora.snapcam",
+        "com.android.camera2",
+        "com.google.android.GoogleCamera",
+        "com.honeywell.camera",
+        "com.android.camera",
+        "com.sec.android.app.camera"
+    ],
+    # Calculator family: Google Calculator (Honeywell CT47 GMS), AOSP Calculator2, Samsung Calculator
+    [
+        "com.google.android.calculator",
+        "com.android.calculator2",
+        "com.android.calculator",
+        "com.sec.android.app.popupcalculator"
+    ],
+    # File manager family
+    [
+        "com.android.documentsui",
+        "com.google.android.apps.nbu.files",
+        "com.honeywell.filebrowser",
+        "com.sec.android.app.myfiles"
+    ],
+    # Honeywell Settings & Tools family
+    [
+        "com.honeywell.systemsettings",
+        "com.honeywell.tools.ezconfig",
+        "com.android.settings"
+    ],
+    # Browser family
+    [
+        "com.honeywell.enterprisebrowser",
+        "com.android.chrome"
+    ],
+    # Honeywell Barcode Scanning & Tools family
+    [
+        "com.honeywell.decode",
+        "com.honeywell.demos.scandemo",
+        "com.honeywell.tools.scanwedge"
+    ]
+]
+
+def expand_whitelist_aliases(packages):
+    if not packages or not isinstance(packages, (list, set, tuple)):
+        return []
+    result = list(packages)
+    for family in WHITELIST_PACKAGE_FAMILIES:
+        if any(p in family for p in packages):
+            for p in family:
+                if p not in result:
+                    result.append(p)
+    return result
+
 # In-Memory State
 devices = load_devices_cache()
 pending_commands = {}  # device_id -> list of commands
@@ -1507,6 +1561,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     if breached:
                         add_audit_log('GEOFENCE_ALERT', dev_id, f"Device outside perimeter! Distance: {int(dist)}m")
 
+            if 'whitelistedApps' in data and isinstance(data['whitelistedApps'], list):
+                data['whitelistedApps'] = expand_whitelist_aliases(data['whitelistedApps'])
+
             devices[dev_id] = data
             save_devices_cache()
 
@@ -1654,6 +1711,11 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                         "error": "غير مصرح لمدراء الفروع بتنفيذ هذا الإجراء الأمني الحساس."
                     })
                     return
+
+            if command == 'SET_WHITELIST':
+                raw_pkgs = payload.get('packages', [])
+                expanded_pkgs = expand_whitelist_aliases(raw_pkgs)
+                payload['packages'] = expanded_pkgs
 
             cmd_obj = dict(payload)
             cmd_obj['command'] = command

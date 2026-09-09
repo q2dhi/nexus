@@ -1181,10 +1181,35 @@ let currentWhitelistPackages = [
     "com.honeywell.decode",
     "com.honeywell.demos.scandemo",
     "com.honeywell.systemsettings",
+    "org.codeaurora.snapcam",
     "com.android.camera2",
+    "com.google.android.calculator",
     "com.android.calculator2",
+    "com.google.android.apps.maps",
     "com.android.chrome"
 ];
+
+const WHITELIST_APP_FAMILIES = [
+    ["org.codeaurora.snapcam", "com.android.camera2", "com.google.android.GoogleCamera", "com.honeywell.camera", "com.sec.android.app.camera", "com.android.camera"],
+    ["com.google.android.calculator", "com.android.calculator2", "com.android.calculator", "com.sec.android.app.popupcalculator"],
+    ["com.android.documentsui", "com.google.android.apps.nbu.files", "com.honeywell.filebrowser", "com.sec.android.app.myfiles"],
+    ["com.honeywell.systemsettings", "com.honeywell.tools.ezconfig", "com.android.settings"],
+    ["com.honeywell.enterprisebrowser", "com.android.chrome"],
+    ["com.honeywell.decode", "com.honeywell.demos.scandemo", "com.honeywell.tools.scanwedge"]
+];
+
+function expandWhitelistAliases(pkgs) {
+    if (!Array.isArray(pkgs)) return [];
+    const result = [...pkgs];
+    WHITELIST_APP_FAMILIES.forEach(family => {
+        if (family.some(p => pkgs.includes(p))) {
+            family.forEach(p => {
+                if (!result.includes(p)) result.push(p);
+            });
+        }
+    });
+    return result;
+}
 
 const PRESET_APP_LABELS = {
     // Honeywell Core Enterprise Apps
@@ -1196,12 +1221,20 @@ const PRESET_APP_LABELS = {
     "com.honeywell.tools.ezconfig": "تكوين الأجهزة (Honeywell EZConfig)",
     "com.honeywell.filebrowser": "مدير ملفات هني ويل (Honeywell File Manager)",
 
-    // Honeywell Android System Apps
-    "com.android.camera2": "كاميرا النظام (Honeywell Camera)",
-    "org.codeaurora.snapcam": "كاميرا هني ويل سناب (Snap Camera)",
-    "com.google.android.GoogleCamera": "كاميرا أندرويد (Camera)",
+    // Camera Apps
+    "org.codeaurora.snapcam": "كاميرا هني ويل سناب (Honeywell SnapCam)",
+    "com.android.camera2": "كاميرا النظام (Honeywell/AOSP Camera)",
+    "com.google.android.GoogleCamera": "كاميرا أندرويد (Google Camera)",
+    "com.honeywell.camera": "كاميرا هني ويل (Honeywell Camera)",
+    "com.sec.android.app.camera": "كاميرا سامسونج (Camera)",
+
+    // Calculator Apps
+    "com.google.android.calculator": "حاسبة جوجل (Google Calculator)",
     "com.android.calculator2": "حاسبة النظام (Honeywell Calculator)",
-    "com.google.android.calculator": "آلة حاسبة (Calculator)",
+    "com.android.calculator": "حاسبة النظام (Calculator)",
+    "com.sec.android.app.popupcalculator": "حاسبة سامسونج (Calculator)",
+
+    // Utilities & Productivity
     "com.android.chrome": "متصفح كروم (Google Chrome)",
     "com.android.documentsui": "مدير الملفات (Android Files)",
     "com.google.android.apps.nbu.files": "ملفات جوجل (Files by Google)",
@@ -1239,17 +1272,17 @@ const QUICK_SUGGESTIONS = [
     {
         id: "camera",
         title: "كاميرا النظام (Honeywell Camera)",
-        subtitle: "التقاط الصور والمستندات في أجهزة هني ويل",
-        packages: ["com.android.camera2", "org.codeaurora.snapcam", "com.google.android.GoogleCamera"],
-        primaryPkg: "com.android.camera2",
+        subtitle: "التقاط الصور والمستندات في أجهزة هني ويل (SnapCam/AOSP)",
+        packages: ["org.codeaurora.snapcam", "com.android.camera2", "com.google.android.GoogleCamera", "com.honeywell.camera", "com.sec.android.app.camera"],
+        primaryPkg: "org.codeaurora.snapcam",
         icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
     },
     {
         id: "calculator",
         title: "الآلة الحاسبة (Honeywell Calc)",
-        subtitle: "حاسبة نظام أندرويد الرسمية",
-        packages: ["com.android.calculator2", "com.google.android.calculator"],
-        primaryPkg: "com.android.calculator2",
+        subtitle: "حاسبة النظام (Google Calculator / AOSP Calc)",
+        packages: ["com.google.android.calculator", "com.android.calculator2", "com.android.calculator", "com.sec.android.app.popupcalculator"],
+        primaryPkg: "com.google.android.calculator",
         icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>`
     },
     {
@@ -1471,6 +1504,7 @@ async function deployWhitelist() {
     }
 
     try {
+        const expandedPackages = expandWhitelistAliases(currentWhitelistPackages);
         const res = await fetch('/api/commands', {
             method: 'POST',
             headers: {
@@ -1481,7 +1515,7 @@ async function deployWhitelist() {
                 deviceId: deviceId,
                 command: 'SET_WHITELIST',
                 payload: {
-                    packages: currentWhitelistPackages
+                    packages: expandedPackages
                 }
             })
         });
@@ -1502,10 +1536,10 @@ async function deployWhitelist() {
             }
             if (lastDevicesCache) {
                 if (deviceId === 'ALL') {
-                    lastDevicesCache.forEach(d => d.whitelistedApps = [...currentWhitelistPackages]);
+                    lastDevicesCache.forEach(d => d.whitelistedApps = [...expandedPackages]);
                 } else {
                     const dev = lastDevicesCache.find(d => d.id === deviceId);
-                    if (dev) dev.whitelistedApps = [...currentWhitelistPackages];
+                    if (dev) dev.whitelistedApps = [...expandedPackages];
                 }
             }
         } else {

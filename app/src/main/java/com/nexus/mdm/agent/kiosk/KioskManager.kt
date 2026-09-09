@@ -56,6 +56,16 @@ class KioskManager(private val context: Context) {
             whitelistManager.getWhitelistedPackages().toMutableSet().apply { add(context.packageName) }
         }
 
+        // Expand LockTask packages with any installed apps matching whitelist aliases (e.g. SnapCam on Honeywell)
+        try {
+            val allInstalled = whitelistManager.getInstalledLaunchableApps()
+            for (app in allInstalled) {
+                if (AppWhitelistManager.isPackageAllowed(app.packageName, effectivePackages)) {
+                    effectivePackages.add(app.packageName)
+                }
+            }
+        } catch (_: Exception) {}
+
         configStore.isKioskEnabled = true
         KioskStateMachine.transitionTo(KioskState.KIOSK)
 
@@ -258,6 +268,33 @@ class KioskManager(private val context: Context) {
                     launchIntent = Intent(Intent.ACTION_MAIN).apply {
                         addCategory(Intent.CATEGORY_LAUNCHER)
                         component = ComponentName(act.packageName, act.name)
+                    }
+                }
+            }
+
+            // If still null, try alias fallback from known device families (Honeywell SnapCam, Google Calculator, etc.)
+            if (launchIntent == null) {
+                val familyCandidates = when {
+                    AppWhitelistManager.CAMERA_PACKAGES.contains(packageName) || packageName.contains("camera", ignoreCase = true) ->
+                        AppWhitelistManager.CAMERA_PACKAGES
+                    AppWhitelistManager.CALCULATOR_PACKAGES.contains(packageName) || packageName.contains("calculator", ignoreCase = true) ->
+                        AppWhitelistManager.CALCULATOR_PACKAGES
+                    AppWhitelistManager.FILES_PACKAGES.contains(packageName) ->
+                        AppWhitelistManager.FILES_PACKAGES
+                    AppWhitelistManager.SETTINGS_PACKAGES.contains(packageName) ->
+                        AppWhitelistManager.SETTINGS_PACKAGES
+                    AppWhitelistManager.BROWSER_PACKAGES.contains(packageName) ->
+                        AppWhitelistManager.BROWSER_PACKAGES
+                    AppWhitelistManager.SCANNER_PACKAGES.contains(packageName) ->
+                        AppWhitelistManager.SCANNER_PACKAGES
+                    else -> emptySet()
+                }
+                for (cand in familyCandidates) {
+                    val candIntent = context.packageManager.getLaunchIntentForPackage(cand)
+                    if (candIntent != null) {
+                        launchIntent = candIntent
+                        AppLogger.i("KioskManager", "Resolved alias launcher fallback: $packageName -> $cand")
+                        break
                     }
                 }
             }

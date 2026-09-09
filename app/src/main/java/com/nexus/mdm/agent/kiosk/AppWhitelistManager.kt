@@ -59,7 +59,7 @@ class AppWhitelistManager(private val context: Context) {
                     packageName = pkgName,
                     appName = label,
                     icon = icon,
-                    isWhitelisted = whitelistedSet.contains(pkgName)
+                    isWhitelisted = isPackageAllowed(pkgName, whitelistedSet)
                 )
             }
             .distinctBy { it.packageName }
@@ -67,13 +67,102 @@ class AppWhitelistManager(private val context: Context) {
     }
 
     companion object {
-        val DEFAULT_ENTERPRISE_APPS = setOf(
-            "com.sec.android.app.popupcalculator",
-            "com.google.android.calculator",
-            "com.android.chrome",
-            "com.sec.android.app.camera",
-            "com.google.android.GoogleCamera"
+        val CAMERA_PACKAGES = setOf(
+            "org.codeaurora.snapcam",
+            "com.android.camera2",
+            "com.google.android.GoogleCamera",
+            "com.honeywell.camera",
+            "com.android.camera",
+            "com.sec.android.app.camera"
         )
+
+        val CALCULATOR_PACKAGES = setOf(
+            "com.google.android.calculator",
+            "com.android.calculator2",
+            "com.android.calculator",
+            "com.sec.android.app.popupcalculator"
+        )
+
+        val FILES_PACKAGES = setOf(
+            "com.android.documentsui",
+            "com.google.android.apps.nbu.files",
+            "com.honeywell.filebrowser",
+            "com.sec.android.app.myfiles"
+        )
+
+        val SETTINGS_PACKAGES = setOf(
+            "com.honeywell.systemsettings",
+            "com.honeywell.tools.ezconfig",
+            "com.android.settings"
+        )
+
+        val BROWSER_PACKAGES = setOf(
+            "com.honeywell.enterprisebrowser",
+            "com.android.chrome"
+        )
+
+        val SCANNER_PACKAGES = setOf(
+            "com.honeywell.decode",
+            "com.honeywell.demos.scandemo",
+            "com.honeywell.tools.scanwedge"
+        )
+
+        val DEFAULT_ENTERPRISE_APPS = setOf(
+            "org.codeaurora.snapcam",
+            "com.android.camera2",
+            "com.google.android.calculator",
+            "com.android.calculator2",
+            "com.honeywell.decode",
+            "com.honeywell.demos.scandemo",
+            "com.honeywell.systemsettings",
+            "com.android.chrome"
+        )
+
+        /**
+         * Checks if an installed package matches the whitelist, supporting device family aliases
+         * (e.g. org.codeaurora.snapcam matches Honeywell Camera, com.google.android.calculator matches Calculator).
+         */
+        fun isPackageAllowed(installedPkg: String, whitelistedPackages: Set<String>): Boolean {
+            if (whitelistedPackages.contains(installedPkg)) return true
+
+            // Camera family
+            val isCamera = CAMERA_PACKAGES.contains(installedPkg) || installedPkg.contains("camera", ignoreCase = true)
+            if (isCamera && whitelistedPackages.any { CAMERA_PACKAGES.contains(it) || it.contains("camera", ignoreCase = true) }) {
+                return true
+            }
+
+            // Calculator family
+            val isCalc = CALCULATOR_PACKAGES.contains(installedPkg) || installedPkg.contains("calculator", ignoreCase = true)
+            if (isCalc && whitelistedPackages.any { CALCULATOR_PACKAGES.contains(it) || it.contains("calculator", ignoreCase = true) }) {
+                return true
+            }
+
+            // Files family
+            val isFiles = FILES_PACKAGES.contains(installedPkg)
+            if (isFiles && whitelistedPackages.any { FILES_PACKAGES.contains(it) }) {
+                return true
+            }
+
+            // Settings & Tools
+            val isSettings = SETTINGS_PACKAGES.contains(installedPkg)
+            if (isSettings && whitelistedPackages.any { SETTINGS_PACKAGES.contains(it) }) {
+                return true
+            }
+
+            // Browser
+            val isBrowser = BROWSER_PACKAGES.contains(installedPkg)
+            if (isBrowser && whitelistedPackages.any { BROWSER_PACKAGES.contains(it) }) {
+                return true
+            }
+
+            // Scanner
+            val isScanner = SCANNER_PACKAGES.contains(installedPkg)
+            if (isScanner && whitelistedPackages.any { SCANNER_PACKAGES.contains(it) }) {
+                return true
+            }
+
+            return false
+        }
     }
 
     /**
@@ -99,10 +188,18 @@ class AppWhitelistManager(private val context: Context) {
      */
     fun syncWithDevicePolicyManager(dpm: DevicePolicyManager, admin: ComponentName): Boolean {
         return try {
-            val whitelisted = getWhitelistedPackages().toMutableList()
+            val whitelisted = getWhitelistedPackages().toMutableSet()
             // Nexus agent itself must always be included in the lock task packages
             if (!whitelisted.contains(context.packageName)) {
                 whitelisted.add(context.packageName)
+            }
+
+            // Auto-expand LockTask to include any installed app matching alias rules
+            val installed = getInstalledLaunchableApps()
+            for (app in installed) {
+                if (isPackageAllowed(app.packageName, whitelisted)) {
+                    whitelisted.add(app.packageName)
+                }
             }
 
             dpm.setLockTaskPackages(admin, whitelisted.toTypedArray())

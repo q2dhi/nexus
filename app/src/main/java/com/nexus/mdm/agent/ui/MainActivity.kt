@@ -1061,7 +1061,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateKioskGrid() {
-        val whitelistedApps = allInstalledApps.filter { selectedWhitelist.contains(it.packageName) }
+        val whitelistedApps = allInstalledApps.filter { AppWhitelistManager.isPackageAllowed(it.packageName, selectedWhitelist) }
         val kioskAdapter = KioskAppsAdapter(whitelistedApps) { app ->
             isLaunchingWhitelistedApp = true
             val ok = kioskManager.launchWhitelistedApp(this, app.packageName)
