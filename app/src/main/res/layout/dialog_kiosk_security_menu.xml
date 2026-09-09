@@ -100,7 +100,37 @@
             android:layout_marginTop="2dp" />
     </LinearLayout>
 
-    <!-- Action 3: Reboot Device -->
+    <!-- Action 3: Android & Wi-Fi Settings -->
+    <LinearLayout
+        android:id="@+id/btnSecurityWifiSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card"
+        android:backgroundTint="#F8FAFC"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📶 إعدادات الواي فاي والشبكة (Wi-Fi &amp; Settings)"
+            android:textColor="@color/nexus_royal_blue"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="فتح إعدادات الشبكة، الباركود والاتصال في نظام أندرويد"
+            android:textColor="@color/nexus_text_secondary"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Action 4: Reboot Device -->
     <LinearLayout
         android:id="@+id/btnSecurityReboot"
         android:layout_width="match_parent"

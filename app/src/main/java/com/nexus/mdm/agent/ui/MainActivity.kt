@@ -796,6 +796,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Handle Honeywell Enterprise hardware scan buttons (CT47, CT45, CT40, EDA52, CK65)
+        if (event.keyCode in listOf(241, 242, 243, 244, 293, 294, KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1)) {
+            AppLogger.d("MainActivity", "Honeywell hardware scanner trigger key: ${event.keyCode}")
+            return super.dispatchKeyEvent(event)
+        }
+
         if (configStore.isKioskEnabled && event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                 handleKioskBackPress()
@@ -819,6 +825,7 @@ class MainActivity : AppCompatActivity() {
 
             val btnExitToAndroid = view.findViewById<View>(R.id.btnSecurityExitToAndroid)
             val btnAdminPin = view.findViewById<View>(R.id.btnSecurityAdminPin)
+            val btnWifi = view.findViewById<View>(R.id.btnSecurityWifiSettings)
             val btnReboot = view.findViewById<View>(R.id.btnSecurityReboot)
             val btnCancel = view.findViewById<Button>(R.id.btnSecurityCancel)
 
@@ -841,6 +848,31 @@ class MainActivity : AppCompatActivity() {
                     actionButtonText = "فتح لوحة التحكم"
                 ) {
                     showAdminActionMenu()
+                }
+            }
+
+            btnWifi?.setOnClickListener {
+                dialog.dismiss()
+                showAdminPasswordDialog(
+                    title = "إعدادات الواي فاي والشبكة",
+                    subtitle = "أدخل رمز المشرف لفتح إعدادات شبكة الجهاز.",
+                    actionButtonText = "فتح الإعدادات"
+                ) {
+                    try {
+                        val wifiIntent = Intent(android.provider.Settings.ACTION_WIFI_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(wifiIntent)
+                    } catch (_: Exception) {
+                        try {
+                            val settingsIntent = Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(settingsIntent)
+                        } catch (e2: Exception) {
+                            Toast.makeText(this, "تعذر فتح الإعدادات: ${e2.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
 

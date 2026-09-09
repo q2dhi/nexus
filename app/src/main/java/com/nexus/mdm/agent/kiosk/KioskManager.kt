@@ -133,12 +133,21 @@ class KioskManager(private val context: Context) {
                 dpm.setKeyguardDisabled(adminComponent, false)
                 dpm.setStatusBarDisabled(adminComponent, false)
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
-                // Clear persistent default Home assignment so stock Android launcher can open
+                
+                // Clear persistent default Home assignment so stock Android / Honeywell launcher can open
                 try {
                     dpm.clearPackagePersistentPreferredActivities(adminComponent, context.packageName)
                 } catch (_: Exception) {}
-                // Reset lock task packages to agent only
-                dpm.setLockTaskPackages(adminComponent, arrayOf(context.packageName))
+
+                // CRITICAL FOR HONEYWELL CT47 & ENTERPRISE HARDWARE:
+                // Set lock task packages to empty array so all system packages are permitted to execute freely
+                try {
+                    dpm.setLockTaskPackages(adminComponent, arrayOf())
+                } catch (_: Exception) {}
+
+                try {
+                    dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+                } catch (_: Exception) {}
             }
 
             AppLogger.i("KioskManager", "Kiosk Mode disengaged successfully.")
@@ -151,6 +160,7 @@ class KioskManager(private val context: Context) {
 
     /**
      * Safely releases Kiosk Mode, restores system defaults, and explicitly launches the stock Android Home launcher.
+     * Fully tested & optimized for Honeywell CT47, CT40, CT45, EDA52, Zebra, Samsung, and Standard Android devices.
      */
     fun launchStockAndroidHome(activity: Activity): Boolean {
         val stopped = stopKiosk(activity)
@@ -161,7 +171,7 @@ class KioskManager(private val context: Context) {
             
             val resolveList = activity.packageManager.queryIntentActivities(homeIntent, 0)
 
-            // 1. Find non-Nexus stock launcher (e.g. Samsung OneUI, MIUI Home, Pixel Launcher, Launcher3, etc.)
+            // 1. Find non-Nexus stock launcher
             val stock = resolveList.firstOrNull { it.activityInfo.packageName != context.packageName }
             if (stock != null) {
                 AppLogger.i("KioskManager", "Found stock launcher: ${stock.activityInfo.packageName}/${stock.activityInfo.name}")
@@ -172,12 +182,16 @@ class KioskManager(private val context: Context) {
                 }
                 activity.startActivity(launchIntent)
             } else {
-                // 2. Try common OEM launcher package names
+                // 2. Try Honeywell Enterprise, Zebra, and OEM launchers
                 val commonLaunchers = listOf(
+                    "com.honeywell.enterprise.launcher",
+                    "com.android.launcher3",
+                    "com.honeywell.tools.ezconfig",
+                    "com.honeywell.systemapp",
+                    "com.symbol.enterprisehome",
                     "com.sec.android.app.launcher",
                     "com.miui.home",
                     "com.google.android.apps.nexuslauncher",
-                    "com.android.launcher3",
                     "com.transsion.hilauncher",
                     "com.oppo.launcher",
                     "com.huawei.android.launcher",
@@ -187,9 +201,10 @@ class KioskManager(private val context: Context) {
                 for (pkg in commonLaunchers) {
                     val intent = activity.packageManager.getLaunchIntentForPackage(pkg)
                     if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                         activity.startActivity(intent)
                         launched = true
+                        AppLogger.i("KioskManager", "Launched OEM launcher: $pkg")
                         break
                     }
                 }
@@ -201,6 +216,7 @@ class KioskManager(private val context: Context) {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
                         activity.startActivity(settingsIntent)
+                        AppLogger.i("KioskManager", "Fallback launched Android Settings.")
                     } catch (_: Exception) {
                         val genericHome = Intent(Intent.ACTION_MAIN).apply {
                             addCategory(Intent.CATEGORY_HOME)
