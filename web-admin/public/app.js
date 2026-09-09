@@ -230,7 +230,6 @@ function applyLanguage() {
     updateTabLabel('.nav-tab[data-tab="whitelist"]', t.tabWhitelist);
     updateTabLabel('.nav-tab[data-tab="qr"]', t.tabQr);
     updateTabLabel('.nav-tab[data-tab="ota"]', t.tabOta);
-    updateTabLabel('.nav-tab[data-tab="logs"]', t.tabLogs);
     updateTabLabel('#tabNavBranches', t.tabBranches || (isRtl ? 'إدارة الفروع (الويبات الفرعية)' : 'Branch Management'));
 
     // QR Tab Labels
@@ -339,7 +338,6 @@ function showTab(tabId, btnElement = null) {
     }
 
     if (tabId === 'devices') fetchDevices();
-    if (tabId === 'logs') fetchLogs();
     if (tabId === 'qr') initQrTab();
     if (tabId === 'branches') fetchBranches();
     if (tabId === 'whitelist') initWhitelistView();
