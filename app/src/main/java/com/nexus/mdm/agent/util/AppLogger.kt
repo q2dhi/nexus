@@ -24,11 +24,21 @@ object AppLogger {
     private val _logsFlow = MutableStateFlow<List<String>>(emptyList())
     val logsFlow: StateFlow<List<String>> = _logsFlow.asStateFlow()
 
+    fun d(tag: String, message: String) {
+        val formatted = formatEntry("DEBUG", tag, message)
+        Log.d(TAG, "[$tag] $message")
+        appendLog(formatted)
+    }
+
+    fun d(message: String) = d("NexusAgent", message)
+
     fun i(tag: String, message: String) {
         val formatted = formatEntry("INFO", tag, message)
         Log.i(TAG, "[$tag] $message")
         appendLog(formatted)
     }
+
+    fun i(message: String) = i("NexusAgent", message)
 
     fun w(tag: String, message: String) {
         val formatted = formatEntry("WARN", tag, message)
@@ -36,12 +46,16 @@ object AppLogger {
         appendLog(formatted)
     }
 
+    fun w(message: String) = w("NexusAgent", message)
+
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         val errSuffix = throwable?.let { " - ${it.localizedMessage}" } ?: ""
         val formatted = formatEntry("ERROR", tag, "$message$errSuffix")
         Log.e(TAG, "[$tag] $message", throwable)
         appendLog(formatted)
     }
+
+    fun e(message: String, throwable: Throwable? = null) = e("NexusAgent", message, throwable)
 
     fun securityAudit(event: String, details: String) {
         val formatted = formatEntry("AUDIT", event, details)
