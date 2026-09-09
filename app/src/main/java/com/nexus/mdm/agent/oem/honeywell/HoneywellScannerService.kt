@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import com.nexus.mdm.agent.util.AppLogger
 import org.json.JSONObject
 
@@ -24,9 +25,9 @@ class HoneywellScannerService(private val context: Context) {
             if (intent == null) return
             val action = intent.action
             if (action == HoneywellProvider.HONEYWELL_SCANNER_ACTION) {
-                val barcode = intent.getStringExtra("data") ?: ""
-                val symbology = intent.getStringExtra("codeId") ?: "UNKNOWN"
-                val timestamp = System.currentTimeMillis()
+                val barcode = intent.getStringExtra("data") ?: intent.getStringExtra("barcode_string") ?: ""
+                val symbology = intent.getStringExtra("codeId") ?: intent.getStringExtra("symbology") ?: "UNKNOWN"
+                val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
 
                 AppLogger.i("HoneywellScanner: Received Barcode [$barcode] Symbology [$symbology]")
                 scanListener?.onBarcodeScanned(barcode, symbology, timestamp)
@@ -39,7 +40,7 @@ class HoneywellScannerService(private val context: Context) {
         this.scanListener = listener
         val filter = IntentFilter(HoneywellProvider.HONEYWELL_SCANNER_ACTION)
         try {
-            context.registerReceiver(scannerReceiver, filter)
+            ContextCompat.registerReceiver(context, scannerReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
             isRegistered = true
             AppLogger.i("HoneywellScanner: Registered BroadcastReceiver for ${HoneywellProvider.HONEYWELL_SCANNER_ACTION}")
         } catch (e: Exception) {

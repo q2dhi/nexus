@@ -6,6 +6,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.UserManager
 import com.nexus.mdm.agent.admin.NexusAdminReceiver
 import com.nexus.mdm.agent.config.SecureConfigStore
@@ -80,13 +81,15 @@ class KioskManager(private val context: Context) {
             }
 
             // 2. Configure LockTask features: Keep status bar system info (battery, wifi, clock) and navigation buttons visible, but suppress notifications
-            try {
-                val lockTaskFeatures = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
-                                       DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
-                                       DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW
-                dpm.setLockTaskFeatures(adminComponent, lockTaskFeatures)
-            } catch (e: Exception) {
-                AppLogger.w("KioskManager", "setLockTaskFeatures warning: ${e.message}")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                try {
+                    val lockTaskFeatures = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
+                                           DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
+                                           DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW
+                    dpm.setLockTaskFeatures(adminComponent, lockTaskFeatures)
+                } catch (e: Exception) {
+                    AppLogger.w("KioskManager", "setLockTaskFeatures warning: ${e.message}")
+                }
             }
 
             // 3. Suppress Keyguard and Status Bar
@@ -156,9 +159,11 @@ class KioskManager(private val context: Context) {
                     dpm.setLockTaskPackages(adminComponent, arrayOf())
                 } catch (_: Exception) {}
 
-                try {
-                    dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
-                } catch (_: Exception) {}
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    try {
+                        dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+                    } catch (_: Exception) {}
+                }
             }
 
             KioskStateMachine.transitionTo(KioskState.MANAGED)

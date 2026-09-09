@@ -100,6 +100,7 @@ class PeripheralPolicyManager(
      * - Disables Wi-Fi radio and blocks user from turning Wi-Fi on or configuring it.
      * - Locks Mobile Networks on, preventing the user from disabling cellular data.
      */
+    @android.annotation.SuppressLint("MissingPermission")
     fun enforceCellularOnly(enforce: Boolean): Boolean {
         return try {
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager

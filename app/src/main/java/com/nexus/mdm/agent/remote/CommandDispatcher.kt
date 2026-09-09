@@ -355,7 +355,7 @@ class CommandDispatcher(
                         AppLogger.w("CommandDispatcher", "Failed to set timezone via DPM: ${e.message}")
                     }
                 }
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && timestamp > 0) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P && timestamp > 0) {
                     try {
                         timeSet = dpm.setTime(admin, timestamp)
                     } catch (e: Exception) {

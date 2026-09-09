@@ -251,6 +251,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
+    @android.annotation.SuppressLint("MissingPermission", "WrongConstant")
     private fun collapseStatusBar() {
         try {
             @Suppress("DEPRECATION")
@@ -271,6 +272,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
+    @android.annotation.SuppressLint("InternalInsetResource", "DiscouragedApi")
     private fun getStatusBarHeight(): Int {
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         return if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 90

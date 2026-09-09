@@ -16,6 +16,11 @@ let lastQrPayload = null;
 let touchTimer = null;
 let streamInterval = null;
 
+// Fleet Table Filtering, Search & Bulk Actions State
+let currentFleetFilter = 'all'; // 'all' | 'online' | 'offline' | 'kiosk' | 'low_battery'
+let currentFleetSearchQuery = '';
+let selectedFleetDeviceIds = new Set();
+
 // Multi-Tenant & Subscription State
 const urlParams = new URLSearchParams(window.location.search);
 let currentCompanyCode = urlParams.get('company') || localStorage.getItem('nexus_company_code') || 'NEXUS-DEFAULT';
@@ -538,14 +543,210 @@ function onDeviceRowClicked(event, deviceId) {
     openDeviceActionCenter(deviceId);
 }
 
+function handleFleetSearch(query) {
+    currentFleetSearchQuery = (query || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('fleetSearchClearBtn');
+    if (clearBtn) {
+        clearBtn.style.display = currentFleetSearchQuery ? 'inline-block' : 'none';
+    }
+    renderDeviceTable(lastDevicesCache);
+}
+
+function clearFleetSearch() {
+    const input = document.getElementById('fleetSearchInput');
+    if (input) input.value = '';
+    handleFleetSearch('');
+}
+
+function setFleetFilter(filterKey) {
+    currentFleetFilter = filterKey;
+    const pills = document.querySelectorAll('#fleetFilterPills .filter-pill');
+    pills.forEach(pill => {
+        if (pill.getAttribute('data-filter') === filterKey) {
+            pill.classList.add('active');
+        } else {
+            pill.classList.remove('active');
+        }
+    });
+    renderDeviceTable(lastDevicesCache);
+}
+
+function getFilteredFleetDevices(devices) {
+    if (!devices || !Array.isArray(devices)) return [];
+    return devices.filter(d => {
+        // Status Filter
+        if (currentFleetFilter === 'online' && !d.isOnline) return false;
+        if (currentFleetFilter === 'offline' && d.isOnline) return false;
+        if (currentFleetFilter === 'kiosk' && !d.isKiosk) return false;
+        if (currentFleetFilter === 'low_battery' && (d.battery || 0) >= 20) return false;
+
+        // Search Query
+        if (currentFleetSearchQuery) {
+            const name = (d.name || '').toLowerCase();
+            const id = (d.id || '').toLowerCase();
+            const model = (d.model || '').toLowerCase();
+            const os = (d.os || '').toLowerCase();
+            const ip = (d.ipAddress || '').toLowerCase();
+            const branch = (d.branchName || '').toLowerCase();
+            const matches = name.includes(currentFleetSearchQuery) ||
+                id.includes(currentFleetSearchQuery) ||
+                model.includes(currentFleetSearchQuery) ||
+                os.includes(currentFleetSearchQuery) ||
+                ip.includes(currentFleetSearchQuery) ||
+                branch.includes(currentFleetSearchQuery);
+            if (!matches) return false;
+        }
+
+        return true;
+    });
+}
+
+function toggleDeviceSelect(deviceId, checked) {
+    if (checked) {
+        selectedFleetDeviceIds.add(deviceId);
+    } else {
+        selectedFleetDeviceIds.delete(deviceId);
+    }
+    updateBulkActionsBar();
+    const row = document.querySelector(`.device-row[data-device-id="${deviceId}"]`);
+    if (row) {
+        if (checked) row.classList.add('device-row-selected');
+        else row.classList.remove('device-row-selected');
+    }
+}
+
+function toggleSelectAllDevices(checked) {
+    const filtered = getFilteredFleetDevices(lastDevicesCache || []);
+    if (checked) {
+        filtered.forEach(d => selectedFleetDeviceIds.add(d.id));
+    } else {
+        filtered.forEach(d => selectedFleetDeviceIds.delete(d.id));
+    }
+    renderDeviceTable(lastDevicesCache);
+}
+
+function deselectAllDevices() {
+    selectedFleetDeviceIds.clear();
+    renderDeviceTable(lastDevicesCache);
+}
+
+function updateBulkActionsBar() {
+    const dock = document.getElementById('fleetBulkActionsDock');
+    const countBadge = document.getElementById('bulkSelectedCount');
+    const label = document.getElementById('bulkSelectedLabel');
+    const selectAllCheckbox = document.getElementById('selectAllDevicesCheckbox');
+    const isRtl = currentLang === 'ar';
+
+    const count = selectedFleetDeviceIds.size;
+    if (countBadge) countBadge.innerText = count;
+    if (label) label.innerText = isRtl ? (count === 1 ? 'جهاز محدد' : 'أجهزة محددة') : (count === 1 ? 'device selected' : 'devices selected');
+
+    if (dock) {
+        if (count > 0) {
+            dock.classList.add('show');
+        } else {
+            dock.classList.remove('show');
+        }
+    }
+
+    if (selectAllCheckbox) {
+        const filtered = getFilteredFleetDevices(lastDevicesCache || []);
+        if (filtered.length === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            const selectedFilteredCount = filtered.filter(d => selectedFleetDeviceIds.has(d.id)).length;
+            if (selectedFilteredCount === filtered.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedFilteredCount > 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+    }
+}
+
+async function executeBulkCommand(action, label, extraPayload = {}) {
+    const ids = Array.from(selectedFleetDeviceIds);
+    if (ids.length === 0) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد جهاز واحد على الأقل' : 'Please select at least one device', 'warning');
+        return;
+    }
+    const isRtl = currentLang === 'ar';
+    const confirmMsg = isRtl
+        ? `هل أنت متأكد من تنفيذ أمر '${label}' على ${ids.length} أجهزة محددة؟`
+        : `Are you sure you want to execute '${label}' on ${ids.length} selected devices?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    showToast(isRtl ? `جاري إرسال أمر '${label}' إلى ${ids.length} جهاز...` : `Sending '${label}' to ${ids.length} devices...`, 'info');
+
+    let successCount = 0;
+    for (const deviceId of ids) {
+        try {
+            const res = await fetch('/api/commands/queue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Token': currentTenantToken || ''
+                },
+                body: JSON.stringify({
+                    deviceId,
+                    action,
+                    payload: extraPayload
+                })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+        } catch (e) {
+            console.error('Bulk command error for device', deviceId, e);
+        }
+    }
+
+    showToast(isRtl ? `تم إرسال أمر '${label}' بنجاح إلى ${successCount} جهاز!` : `Successfully sent '${label}' to ${successCount} devices!`, 'success');
+    deselectAllDevices();
+    fetchDevices();
+}
+
 function renderDeviceTable(devices) {
     const tbody = document.getElementById('deviceTableBody');
-    const t = i18n[currentLang];
     const isRtl = currentLang === 'ar';
-    if (!devices || devices.length === 0) {
+    if (!tbody) return;
+
+    const all = devices || [];
+
+    // Update Filter Pill Counts
+    const countAll = document.getElementById('countPillAll');
+    const countOnline = document.getElementById('countPillOnline');
+    const countOffline = document.getElementById('countPillOffline');
+    const countKiosk = document.getElementById('countPillKiosk');
+    const countBattery = document.getElementById('countPillBattery');
+
+    if (countAll) countAll.innerText = all.length;
+    if (countOnline) countOnline.innerText = all.filter(d => d.isOnline).length;
+    if (countOffline) countOffline.innerText = all.filter(d => !d.isOnline).length;
+    if (countKiosk) countKiosk.innerText = all.filter(d => d.isKiosk).length;
+    if (countBattery) countBattery.innerText = all.filter(d => (d.battery || 0) < 20).length;
+
+    // Filter devices
+    const filtered = getFilteredFleetDevices(all);
+
+    // Showing Count Label
+    const showingCount = document.getElementById('fleetShowingCount');
+    if (showingCount) {
+        showingCount.innerText = isRtl
+            ? `عرض ${filtered.length} من أصل ${all.length} جهاز`
+            : `Showing ${filtered.length} of ${all.length} devices`;
+    }
+
+    if (all.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" style="padding: 48px 24px; text-align: center; color: #64748B;">
+                <td colspan="9" style="padding: 48px 24px; text-align: center; color: #64748B;">
                     <div style="font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 8px;">
                         ${isRtl ? 'لا توجد أجهزة متصلة تابعة لهذه الشركة حالياً' : 'No devices connected for this company yet'}
                     </div>
@@ -555,14 +756,29 @@ function renderDeviceTable(devices) {
                 </td>
             </tr>
         `;
+        updateBulkActionsBar();
         return;
     }
 
-    const allowScreenControl = true;
-    const allowGps = true;
-    const allowWipe = true;
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="padding: 36px 20px; text-align: center; color: #64748B;">
+                    <div style="font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 4px;">
+                        ${isRtl ? 'لم يتم العثور على أجهزة مطابقة لنتائج البحث أو الفلتر' : 'No devices match your search or filter'}
+                    </div>
+                    <button type="button" onclick="clearFleetSearch(); setFleetFilter('all');" style="margin-top:8px; padding:5px 14px; font-size:12px; font-weight:600; border-radius:6px; background:#F1F5F9; border:1px solid #CBD5E1; color:#1E293B; cursor:pointer;">
+                        ${isRtl ? 'إعادة ضبط الفلاتر والبحث' : 'Reset search & filters'}
+                    </button>
+                </td>
+            </tr>
+        `;
+        updateBulkActionsBar();
+        return;
+    }
 
-    tbody.innerHTML = devices.map(d => {
+    tbody.innerHTML = filtered.map(d => {
+        const isSelected = selectedFleetDeviceIds.has(d.id);
         const onlineTag = d.isOnline
             ? '<span class="status-tag tag-online"><span class="dot online"></span> Online</span>'
             : '<span class="status-tag tag-offline"><span class="dot" style="background:#94A3B8;"></span> Offline</span>';
@@ -575,129 +791,60 @@ function renderDeviceTable(devices) {
         const brand = detectDeviceBrand(d);
 
         return `
-            <tr class="device-row" onclick="onDeviceRowClicked(event, '${d.id}')" title="${isRtl ? 'انقر لعرض تفاصيل وإجراءات الجهاز' : 'Click to view device details and actions'}">
+            <tr class="device-row ${isSelected ? 'device-row-selected' : ''}" data-device-id="${d.id}" onclick="openDeviceActionCenter('${d.id}')" title="${isRtl ? 'انقر على الجهاز لفتح لوحة التحكم والإجراءات' : 'Click device to open controls & actions'}">
+                <td style="text-align: center;" onclick="event.stopPropagation();">
+                    <input type="checkbox" class="fleet-checkbox device-select-checkbox" data-id="${d.id}" ${isSelected ? 'checked' : ''} onchange="toggleDeviceSelect('${d.id}', this.checked); event.stopPropagation();">
+                </td>
                 <td>
                     <div class="device-cell-brand">
-                        <span class="brand-chip brand-chip-${brand}" style="font-size:9.5px; padding:2px 6px;">${brand.toUpperCase()}</span>
+                        <span class="brand-chip brand-chip-${brand}" style="font-size:9px; padding:2px 5px;">${brand.toUpperCase()}</span>
                         <div>
-                            <strong style="color:#0F172A; font-size:14px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong><br>
-                            <small style="color:#64748B; font-family:monospace; font-size:11px;">${escapeHtml(d.id)}</small>
-                            ${d.branchName ? `<div style="margin-top:3px;"><span class="branch-pill-badge" title="الفرع: ${escapeHtml(d.branchName)}">${escapeHtml(d.branchName)}</span></div>` : ''}
+                            <strong style="color:#0F172A; font-size:13px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong><br>
+                            <small style="color:#64748B; font-family:monospace; font-size:10.5px;">${escapeHtml(d.id)}</small>
+                            ${d.branchName ? `<div style="margin-top:2px;"><span class="branch-pill-badge" title="الفرع: ${escapeHtml(d.branchName)}">${escapeHtml(d.branchName)}</span></div>` : ''}
                         </div>
                     </div>
                 </td>
                 <td>
-                    <strong style="color:#1E293B;">${escapeHtml(d.model || 'Unknown')}</strong><br>
-                    <small style="color:#64748B;">Android ${escapeHtml(d.os || '')}</small>
+                    <div style="line-height:1.3;">
+                        <strong style="color:#1E293B; font-size:12px;">${escapeHtml(d.model || 'Unknown')}</strong><br>
+                        <small style="color:#64748B; font-size:10.5px;">Android ${escapeHtml(d.os || '')}</small>
+                    </div>
                 </td>
                 <td>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <strong style="color:#0F172A;">${d.battery || 0}%</strong>
-                        ${d.isCharging ? '<span style="color:#D97706; font-size:11px; font-weight:700;">(Charging)</span>' : ''}
+                    <div style="display:flex; align-items:center; gap:5px; line-height:1.2;">
+                        <strong style="color:#0F172A; font-size:12px;">${d.battery || 0}%</strong>
+                        ${d.isCharging ? '<span style="color:#D97706; font-size:10px; font-weight:700;">⚡</span>' : ''}
+                        <small style="color:#64748B; font-size:10.5px; margin-right:4px;">${d.temperature || 0}°C</small>
                     </div>
-                    <div style="width:70px; height:4px; background:#E2E8F0; margin:4px 0; overflow:hidden;">
+                    <div style="width:65px; height:3.5px; background:#E2E8F0; margin-top:3px; border-radius:2px; overflow:hidden;">
                         <div style="width:${d.battery || 0}%; height:100%; background:${batteryColor};"></div>
                     </div>
-                    <small style="color:#64748B;">${d.temperature || 0}°C</small>
                 </td>
                 <td>
-                    <div style="font-size:12px; color:#334155;">
+                    <div style="font-size:11px; color:#475569; line-height:1.3;">
                         <span>RAM: <b>${d.ramUsedPercent || 0}%</b></span><br>
                         <span>Disk: <b>${d.storageUsedPercent || 0}%</b></span>
                     </div>
                 </td>
                 <td>
-                    <code style="background:#F1F5F9; padding:3px 6px; font-size:11.5px; color:#334155;">${escapeHtml(d.ipAddress || 'Unknown')}</code>
+                    <code style="background:#F1F5F9; padding:2px 5px; font-size:11px; color:#334155; border-radius:4px;">${escapeHtml(d.ipAddress || 'Unknown')}</code>
                 </td>
                 <td>${kioskTag}</td>
                 <td>${onlineTag}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="btn-action btn-action-center" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();" title="${isRtl ? 'عرض تفاصيل وإجراءات الجهاز' : 'Device Actions & Details'}">
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-left:4px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>${isRtl ? 'إجراءات الجهاز' : 'Device Actions'}</span>
+                        <button type="button" class="btn-action-primary-compact" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();" title="${isRtl ? 'عرض لوحة التحكم والإجراءات' : 'Manage Device'}">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1.5px; margin-left:3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0 2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <span>${isRtl ? 'إدارة وتحكم' : 'Manage'}</span>
                         </button>
-
-                        ${allowScreenControl ? `
-                            <button class="btn-action btn-screen" onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}'); event.stopPropagation();">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                                <span>${t.btnRemoteControl}</span>
-                            </button>
-                        ` : ''}
-
-                        ${allowGps ? `
-                            <button class="btn-action btn-track" onclick="openDeviceTrackModal('${d.id}', '${escapeHtml(d.name || d.id)}'); event.stopPropagation();">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                <span>${t.btnGpsTrack}</span>
-                            </button>
-                        ` : ''}
-
-                        <div class="action-dropdown">
-                            <button class="btn-action btn-more" onclick="toggleDropdown(event, '${d.id}')">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                                <span>${t.btnActions}</span>
-                                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                            </button>
-                            <div id="dropdown-${d.id}" class="dropdown-menu">
-                                <button class="dropdown-item" onclick="openAdminRenameModal('${d.id}', '${escapeHtml(d.name || '')}')">
-                                    <span>${t.actRename}</span>
-                                </button>
-                                <button class="dropdown-item" onclick="syncFleetTime('${d.id}')">
-                                    <span>${t.actSyncTime}</span>
-                                </button>
-
-                                <div class="dropdown-divider"></div>
-                                <div class="dropdown-group-label">Kiosk & Security</div>
-
-                                <button class="dropdown-item" onclick="promptCommand('${d.id}', 'LOCK_DEVICE', 'Lock Device Screen')">
-                                    <span>${t.actLock}</span>
-                                </button>
-                                 ${d.isKiosk ? (
-                currentTenantData?.isBranch ?
-                    `<button class="dropdown-item" style="opacity:0.45; cursor:not-allowed;" onclick="showToast('عذراً! إلغاء وضع الكشك محصور بالإدارة العامة للشركة المركزية فقط.', 'error')" title="محظور للفروع">
-                                         <span>${t.actExitKiosk} (محظور للفرع)</span>
-                                      </button>` :
-                    `<button class="dropdown-item" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', 'Exit Kiosk Mode', { enable: false })">
-                                         <span>${t.actExitKiosk}</span>
-                                      </button>`
-            ) : `
-                                     <button class="dropdown-item" onclick="promptCommand('${d.id}', 'SET_KIOSK_MODE', 'Enter Kiosk Mode', { enable: true })">
-                                         <span>${t.actEnterKiosk}</span>
-                                     </button>
-                                 `}
-                                <button class="dropdown-item dropdown-item-warning" onclick="promptCommand('${d.id}', 'TEST_TAMPER_ALARM', 'Trigger Emergency Siren')">
-                                    <span>${t.actSiren}</span>
-                                </button>
-
-                                <div class="dropdown-divider"></div>
-                                <div class="dropdown-group-label">Network Policies</div>
-                                <button class="dropdown-item" onclick="promptCommand('${d.id}', 'ENFORCE_CELLULAR_ONLY', 'Enforce 4G Data Only', { enabled: true })">
-                                    <span>${t.act4gOnly}</span>
-                                </button>
-                                <button class="dropdown-item" onclick="promptCommand('${d.id}', 'ENFORCE_CELLULAR_ONLY', 'Allow Wi-Fi Connectivity', { enabled: false })">
-                                    <span>${t.actAllowWifi}</span>
-                                </button>
-
-                                <div class="dropdown-divider"></div>
-                                <div class="dropdown-group-label">System</div>
-                                <button class="dropdown-item" onclick="promptCommand('${d.id}', 'REBOOT', 'Reboot Device')">
-                                    <span>${t.actReboot}</span>
-                                </button>
-                                ${allowWipe ? `
-                                    <button class="dropdown-item dropdown-item-danger" onclick="promptCommand('${d.id}', 'WIPE_DEVICE', 'Wipe & Factory Reset Device')">
-                                        <span>${t.actWipe}</span>
-                                    </button>
-                                ` : ''}
-                                <div class="dropdown-divider"></div>
-                                <button class="dropdown-item dropdown-item-danger" onclick="confirmDeleteDevice('${d.id}', '${escapeHtml(d.name || d.id)}')">
-                                    <span style="color:#DC2626; font-weight:700;">حذف الجهاز (Delete Device)</span>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
+
+    updateBulkActionsBar();
 }
 
 function updateDeviceSelect(devices) {
@@ -1427,6 +1574,111 @@ function closeDeviceTrackModal() {
     document.getElementById('trackModal').style.display = 'none';
     activeTrackDeviceId = null;
 }
+
+function centerOnDeviceLocation() {
+    if (!deviceMap || !activeTrackDeviceId) {
+        showToast('يرجى تحديد جهاز متصل لعرض موقعه على الخريطة', 'warning');
+        return;
+    }
+    const device = (lastDevicesCache || []).find(d => d.id === activeTrackDeviceId);
+    if (device && device.location && device.location.lat && device.location.lng) {
+        deviceMap.setView([device.location.lat, device.location.lng], 16);
+        if (deviceTrackMarker) deviceTrackMarker.openPopup();
+    } else {
+        showToast('إحداثيات الجهاز غير متوفرة حالياً', 'warning');
+    }
+}
+
+function toggleDeviceGeofence(enabled) {
+    if (!deviceMap) return;
+    if (!enabled) {
+        if (deviceGeofenceCircle) {
+            deviceMap.removeLayer(deviceGeofenceCircle);
+            deviceGeofenceCircle = null;
+        }
+    } else if (activeTrackDeviceId) {
+        const device = (lastDevicesCache || []).find(d => d.id === activeTrackDeviceId);
+        if (device && device.location && device.location.lat && device.location.lng) {
+            const radius = parseInt(document.getElementById('modalGeoRadius')?.value, 10) || 3000;
+            if (deviceGeofenceCircle) {
+                deviceMap.removeLayer(deviceGeofenceCircle);
+            }
+            deviceGeofenceCircle = L.circle([device.location.lat, device.location.lng], {
+                color: '#2563EB',
+                fillColor: '#3B82F6',
+                fillOpacity: 0.12,
+                radius: radius,
+                weight: 2
+            }).addTo(deviceMap);
+        }
+    }
+}
+
+async function saveDeviceGeofence() {
+    const enabled = document.getElementById('modalGeoEnabled')?.checked ?? true;
+    const radiusMeters = parseInt(document.getElementById('modalGeoRadius')?.value, 10) || 3000;
+    let center = null;
+    if (activeTrackDeviceId) {
+        const dev = (lastDevicesCache || []).find(d => d.id === activeTrackDeviceId);
+        if (dev && dev.location && dev.location.lat && dev.location.lng) {
+            center = { lat: dev.location.lat, lng: dev.location.lng };
+        }
+    }
+    try {
+        const payload = { enabled, radiusMeters };
+        if (center) payload.center = center;
+        const res = await fetch('/api/geofence', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('تم حفظ إعدادات النطاق الجغرافي (Geofence) بنجاح!', 'success');
+            if (activeTrackDeviceId) updateDeviceTrackModal(activeTrackDeviceId);
+        } else {
+            showToast(data.error || 'فشل حفظ إعدادات النطاق الجغرافي', 'error');
+        }
+    } catch (e) {
+        showToast('خطأ في الاتصال بالسيرفر أثناء حفظ النطاق الجغرافي', 'error');
+    }
+}
+
+function dismissSecurityBanner() {
+    const banner = document.getElementById('securityAlertBanner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+}
+
+async function disarmActiveSiren() {
+    const compromised = (lastDevicesCache || []).filter(d => d.tamperDetected || d.geofenceBreach);
+    if (compromised.length > 0) {
+        for (const dev of compromised) {
+            await dispatchRemoteCommand(dev.id, 'DISARM_TAMPER');
+        }
+        showToast('تم إرسال أمر تعطيل الإنذار وفك القفل الأمني لجميع الأجهزة المتأثرة.', 'success');
+    } else if (activeTrackDeviceId) {
+        await dispatchRemoteCommand(activeTrackDeviceId, 'DISARM_TAMPER');
+        showToast('تم إرسال أمر تعطيل الإنذار للجهاز النشط.', 'success');
+    } else {
+        showToast('تم إيقاف الإنذار بنجاح.', 'info');
+    }
+    dismissSecurityBanner();
+}
+
+function closeModal(modalId = 'commandModal') {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
+}
+
+window.switchTab = showTab;
 
 // --------------------------------------------------------------------------
 // REMOTE CONTROL STREAM & TOUCH
@@ -2895,6 +3147,15 @@ function dacExecuteWipe() {
     promptCommand(activeDacDeviceId, 'WIPE_DEVICE', 'Remote Factory Wipe');
 }
 
+function dacExecuteDeleteDevice() {
+    if (!activeDacDeviceId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    const name = device ? (device.name || device.id) : activeDacDeviceId;
+    closeDeviceActionCenter();
+    confirmDeleteDevice(activeDacDeviceId, name);
+}
+
 function dacTogglePolicy(policyKey, isEnabled) {
     if (!activeDacDeviceId) return;
     dispatchRemoteCommand(activeDacDeviceId, 'SET_PERIPHERAL_POLICY', {
@@ -2907,8 +3168,7 @@ function dacGoToWhitelist() {
     if (!activeDacDeviceId) return;
     const devId = activeDacDeviceId;
     closeDeviceActionCenter();
-    const tabBtn = document.querySelector('[onclick="switchTab(\'whitelist\')"]');
-    if (tabBtn) tabBtn.click();
+    showTab('whitelist');
     const sel = document.getElementById('whitelistDeviceSelect');
     if (sel) {
         sel.value = devId;
