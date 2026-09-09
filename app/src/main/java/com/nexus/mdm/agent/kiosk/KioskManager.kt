@@ -9,12 +9,13 @@ import android.content.Intent
 import android.os.UserManager
 import com.nexus.mdm.agent.admin.NexusAdminReceiver
 import com.nexus.mdm.agent.config.SecureConfigStore
+import com.nexus.mdm.agent.oem.OemProviderFactory
 import com.nexus.mdm.agent.util.AppLogger
 
 /**
  * Enterprise Multi-App Kiosk & COSU Controller.
  * Manages dedicated device lockouts, multi-app LockTask whitelisting,
- * status bar suppression, and keyguard elimination.
+ * status bar suppression, OEM provider integrations, and clean escape transitions.
  */
 class KioskManager(private val context: Context) {
 
@@ -23,6 +24,7 @@ class KioskManager(private val context: Context) {
     private val adminComponent: ComponentName = NexusAdminReceiver.getComponentName(context)
     private val configStore = SecureConfigStore(context)
     private val whitelistManager = AppWhitelistManager(context)
+    private val oemProvider = OemProviderFactory.getProvider()
 
     /**
      * Checks if the agent holds Device Owner status required for strict Kiosk enforcement.
@@ -33,7 +35,9 @@ class KioskManager(private val context: Context) {
      * Checks if the device is currently running in LockTask mode or configured as active Kiosk.
      */
     fun isKioskActive(): Boolean {
-        return activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE || configStore.isKioskEnabled
+        return activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE || 
+               configStore.isKioskEnabled ||
+               KioskStateMachine.getState() == KioskState.KIOSK
     }
 
     /**
@@ -52,11 +56,13 @@ class KioskManager(private val context: Context) {
         }
 
         configStore.isKioskEnabled = true
+        KioskStateMachine.transitionTo(KioskState.KIOSK)
+
+        // Delegate to OEM Provider (e.g. Honeywell)
+        oemProvider.onEnterKiosk(context, dpm, adminComponent, effectivePackages.toList())
 
         if (!isDeviceOwner()) {
             AppLogger.w("KioskManager", "Device Owner missing: Managing multi-app kiosk via custom launcher confinement.")
-            // Do NOT call activity.startLockTask() on non-Device-Owner devices!
-            // Screen pinning locks the OS to MainActivity only and blocks all other apps from opening.
             return true
         }
 
@@ -118,6 +124,8 @@ class KioskManager(private val context: Context) {
      */
     fun stopKiosk(activity: Activity): Boolean {
         configStore.isKioskEnabled = false
+        KioskStateMachine.transitionTo(KioskState.EXIT_KIOSK)
+
         return try {
             AppLogger.securityAudit("KIOSK_RELEASE", "Disengaging LockTask Mode")
 
@@ -128,7 +136,10 @@ class KioskManager(private val context: Context) {
                 AppLogger.w("KioskManager", "Activity stopLockTask threw: ${e.message}")
             }
 
-            // 2. Restore System UI and Keyguard if Device Owner
+            // 2. Delegate to OEM Provider teardown
+            oemProvider.onExitKiosk(context, dpm, adminComponent)
+
+            // 3. Restore System UI and Keyguard if Device Owner
             if (isDeviceOwner()) {
                 dpm.setKeyguardDisabled(adminComponent, false)
                 dpm.setStatusBarDisabled(adminComponent, false)
@@ -150,6 +161,7 @@ class KioskManager(private val context: Context) {
                 } catch (_: Exception) {}
             }
 
+            KioskStateMachine.transitionTo(KioskState.MANAGED)
             AppLogger.i("KioskManager", "Kiosk Mode disengaged successfully.")
             true
         } catch (e: Exception) {
@@ -182,23 +194,10 @@ class KioskManager(private val context: Context) {
                 }
                 activity.startActivity(launchIntent)
             } else {
-                // 2. Try Honeywell Enterprise, Zebra, and OEM launchers
-                val commonLaunchers = listOf(
-                    "com.honeywell.enterprise.launcher",
-                    "com.android.launcher3",
-                    "com.honeywell.tools.ezconfig",
-                    "com.honeywell.systemapp",
-                    "com.symbol.enterprisehome",
-                    "com.sec.android.app.launcher",
-                    "com.miui.home",
-                    "com.google.android.apps.nexuslauncher",
-                    "com.transsion.hilauncher",
-                    "com.oppo.launcher",
-                    "com.huawei.android.launcher",
-                    "com.tblenovo.launcher"
-                )
+                // 2. Try OEM launcher packages from provider
+                val preferredLaunchers = oemProvider.getPreferredLauncherPackages()
                 var launched = false
-                for (pkg in commonLaunchers) {
+                for (pkg in preferredLaunchers) {
                     val intent = activity.packageManager.getLaunchIntentForPackage(pkg)
                     if (intent != null) {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)

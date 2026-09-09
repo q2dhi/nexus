@@ -10,6 +10,7 @@ import com.nexus.mdm.agent.config.SecureConfigStore
 import com.nexus.mdm.agent.installer.SilentInstaller
 import com.nexus.mdm.agent.kiosk.AppWhitelistManager
 import com.nexus.mdm.agent.kiosk.KioskManager
+import com.nexus.mdm.agent.oem.OemProviderFactory
 import com.nexus.mdm.agent.security.PeripheralPolicyManager
 import com.nexus.mdm.agent.telemetry.TelemetryEngine
 import com.nexus.mdm.agent.util.AppLogger
@@ -27,8 +28,8 @@ import java.net.URL
 
 /**
  * Enterprise Background Cloud Synchronization Service.
- * Periodically transmits device health and status to the Web Admin server,
- * polls for pending administrator commands, and orchestrates silent OTA application updates.
+ * Transmits real-time device health, hardware metrics, Honeywell capabilities,
+ * and processes incoming remote MDM commands.
  */
 class MdmCloudSyncService : Service() {
 
@@ -107,23 +108,38 @@ class MdmCloudSyncService : Service() {
         }
         val deviceId = "${Build.MANUFACTURER}_${Build.MODEL}_${androidId.takeLast(6)}"
 
+        // Discover dynamic OEM capabilities (Honeywell / Zebra / Android)
+        val oemProvider = OemProviderFactory.getProvider()
+        val capabilities = oemProvider.discoverCapabilities(this)
+
         // 1. Send Device Heartbeat
         val snapshot = telemetryEngine.captureSnapshot()
         val heartbeatPayload = JSONObject().apply {
             put("id", deviceId)
             put("name", configStore.deviceTag)
             put("model", snapshot.deviceModel)
+            put("oem", oemProvider.oemName)
             put("os", snapshot.androidVersion)
             put("battery", snapshot.battery.percentage)
             put("isCharging", snapshot.battery.isCharging)
             put("temperature", snapshot.battery.temperatureCelsius)
+            put("batteryHealth", snapshot.battery.health)
+            put("powerSource", snapshot.battery.powerSource)
             put("ramUsedPercent", snapshot.memory.usedPercent)
+            put("totalRamMb", snapshot.memory.totalRamMb)
+            put("availableRamMb", snapshot.memory.availableRamMb)
             put("storageUsedPercent", snapshot.storage.usedPercent)
+            put("totalStorageGb", snapshot.storage.totalStorageGb)
+            put("availableStorageGb", snapshot.storage.availableStorageGb)
             put("isKiosk", configStore.isKioskEnabled)
             put("isRooted", snapshot.integrity.isRooted)
+            put("integrityScore", snapshot.integrity.integrityScore)
             put("ipAddress", snapshot.network.ipAddress)
+            put("connectionType", snapshot.network.connectionType)
+            put("wifiSsid", snapshot.network.wifiSsid ?: "")
             put("whitelistedApps", JSONArray(whitelistManager.getWhitelistedPackages()))
             put("companyCode", configStore.companyCode)
+            put("capabilities", capabilities.toJson())
             if (snapshot.location != null) {
                 val locObj = JSONObject().apply {
                     put("lat", snapshot.location.latitude)

@@ -1,165 +1,81 @@
-# Nexus Enterprise DPC (Device Policy Controller)
+# Nexus MDM — Honeywell-First Enterprise Device Management Platform
 
-[![Android](https://img.shields.io/badge/Platform-Android%2014%20(API%2034)-3DDC84.svg?style=flat&logo=android)](https://developer.android.com)
+[![Android](https://img.shields.io/badge/Platform-Android%20Enterprise%20(API%2028--34)-3DDC84.svg?style=flat&logo=android)](https://developer.android.com)
+[![Honeywell](https://img.shields.io/badge/OEM-Honeywell%20Mobility%20Edge%20(Primary)-E11A22.svg?style=flat)]()
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin%201.9-7F52FF.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
-[![Enterprise](https://img.shields.io/badge/Android%20Enterprise-Device%20Owner%20%2F%20COSU-0052CC.svg?style=flat)](https://developers.google.com/android/work)
-[![Security](https://img.shields.io/badge/Security-Zero--Trust%20Local%20Architecture-00C853.svg?style=flat)]()
+[![Security](https://img.shields.io/badge/Security-Zero--Trust%20Multi--Tenant-00C853.svg?style=flat)]()
 
-**Nexus** (`com.nexus.mdm.agent`) is an enterprise-grade Android Device Policy Controller (DPC) engineered for dedicated device management (COSU), zero-touch kiosk enforcement, and unattended silent application deployments.
-
----
-
-## Architectural & Security Overview
-
-### 1. Zero-Trust Local Architecture
-- **Strict Export Policies**: All internal Activities, Services, and Receivers specify `android:exported="false"`. The only exported component is `NexusAdminReceiver`, which is strictly guarded with the system-level `android.permission.BIND_DEVICE_ADMIN` permission.
-- **Internal IPC Guard**: Internal broadcasts (`InstallStatusReceiver`) use explicit Intents and require the custom signature permission `com.nexus.mdm.agent.permission.INTERNAL_IPC`.
-- **Zero Data Leakage**: Backup extraction is completely suppressed via `android:allowBackup="false"`.
-
-### 2. Enterprise Device Administration (Device Owner)
-- **`NexusAdminReceiver`**: Inherits from `DeviceAdminReceiver` and implements `onProfileProvisioningComplete` to immediately initialize enterprise baseline policies upon QR/NFC enrollment.
-- **Defensive API Invocations**: `PolicyManagerHelper` guards every privileged call with `dpm.isDeviceOwnerApp()` to prevent `SecurityException` crashes when running in unprovisioned states.
-- **Baseline Policy Profile**: Automatically disables factory reset (`DISALLOW_FACTORY_RESET`), safe boot (`DISALLOW_SAFE_BOOT`), USB file transfer (`DISALLOW_USB_FILE_TRANSFER`), physical media mounting (`DISALLOW_MOUNT_PHYSICAL_MEDIA`), and forces automated time and timezone synchronization.
-
-### 3. Kiosk Mode & COSU Locks (Dedicated Device Engine)
-- **`KioskManager`**: Binds to `DevicePolicyManager` to whitelist authorized packages via `setLockTaskPackages()` and configure strict features via `setLockTaskFeatures()`.
-- **System UI Suppression**: Disables keyguard (`setKeyguardDisabled`) and status bar pull-downs (`setStatusBarDisabled`).
-- **Cryptographic Field Escape Hatch (`SecurityEscapeHatch`)**:
-  - Activated by a timed 5-tap sequence within 2.5 seconds on the Nexus shield icon.
-  - Generates a dynamic challenge session nonce.
-  - Verifies technician input using salted SHA-256 with constant-time byte comparison (`slowEquals`) to defeat timing attacks.
-  - **Anti-Brute Force**: Enforces a 60-second hardware lockout after 3 consecutive failed attempts.
-  - *Default Technician PIN*: `849201` (Salt: `NEXUS_MDM_SALT_2026`).
-
-### 4. Silent Package Installer Engine (No UI Interference)
-- **`SilentInstaller`**: Asynchronously streams APK binaries into a `PackageInstaller.Session` using Kotlin coroutines on `Dispatchers.IO`.
-- **Android 12+ Optimization**: Declares `setRequireUserAction(USER_ACTION_NOT_REQUIRED)` to instruct the OS that the Device Owner has pre-authorized the installation without user interaction.
-- **`InstallStatusReceiver`**: Dedicated broadcast receiver resolving exact status codes (`STATUS_SUCCESS`, `STATUS_FAILURE_STORAGE`, `STATUS_FAILURE_CONFLICT`, `STATUS_FAILURE_INVALID`) and dispatching live audit logs.
-
-### 5. Resilience & Battery Management
-- **`NexusKeepAliveService`**: Persistent foreground service with `START_STICKY` lifecycle and Android 14 `foregroundServiceType="systemExempted"`.
-- **Doze / Battery Whitelisting**: Automated checks for `PowerManager.isIgnoringBatteryOptimizations()`.
-- **Self-Healing Lifecycle**: Monitors `onTaskRemoved()` and re-triggers service resurrection via `AlarmManager` and `BootReceiver`.
+**Nexus MDM** is a carrier-grade, **Honeywell-First Enterprise Mobile Device Management (MDM/EMM) Platform** engineered for dedicated device management (COSU), high-performance barcode scanning, zero-touch provisioning, and multi-tenant cloud orchestration.
 
 ---
 
-## Provisioning Guide
+## 🍯 Honeywell Enterprise Hardware Integration (Primary OEM)
 
-### Method A: ADB Command (Development & Testing)
-To grant full Device Owner privileges on a factory-reset or clean device via ADB:
+Nexus MDM treats Honeywell as its primary enterprise tier with native support across the **Honeywell Mobility Edge** ecosystem:
 
+* **Supported Hardware:** Honeywell CT47, CT45, CT45 XP, CT40, CT40 XP, CT60, CK65, EDA52, EDA51, CN80.
+* **Integrated Hardware Barcode Scanner:** Intent-based broadcast listener (`com.honeywell.decode.intent.action.EDIT_DATA`) and physical scan trigger keys (Keycodes 241, 242, 243, 244, 293, 294).
+* **Honeywell OEMConfig / UEMConnect:** Managed Configurations for advanced peripheral control, keypad remapping, touch/glove modes, and enterprise Wi-Fi roaming.
+* **OEM Abstraction Layer:** Extensible architecture supporting `HoneywellProvider` (Primary), `ZebraProvider`, `SamsungProvider`, and `GenericAndroidProvider`.
+
+---
+
+## 🔒 Enterprise Kiosk Engine & Admin Escape Hatch
+
+Nexus MDM implements a deterministic, fail-safe Kiosk State Machine:
+
+```text
+NORMAL ──> ENROLLING ──> MANAGED ──> KIOSK ──> ADMIN_AUTH ──> EXIT_KIOSK ──> MANAGED / NORMAL
+```
+
+* **Priority 0 Kiosk Exit Fix:** Guaranteed, deterministic release of LockTask mode, clearing of persistent default home preferences, and graceful handoff to the Honeywell Enterprise Launcher or stock AOSP launcher.
+* **Salted SHA-256 PIN Security:** Administrative maintenance PINs are protected with dynamic nonces, constant-time verification, and anti-brute force lockouts (5 failed attempts = 60s security lockout).
+* **Multi-App Whitelisting:** Seamless containment of authorized business applications inside LockTask mode with suppressed system notification panels.
+
+---
+
+## 💻 Web Admin Console (No AI Slop — Pure Enterprise)
+
+* **Design System:** High-density, professional Slate design tokens (`#0F172A`, `#1E293B`, `#334155`) with Inter & Cairo typography.
+* **Device 360 View:** Live gauges for Battery health & temperature, RAM, Storage, Cellular/Wi-Fi, and a dedicated **Honeywell Mobility Edge** hardware tab.
+* **Multi-Tenancy & RBAC:** Strict tenant and branch isolation preventing cross-tenant access and restricting branch managers from sensitive actions.
+* **Command Lifecycle Engine:** Full tracking of remote commands (`PENDING` ➔ `SENT` ➔ `ACKNOWLEDGED` ➔ `EXECUTING` ➔ `SUCCESS`/`FAILED`).
+
+---
+
+## 📚 Complete Enterprise Documentation
+
+| Document | Purpose |
+|---|---|
+| [ARCHITECTURE.md](file:///Users/hasan/Desktop/nexus-main/ARCHITECTURE.md) | Full architectural topology, layers, and communication flow |
+| [ARCHITECTURE_AUDIT.md](file:///Users/hasan/Desktop/nexus-main/ARCHITECTURE_AUDIT.md) | Forensic audit, root cause analysis of legacy issues & fixes |
+| [HONEYWELL.md](file:///Users/hasan/Desktop/nexus-main/HONEYWELL.md) | Comprehensive Honeywell Mobility Edge hardware guide |
+| [KIOSK.md](file:///Users/hasan/Desktop/nexus-main/KIOSK.md) | Kiosk State Machine, LockTask APIs & escape lifecycle |
+| [SECURITY.md](file:///Users/hasan/Desktop/nexus-main/SECURITY.md) | Zero-Trust security model, encryption, and RBAC matrix |
+| [API.md](file:///Users/hasan/Desktop/nexus-main/API.md) | REST API specification, schemas, and endpoints |
+| [DEPLOYMENT.md](file:///Users/hasan/Desktop/nexus-main/DEPLOYMENT.md) | Production cloud & on-premises deployment instructions |
+| [TESTING.md](file:///Users/hasan/Desktop/nexus-main/TESTING.md) | Automated testing matrices & QA verification guidelines |
+| [ROADMAP.md](file:///Users/hasan/Desktop/nexus-main/ROADMAP.md) | Milestone tracking and future product development |
+
+---
+
+## 🚀 Quick Start
+
+### 1. Start Web Admin Server
 ```bash
-# 1. Build and install the APK
-./gradlew assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-
-# 2. Assign Device Owner role
-adb shell dpm set-device-owner com.nexus.mdm.agent/.admin.NexusAdminReceiver
+cd web-admin
+python3 server.py
 ```
+Open `http://localhost:3000` in your browser.
 
-> [!NOTE]
-> Ensure no user accounts (Google, email, etc.) exist on the device prior to running the `set-device-owner` command, or Android will reject the request.
-
----
-
-### Method B: QR Code Provisioning (Zero-Touch Production)
-For production deployments, generate a provisioning QR code containing the following JSON bundle:
-
-```json
-{
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/.admin.NexusAdminReceiver",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://your-mdm-server.com/nexus-agent.apk",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "YOUR_SHA256_CERT_CHECKSUM_IN_BASE64",
-  "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
-  "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
-    "server_url": "https://api.nexus-mdm.net/v1",
-    "kiosk_package": "com.nexus.mdm.agent"
-  }
-}
-```
-
----
-
-## Project Structure
-
-```
-NexusDPC/
-├── app/
-│   ├── build.gradle.kts
-│   ├── proguard-rules.pro
-│   └── src/main/
-│       ├── AndroidManifest.xml
-│       ├── java/com/nexus/mdm/agent/
-│       │   ├── NexusApp.kt                      # Application lifecycle & notification channels
-│       │   ├── admin/
-│       │   │   ├── NexusAdminReceiver.kt        # Enterprise DeviceAdminReceiver
-│       │   │   └── PolicyManagerHelper.kt       # Privilege-safe DPM wrapper
-│       │   ├── kiosk/
-│       │   │   ├── KioskManager.kt              # LockTask & COSU engine
-│       │   │   └── SecurityEscapeHatch.kt       # Multi-tap salted cryptographic unlock
-│       │   ├── installer/
-│       │   │   ├── SilentInstaller.kt           # Asynchronous PackageInstaller pipeline
-│       │   │   └── InstallStatusReceiver.kt     # Commit status callback receiver
-│       │   ├── service/
-│       │   │   ├── NexusKeepAliveService.kt     # Persistent START_STICKY foreground service
-│       │   │   └── BootReceiver.kt              # Auto-recovery boot receiver
-│       │   ├── ui/
-│       │   │   └── MainActivity.kt              # Modern MDM agent dashboard & kiosk surface
-│       │   └── util/
-│       │       ├── CryptoUtils.kt               # Constant-time hashing & nonce generators
-│       │       └── AppLogger.kt                 # Enterprise audit event queue & StateFlow
-│       └── res/
-│           ├── layout/
-│           │   ├── activity_main.xml            # Sleek Dark MDM console layout
-│           │   └── dialog_escape_hatch.xml      # Field technician PIN challenge dialog
-│           ├── values/
-│           │   ├── colors.xml                   # Enterprise slate/cyan/green palette
-│           │   ├── strings.xml                  # Enterprise strings & descriptions
-│           │   └── themes.xml                   # Dark enterprise theme
-│           ├── drawable/                        # Vector icons (shield, kiosk, install)
-│           └── xml/
-│               └── device_admin_policies.xml    # Device Admin policies declaration
-├── gradle/wrapper/
-│   └── gradle-wrapper.properties
-├── build.gradle.kts                             # Root build script
-├── settings.gradle.kts                          # Root settings
-├── gradle.properties                            # JVM & AndroidX settings
-├── gradlew                                      # macOS/Linux Gradle wrapper (executable)
-├── gradlew.bat                                  # Windows Gradle wrapper
-├── start-web-admin.sh                           # macOS/Linux quick-launcher for Web Admin
-├── web-admin/
-│   ├── start-server.sh                          # macOS/Linux server launcher
-│   ├── start-server.bat                         # Windows server launcher
-│   ├── server.py                                # Multi-tenant backend & live remote control
-│   └── public/                                  # Web dashboard frontend
-└── README.md
-```
-
----
-
-## macOS Development Quickstart
-
-### 1. Requirements
-- **Java 17 JDK** (e.g. via Android Studio, Homebrew `brew install openjdk@17`, or Temurin)
-- **Android SDK & Platform Tools** (located at `~/Library/Android/sdk`)
-- **Python 3** (included with macOS)
-
-### 2. Configure Environment (zsh)
-Add the following to your `~/.zshrc`:
+### 2. Run Automated Test Suite
 ```bash
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin
+cd web-admin
+python3 run_all_tests.py
 ```
-Then reload: `source ~/.zshrc`
 
-### 3. Run Web Admin Server
-```bash
-./start-web-admin.sh
-```
-Opens the web console on [http://localhost:3000](http://localhost:3000).
-
-### 4. Build Android Agent APK
+### 3. Build Android Agent APK
 ```bash
 ./gradlew assembleDebug
 ```
-
+Output APK is created at `app/build/outputs/apk/debug/app-debug.apk`.

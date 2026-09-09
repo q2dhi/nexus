@@ -37,5 +37,35 @@
     "lastSeen": 1788524252.0229275,
     "subscriptionActive": true,
     "companyName": "تيست"
+  },
+  "HONEYWELL_CT47_TEST01": {
+    "id": "HONEYWELL_CT47_TEST01",
+    "name": "Warehouse-Scanner-01",
+    "model": "Honeywell CT47",
+    "oem": "Honeywell",
+    "os": "Android 13 (API 33)",
+    "battery": 88,
+    "isCharging": false,
+    "temperature": 27.5,
+    "batteryHealth": "Good",
+    "powerSource": "Battery",
+    "ramUsedPercent": 40,
+    "storageUsedPercent": 25,
+    "isKiosk": true,
+    "isRooted": false,
+    "integrityScore": "SECURE (PASSED)",
+    "ipAddress": "192.168.1.150",
+    "companyCode": "1212",
+    "capabilities": {
+      "oem": "Honeywell",
+      "model": "CT47",
+      "mobilityEdgeGeneration": "Mobility Edge Gen 3 (Qualcomm QCM4490)",
+      "kioskSupported": "SUPPORTED",
+      "scannerSupported": "SUPPORTED",
+      "oemConfigSupported": "SUPPORTED"
+    },
+    "lastSeen": 1788959198.9763331,
+    "subscriptionActive": true,
+    "companyName": "تيست"
   }
 }
