@@ -993,76 +993,103 @@ window.addEventListener('scroll', () => {
 // KIOSK APP WHITELIST CONTROLLER
 // --------------------------------------------------------------------------
 let currentWhitelistPackages = [
-    "com.sec.android.app.camera",
-    "com.google.android.apps.maps",
-    "com.android.chrome",
-    "com.sec.android.app.popupcalculator"
+    "com.honeywell.decode",
+    "com.honeywell.demos.scandemo",
+    "com.honeywell.systemsettings",
+    "com.android.camera2",
+    "com.android.calculator2",
+    "com.android.chrome"
 ];
 
 const PRESET_APP_LABELS = {
-    "com.sec.android.app.camera": "كاميرا سامسونج (Camera)",
-    "com.google.android.GoogleCamera": "كاميرا جوجل (Google Camera)",
-    "com.android.camera2": "كاميرا أندرويد (Camera)",
-    "com.google.android.apps.maps": "خرائط جوجل (Google Maps)",
+    // Honeywell Core Enterprise Apps
+    "com.honeywell.decode": "ماسح الباركود (Honeywell Barcode Scanner)",
+    "com.honeywell.demos.scandemo": "تطبيق المسح التجريبي (Honeywell ScanDemo)",
+    "com.honeywell.tools.scanwedge": "لوحة المسح (Honeywell ScanWedge)",
+    "com.honeywell.systemsettings": "إعدادات هني ويل (Honeywell Settings)",
+    "com.honeywell.enterprisebrowser": "متصفح هني ويل (Honeywell Enterprise Browser)",
+    "com.honeywell.tools.ezconfig": "تكوين الأجهزة (Honeywell EZConfig)",
+    "com.honeywell.filebrowser": "مدير ملفات هني ويل (Honeywell File Manager)",
+    
+    // Honeywell Android System Apps
+    "com.android.camera2": "كاميرا النظام (Honeywell Camera)",
+    "org.codeaurora.snapcam": "كاميرا هني ويل سناب (Snap Camera)",
+    "com.google.android.GoogleCamera": "كاميرا أندرويد (Camera)",
+    "com.android.calculator2": "حاسبة النظام (Honeywell Calculator)",
+    "com.google.android.calculator": "آلة حاسبة (Calculator)",
     "com.android.chrome": "متصفح كروم (Google Chrome)",
-    "com.sec.android.app.popupcalculator": "حاسبة سامسونج (Samsung Calc)",
-    "com.google.android.calculator": "حاسبة جوجل (Google Calc)",
-    "com.whatsapp": "واتساب (WhatsApp)",
-    "com.whatsapp.w4b": "واتساب للأعمال (WhatsApp Business)",
-    "com.samsung.android.dialer": "هاتف سامسونج (Phone)",
-    "com.google.android.dialer": "هاتف جوجل (Google Phone)",
-    "com.sec.android.gallery3d": "معرض الصور (Samsung Gallery)",
-    "com.google.android.apps.photos": "صور جوجل (Google Photos)"
+    "com.android.documentsui": "مدير الملفات (Android Files)",
+    "com.google.android.apps.nbu.files": "ملفات جوجل (Files by Google)",
+    "com.android.dialer": "هاتف النظام والاتصال (Phone)",
+    "com.google.android.dialer": "سجل المكالمات (Google Dialer)",
+    "com.google.android.apps.maps": "خرائط جوجل (Google Maps)",
+    "com.android.settings": "إعدادات نظام أندرويد (Android Settings)"
 };
 
 const QUICK_SUGGESTIONS = [
     {
+        id: "hw_scanner",
+        title: "ماسح الباركود (Honeywell Scanner)",
+        subtitle: "محرك المسح الضوئي لأجهزة Honeywell CT47/CT40",
+        packages: ["com.honeywell.decode", "com.honeywell.demos.scandemo", "com.honeywell.tools.scanwedge"],
+        primaryPkg: "com.honeywell.decode",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="8" x2="7" y2="16"></line><line x1="12" y1="8" x2="12" y2="16"></line><line x1="17" y1="8" x2="17" y2="16"></line></svg>`
+    },
+    {
+        id: "hw_settings",
+        title: "إعدادات هني ويل (Honeywell Settings)",
+        subtitle: "لوحة ضبط العتاد وتهيئة أجهزة Honeywell",
+        packages: ["com.honeywell.systemsettings", "com.honeywell.tools.ezconfig", "com.android.settings"],
+        primaryPkg: "com.honeywell.systemsettings",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
+    },
+    {
+        id: "hw_browser",
+        title: "متصفح الويب (Enterprise Browser)",
+        subtitle: "تصفح الأنظمة السحابية وبوابات العمل",
+        packages: ["com.honeywell.enterprisebrowser", "com.android.chrome"],
+        primaryPkg: "com.honeywell.enterprisebrowser",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>`
+    },
+    {
         id: "camera",
-        title: "تطبيق الكاميرا (Camera)",
-        subtitle: "الكاميرا الرسمية (Samsung & Google & Android)",
-        packages: ["com.sec.android.app.camera", "com.google.android.GoogleCamera", "com.android.camera2"],
-        primaryPkg: "com.sec.android.app.camera",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
-    },
-    {
-        id: "maps",
-        title: "تطبيق الخرائط (Google Maps)",
-        subtitle: "ملاحة وتحديد المواقع الرسمية",
-        packages: ["com.google.android.apps.maps"],
-        primaryPkg: "com.google.android.apps.maps",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>`
-    },
-    {
-        id: "chrome",
-        title: "متصفح كروم (Google Chrome)",
-        subtitle: "تصفح الويب الآمن",
-        packages: ["com.android.chrome"],
-        primaryPkg: "com.android.chrome",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>`
+        title: "كاميرا النظام (Honeywell Camera)",
+        subtitle: "التقاط الصور والمستندات في أجهزة هني ويل",
+        packages: ["com.android.camera2", "org.codeaurora.snapcam", "com.google.android.GoogleCamera"],
+        primaryPkg: "com.android.camera2",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
     },
     {
         id: "calculator",
-        title: "الآلة الحاسبة (Calculator)",
-        subtitle: "حاسبة سامسونج وجوجل المدمجة",
-        packages: ["com.sec.android.app.popupcalculator", "com.google.android.calculator"],
-        primaryPkg: "com.sec.android.app.popupcalculator",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>`
+        title: "الآلة الحاسبة (Honeywell Calc)",
+        subtitle: "حاسبة نظام أندرويد الرسمية",
+        packages: ["com.android.calculator2", "com.google.android.calculator"],
+        primaryPkg: "com.android.calculator2",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>`
     },
     {
-        id: "whatsapp",
-        title: "واتساب (WhatsApp)",
-        subtitle: "المراسلة والتواصل المؤسسي",
-        packages: ["com.whatsapp", "com.whatsapp.w4b"],
-        primaryPkg: "com.whatsapp",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>`
+        id: "files",
+        title: "مدير الملفات (Honeywell Files)",
+        subtitle: "تصفح وإدارة مستندات الجهاز",
+        packages: ["com.android.documentsui", "com.honeywell.filebrowser", "com.google.android.apps.nbu.files"],
+        primaryPkg: "com.android.documentsui",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`
     },
     {
         id: "dialer",
-        title: "الهاتف وجهات الاتصال (Phone)",
-        subtitle: "لوحة الاتصال وسجل المكالمات",
-        packages: ["com.samsung.android.dialer", "com.google.android.dialer"],
-        primaryPkg: "com.samsung.android.dialer",
-        icon: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`
+        title: "هاتف النظام والاتصال (Phone)",
+        subtitle: "إجراء المكالمات ولوحة الاتصال",
+        packages: ["com.android.dialer", "com.google.android.dialer"],
+        primaryPkg: "com.android.dialer",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`
+    },
+    {
+        id: "maps",
+        title: "خرائط وتحديد المواقع (Maps)",
+        subtitle: "تطبيق الخرائط والملاحة",
+        packages: ["com.google.android.apps.maps"],
+        primaryPkg: "com.google.android.apps.maps",
+        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>`
     }
 ];
 
