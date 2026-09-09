@@ -18,8 +18,9 @@ class BootReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         AppLogger.securityAudit("BOOT_EVENT", "System lifecycle broadcast received: $action")
 
-        // 1. Immediately spin up MDM Cloud Sync background service
+        // 1. Immediately spin up MDM Cloud Sync background service & schedule hardware RTC wakeup
         com.nexus.mdm.agent.remote.MdmCloudSyncService.start(context)
+        com.nexus.mdm.agent.remote.MdmCloudSyncService.scheduleNextRtcAlarm(context)
 
         // 2. Re-verify enterprise baseline policies if Device Owner
         val policyHelper = PolicyManagerHelper(context)

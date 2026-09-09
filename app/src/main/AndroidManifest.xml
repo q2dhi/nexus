@@ -128,6 +128,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Hardware RTC Alarm Sync Receiver for Deep Sleep Keep-Alive -->
+        <receiver
+            android:name=".remote.SyncAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.nexus.mdm.agent.ACTION_TRIGGER_SYNC" />
+            </intent-filter>
+        </receiver>
+
 
         <!-- Enterprise Background MDM Cloud Sync Foreground Service -->
         <service

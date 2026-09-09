@@ -10,6 +10,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -41,13 +46,18 @@ import java.net.URL
  * Enterprise Background Cloud Synchronization Service (Immortal Foreground Service).
  * Transmits real-time device health, GPS location, hardware metrics, Honeywell capabilities,
  * and processes incoming remote MDM commands 24/7 even when screen is locked or idle.
+ * Guaranteed 24/7 keep-alive via Hardware RTC Alarm, persistent WifiLock, and Network Callbacks.
  */
 class MdmCloudSyncService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "nexus_enterprise_sync_channel"
-        private const val SYNC_INTERVAL_MS = 60_000L // Transmit location and telemetry every 60 seconds (1 minute)
+        const val SYNC_INTERVAL_MS = 60_000L // 1 minute keepalive
+        private const val WAKELOCK_TIMEOUT_MS = 15_000L
+
+        @Volatile
+        private var instance: MdmCloudSyncService? = null
 
         fun start(context: Context) {
             try {
@@ -70,6 +80,161 @@ class MdmCloudSyncService : Service() {
                 AppLogger.w("CloudSync", "Failed to stop service: ${e.message}")
             }
         }
+
+        /**
+         * Schedules the next hardware RTC Wakeup alarm.
+         * Wakes the Qualcomm processor from deep sleep even in Android Doze mode.
+         */
+        fun scheduleNextRtcAlarm(context: Context) {
+            try {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+                val intent = Intent(context, SyncAlarmReceiver::class.java).apply {
+                    action = SyncAlarmReceiver.ACTION_TRIGGER_SYNC
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    1002,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                val triggerAtMillis = System.currentTimeMillis() + SYNC_INTERVAL_MS
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
+                AppLogger.d("CloudSync", "Next RTC hardware wakeup scheduled in 60s.")
+            } catch (e: Exception) {
+                AppLogger.w("CloudSync", "Failed scheduling exact RTC alarm: ${e.message}")
+            }
+        }
+
+        /**
+         * Invoked by SyncAlarmReceiver or NetworkCallback to perform sync immediately.
+         */
+        fun performSyncNow(context: Context) {
+            // Always chain next RTC alarm first
+            scheduleNextRtcAlarm(context)
+
+            val current = instance
+            if (current != null) {
+                current.triggerImmediateSync()
+            } else {
+                start(context)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    val wl = try {
+                        pm?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "nexus:standalone_sync")?.apply {
+                            setReferenceCounted(false)
+                            acquire(WAKELOCK_TIMEOUT_MS)
+                        }
+                    } catch (_: Exception) { null }
+
+                    try {
+                        val config = SecureConfigStore(context)
+                        val telemetry = TelemetryEngine(context)
+                        val whitelist = AppWhitelistManager(context)
+                        sendHeartbeatInternal(context, config, telemetry, whitelist)
+                    } catch (e: Exception) {
+                        AppLogger.w("CloudSync", "Standalone sync error: ${e.message}")
+                    } finally {
+                        try {
+                            if (wl?.isHeld == true) wl.release()
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        }
+
+        private fun sendHeartbeatInternal(
+            context: Context,
+            configStore: SecureConfigStore,
+            telemetryEngine: TelemetryEngine,
+            whitelistManager: AppWhitelistManager
+        ) {
+            var serverBase = configStore.serverUrl.trim()
+            if (serverBase.isEmpty()) return
+            if (!serverBase.startsWith("http://") && !serverBase.startsWith("https://")) {
+                serverBase = "http://$serverBase"
+            }
+            serverBase = serverBase.trimEnd('/')
+
+            val androidId = try {
+                android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
+            } catch (_: Exception) {
+                "DEVICE"
+            }
+            val deviceId = "${Build.MANUFACTURER}_${Build.MODEL}_${androidId.takeLast(6)}"
+            val oemProvider = OemProviderFactory.getProvider()
+            val capabilities = oemProvider.discoverCapabilities(context)
+            val snapshot = telemetryEngine.captureSnapshot()
+
+            val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            val isIgnoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                pm?.isIgnoringBatteryOptimizations(context.packageName) ?: false
+            } else true
+
+            val heartbeatPayload = JSONObject().apply {
+                put("id", deviceId)
+                put("name", configStore.deviceTag)
+                put("model", snapshot.deviceModel)
+                put("oem", oemProvider.oemName)
+                put("os", snapshot.androidVersion)
+                put("battery", snapshot.battery.percentage)
+                put("isCharging", snapshot.battery.isCharging)
+                put("temperature", snapshot.battery.temperatureCelsius)
+                put("batteryHealth", snapshot.battery.health)
+                put("powerSource", snapshot.battery.powerSource)
+                put("ramUsedPercent", snapshot.memory.usedPercent)
+                put("totalRamMb", snapshot.memory.totalRamMb)
+                put("availableRamMb", snapshot.memory.availableRamMb)
+                put("storageUsedPercent", snapshot.storage.usedPercent)
+                put("totalStorageGb", snapshot.storage.totalStorageGb)
+                put("availableStorageGb", snapshot.storage.availableStorageGb)
+                put("isKiosk", configStore.isKioskEnabled)
+                put("isRooted", snapshot.integrity.isRooted)
+                put("integrityScore", snapshot.integrity.integrityScore)
+                put("ipAddress", snapshot.network.ipAddress)
+                put("connectionType", snapshot.network.connectionType)
+                put("wifiSsid", snapshot.network.wifiSsid ?: "")
+                put("whitelistedApps", JSONArray(whitelistManager.getWhitelistedPackages()))
+                put("companyCode", configStore.companyCode)
+                put("capabilities", capabilities.toJson())
+                put("batteryOptimizationIgnored", isIgnoringBattery)
+                if (snapshot.location != null) {
+                    val locObj = JSONObject().apply {
+                        put("lat", snapshot.location.latitude)
+                        put("lng", snapshot.location.longitude)
+                        put("accuracy", snapshot.location.accuracy)
+                        put("speed", snapshot.location.speed)
+                        put("altitude", snapshot.location.altitude)
+                        put("timestamp", snapshot.location.timestamp)
+                        put("isMock", snapshot.location.isMock)
+                    }
+                    put("location", locObj)
+                }
+            }
+
+            try {
+                val url = URL("$serverBase/api/devices/heartbeat")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json")
+                    connectTimeout = 7000
+                    readTimeout = 7000
+                    doOutput = true
+                }
+
+                OutputStreamWriter(conn.outputStream).use { it.write(heartbeatPayload.toString()) }
+                val code = conn.responseCode
+                if (code == HttpURLConnection.HTTP_OK) {
+                    AppLogger.i("CloudSync", "Heartbeat SUCCESS (RTC KeepAlive) to $serverBase")
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                AppLogger.w("CloudSync", "Internal heartbeat send failed: ${e.message}")
+            }
+        }
     }
 
     private var serviceJob = Job()
@@ -81,9 +246,12 @@ class MdmCloudSyncService : Service() {
     private lateinit var commandDispatcher: CommandDispatcher
     private lateinit var whitelistManager: AppWhitelistManager
     private var screenReceiver: BroadcastReceiver? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         configStore = SecureConfigStore(this)
         telemetryEngine = TelemetryEngine(this)
         whitelistManager = AppWhitelistManager(this)
@@ -95,9 +263,24 @@ class MdmCloudSyncService : Service() {
 
         commandDispatcher = CommandDispatcher(this, policyHelper, kioskManager, silentInstaller, peripheralManager)
 
+        // 1. Acquire persistent high-performance WifiLock to prevent Wi-Fi sleep on Honeywell CT47
+        try {
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            wifiLock = wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "nexus:wifi_keepalive")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            AppLogger.i("CloudSync", "Persistent high-performance WifiLock acquired.")
+        } catch (e: Exception) {
+            AppLogger.w("CloudSync", "Failed acquiring WifiLock: ${e.message}")
+        }
+
         startForegroundNotification()
         registerScreenStateReceiver()
+        registerNetworkCallback()
         startSyncLoop()
+        scheduleNextRtcAlarm(this)
+
         AppLogger.i("CloudSync", "Cloud sync service initialized as Foreground Service. Endpoint: ${configStore.serverUrl}")
     }
 
@@ -106,13 +289,49 @@ class MdmCloudSyncService : Service() {
         if (syncLoopJob == null || syncLoopJob?.isActive != true) {
             startSyncLoop()
         }
-        // Immediately perform an initial sync when command is received
+        scheduleNextRtcAlarm(this)
+        triggerImmediateSync()
+        return START_STICKY
+    }
+
+    fun triggerImmediateSync() {
+        if (!serviceJob.isActive) {
+            serviceJob = Job()
+            scope = CoroutineScope(Dispatchers.IO + serviceJob)
+        }
         scope.launch {
             try {
                 sendHeartbeatAndPollCommands()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("CloudSync", "triggerImmediateSync warning: ${e.message}")
+            }
         }
-        return START_STICKY
+    }
+
+    private fun registerNetworkCallback() {
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            networkCallback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    AppLogger.i("CloudSync", "Internet connection became available. Triggering fast sync.")
+                    triggerImmediateSync()
+                }
+            }
+            cm.registerNetworkCallback(request, networkCallback!!)
+        } catch (e: Exception) {
+            AppLogger.w("CloudSync", "registerNetworkCallback warning: ${e.message}")
+        }
+    }
+
+    private fun unregisterNetworkCallback() {
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            networkCallback?.let { cm?.unregisterNetworkCallback(it) }
+            networkCallback = null
+        } catch (_: Exception) {}
     }
 
     private fun startForegroundNotification() {
@@ -165,14 +384,11 @@ class MdmCloudSyncService : Service() {
                     Intent.ACTION_SCREEN_ON,
                     Intent.ACTION_USER_PRESENT -> {
                         AppLogger.i("CloudSync", "Screen turned ON / unlocked. Triggering fast sync.")
-                        scope.launch {
-                            try {
-                                sendHeartbeatAndPollCommands()
-                            } catch (_: Exception) {}
-                        }
+                        triggerImmediateSync()
                     }
                     Intent.ACTION_SCREEN_OFF -> {
                         AppLogger.i("CloudSync", "Screen turned OFF. Ensuring background sync remains active.")
+                        scheduleNextRtcAlarm(this@MdmCloudSyncService)
                     }
                 }
             }
@@ -218,6 +434,11 @@ class MdmCloudSyncService : Service() {
         val oemProvider = OemProviderFactory.getProvider()
         val capabilities = oemProvider.discoverCapabilities(this)
 
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val isIgnoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm?.isIgnoringBatteryOptimizations(packageName) ?: false
+        } else true
+
         // 1. Send Device Heartbeat
         val snapshot = telemetryEngine.captureSnapshot()
         val heartbeatPayload = JSONObject().apply {
@@ -246,6 +467,7 @@ class MdmCloudSyncService : Service() {
             put("whitelistedApps", JSONArray(whitelistManager.getWhitelistedPackages()))
             put("companyCode", configStore.companyCode)
             put("capabilities", capabilities.toJson())
+            put("batteryOptimizationIgnored", isIgnoringBattery)
             if (snapshot.location != null) {
                 val locObj = JSONObject().apply {
                     put("lat", snapshot.location.latitude)
@@ -265,7 +487,7 @@ class MdmCloudSyncService : Service() {
         val wakeLock = try {
             powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "nexus:heartbeat_sync")?.apply {
                 setReferenceCounted(false)
-                acquire(8000L)
+                acquire(10_000L)
             }
         } catch (_: Exception) { null }
 
@@ -274,8 +496,8 @@ class MdmCloudSyncService : Service() {
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
-                connectTimeout = 6000
-                readTimeout = 6000
+                connectTimeout = 7000
+                readTimeout = 7000
                 doOutput = true
             }
 
@@ -341,6 +563,7 @@ class MdmCloudSyncService : Service() {
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         try {
+            scheduleNextRtcAlarm(this)
             val restartIntent = Intent(applicationContext, MdmCloudSyncService::class.java)
             val pendingIntent = PendingIntent.getService(
                 applicationContext,
@@ -355,6 +578,16 @@ class MdmCloudSyncService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
+        try {
+            wifiLock?.let {
+                if (it.isHeld) it.release()
+            }
+            wifiLock = null
+        } catch (_: Exception) {}
+
+        unregisterNetworkCallback()
+
         try {
             if (screenReceiver != null) {
                 unregisterReceiver(screenReceiver)

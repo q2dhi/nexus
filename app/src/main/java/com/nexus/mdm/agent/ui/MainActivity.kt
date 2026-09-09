@@ -148,8 +148,10 @@ class MainActivity : AppCompatActivity() {
             startClockUpdates()
             handleIncomingIntent(intent)
 
-            // Start Cloud Sync Service
+            // Start Cloud Sync Service & ensure RTC keepalive
             MdmCloudSyncService.start(this)
+            MdmCloudSyncService.scheduleNextRtcAlarm(this)
+            requestBatteryOptimizationExemption()
 
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.setAsDefaultHomeLauncher()
@@ -1470,6 +1472,25 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 com.nexus.mdm.agent.util.AppLogger.w("MainActivity", "Error injecting in-app tap: ${e.message}")
             }
+        }
+    }
+
+    private fun requestBatteryOptimizationExemption() {
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager ?: return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                    com.nexus.mdm.agent.util.AppLogger.i("MainActivity", "Requesting battery optimization exemption for uninterrupted 24/7 sync...")
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } else {
+                    com.nexus.mdm.agent.util.AppLogger.i("MainActivity", "Battery optimization is already disabled for Nexus MDM.")
+                }
+            }
+        } catch (e: Exception) {
+            com.nexus.mdm.agent.util.AppLogger.w("MainActivity", "Could not request battery optimization exemption: ${e.message}")
         }
     }
 }
