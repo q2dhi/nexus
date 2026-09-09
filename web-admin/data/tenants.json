@@ -1,45 +1,5 @@
 {
-  "tenants": [
-    {
-      "id": "comp_1788479417",
-      "name": "تيست",
-      "code": "1212",
-      "email": "t@t.com",
-      "username": "t@t.com",
-      "password": "123456",
-      "contactPerson": "احمد",
-      "phone": "999",
-      "createdAt": "2026-09-04T02:50:17.060542",
-      "subscription": {
-        "status": "ACTIVE",
-        "startDate": "2026-09-04",
-        "expiryDate": "2027-03-08",
-        "maxDevices": 100,
-        "maxBranches": 2,
-        "planName": "باقة تجريبية"
-      },
-      "branches": [
-        {
-          "id": "br_1788958062_1",
-          "name": "فرع المنصور",
-          "number": "07701111111",
-          "code": "BR-MANSOUR",
-          "password": "bpass123",
-          "createdAt": "2026-09-09T15:47:42.153242"
-        }
-      ],
-      "allowedScreens": {
-        "fleet": true,
-        "whitelist": true,
-        "qr": true,
-        "ota": false,
-        "logs": false,
-        "screenControl": true,
-        "gpsGeofence": true,
-        "remoteWipe": false
-      }
-    }
-  ],
+  "tenants": [],
   "developer": {
     "pin": "nexus2026",
     "supportPhone": "+964 770 000 0000",

@@ -152,64 +152,7 @@ def get_apk_file_checksum(apk_path):
 # Persistent Tenant & Subscription Storage
 # --------------------------------------------------------------------------
 DEFAULT_TENANTS = {
-    "tenants": [
-        {
-            "id": "comp_default",
-            "name": "شركة التقنية المتقدمة (الافتراضية)",
-            "code": "NEXUS-DEFAULT",
-            "username": "admin",
-            "password": "admin",
-            "contactPerson": "مدير النظام",
-            "phone": "+964 770 123 4567",
-            "createdAt": "2026-09-01T00:00:00Z",
-            "subscription": {
-                "status": "ACTIVE",
-                "startDate": "2026-09-01",
-                "expiryDate": "2027-09-01",
-                "maxDevices": 50,
-                "maxBranches": 5,
-                "planName": "باقة المؤسسات المتكاملة"
-            },
-            "branches": [],
-            "allowedScreens": {
-                "fleet": True,
-                "whitelist": True,
-                "qr": True,
-                "ota": True,
-                "logs": True,
-                "screenControl": True,
-                "gpsGeofence": True,
-                "remoteWipe": True
-            }
-        },
-        {
-            "id": "comp_kiosk_pos",
-            "name": "سلسلة مطاعم وبقالات بغداد",
-            "code": "POS-BAGHDAD",
-            "username": "pos_admin",
-            "password": "123",
-            "contactPerson": "علي الكرخي",
-            "phone": "+964 780 987 6543",
-            "createdAt": "2026-09-02T10:00:00Z",
-            "subscription": {
-                "status": "ACTIVE",
-                "startDate": "2026-09-01",
-                "expiryDate": "2026-12-31",
-                "maxDevices": 20,
-                "planName": "باقة أجهزة نقاط البيع (POS)"
-            },
-            "allowedScreens": {
-                "fleet": True,
-                "whitelist": True,
-                "qr": True,
-                "ota": False,
-                "logs": True,
-                "screenControl": True,
-                "gpsGeofence": False,
-                "remoteWipe": True
-            }
-        }
-    ],
+    "tenants": [],
     "developer": {
         "pin": "nexus2026",
         "supportPhone": "+964 770 000 0000",
