@@ -158,19 +158,13 @@ class KioskManager(private val context: Context) {
             val homeIntent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
             }
-            val resolveList = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                activity.packageManager.queryIntentActivities(
-                    homeIntent,
-                    android.content.pm.PackageManager.ResolveInfoFlags.of(android.content.pm.PackageManager.MATCH_DEFAULT_ONLY.toLong())
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                activity.packageManager.queryIntentActivities(homeIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
-            }
+            
+            val resolveList = activity.packageManager.queryIntentActivities(homeIntent, 0)
 
-            // Find non-Nexus stock launcher (e.g. Honeywell Launcher, Launcher3, Quickstep, Pixel Launcher, etc.)
+            // Find non-Nexus stock launcher (e.g. Samsung OneUI, MIUI Home, Pixel Launcher, Launcher3, etc.)
             val stock = resolveList.firstOrNull { it.activityInfo.packageName != context.packageName }
             if (stock != null) {
+                AppLogger.i("KioskManager", "Found stock launcher: ${stock.activityInfo.packageName}/${stock.activityInfo.name}")
                 val launchIntent = Intent(Intent.ACTION_MAIN).apply {
                     addCategory(Intent.CATEGORY_HOME)
                     component = ComponentName(stock.activityInfo.packageName, stock.activityInfo.name)

@@ -179,9 +179,12 @@ class MainActivity : AppCompatActivity() {
                 AppLogger.w("MainActivity", "AntiTamperGuard init warning: ${e.message}")
             }
 
-            // Always enforce Kiosk View by default
-            configStore.isKioskEnabled = true
-            activateKioskView()
+            // Activate appropriate view based on kiosk state
+            if (configStore.isKioskEnabled) {
+                activateKioskView()
+            } else {
+                activateAdminView()
+            }
             showLoadingScreen(900)
         } catch (t: Throwable) {
             AppLogger.e("MainActivity", "Guarded startup error in onCreate: ${t.message}", t)
@@ -192,17 +195,21 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         isLaunchingWhitelistedApp = false
         refreshBadges()
-        if (policyHelper.isDeviceOwner()) {
-            policyHelper.setAsDefaultHomeLauncher()
-        }
         if (configStore.isKioskEnabled) {
-            applyKioskWindowFlags()
             if (policyHelper.isDeviceOwner()) {
+                policyHelper.setAsDefaultHomeLauncher()
                 policyHelper.setStatusBarDisabled(true)
             }
+            applyKioskWindowFlags()
             if (!kioskManager.isKioskActive()) {
                 kioskManager.startKiosk(this)
             }
+        } else {
+            if (policyHelper.isDeviceOwner()) {
+                policyHelper.clearDefaultHomeLauncher()
+                policyHelper.setStatusBarDisabled(false)
+            }
+            clearKioskWindowFlags()
         }
     }
 
@@ -469,9 +476,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnAdminNavExitAndroid)?.setOnClickListener {
-            kioskManager.launchStockAndroidHome(this)
-            clearKioskWindowFlags()
-            Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_SHORT).show()
+            exitKioskToAndroid()
         }
     }
 
@@ -486,11 +491,11 @@ class MainActivity : AppCompatActivity() {
         if (intent.hasExtra("EXTRA_KIOSK_STATE_CHANGE")) {
             val enable = intent.getBooleanExtra("EXTRA_KIOSK_STATE_CHANGE", false)
             if (enable) {
+                configStore.isKioskEnabled = true
                 kioskManager.startKiosk(this)
                 activateKioskView()
             } else {
-                kioskManager.stopKiosk(this)
-                activateAdminView()
+                exitKioskToAndroid()
             }
         }
         if (intent.getBooleanExtra("EXTRA_REMOTE_LOCK", false)) {
@@ -824,9 +829,7 @@ class MainActivity : AppCompatActivity() {
                     subtitle = "أدخل رمز المشرف / الأدمن للخروج من وضع الكشك والعودة لواجهة أندرويد.",
                     actionButtonText = "تأكيد الخروج للأندرويد"
                 ) {
-                    kioskManager.launchStockAndroidHome(this)
-                    clearKioskWindowFlags()
-                    Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_LONG).show()
+                    exitKioskToAndroid()
                 }
             }
 
@@ -1049,13 +1052,45 @@ class MainActivity : AppCompatActivity() {
         updateKioskGrid()
     }
 
+    private fun exitKioskToAndroid() {
+        try {
+            isLaunchingWhitelistedApp = true
+            configStore.isKioskEnabled = false
+
+            // 1. Release LockTask
+            kioskManager.stopKiosk(this)
+
+            // 2. Clear default persistent launcher and restore status bar
+            if (policyHelper.isDeviceOwner()) {
+                policyHelper.clearDefaultHomeLauncher()
+                policyHelper.setStatusBarDisabled(false)
+            }
+
+            // 3. Clear window flags and switch UI to Admin Console
+            clearKioskWindowFlags()
+            layoutKioskSurface.visibility = View.GONE
+            layoutAdminConsole.visibility = View.VISIBLE
+            refreshBadges()
+
+            Toast.makeText(this, "تم الخروج من وضع الكشك بنجاح والعودة لنظام أندرويد.", Toast.LENGTH_SHORT).show()
+
+            // 4. Launch Stock Android Home Launcher
+            kioskManager.launchStockAndroidHome(this)
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed exiting kiosk to Android", e)
+            Toast.makeText(this, "حدث خطأ أثناء الخروج: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun activateAdminView() {
-        // Safely restore status bar and release Kiosk
+        layoutKioskSurface.visibility = View.GONE
+        layoutAdminConsole.visibility = View.VISIBLE
+        clearKioskWindowFlags()
         if (policyHelper.isDeviceOwner()) {
+            policyHelper.clearDefaultHomeLauncher()
             policyHelper.setStatusBarDisabled(false)
         }
-        kioskManager.launchStockAndroidHome(this)
-        clearKioskWindowFlags()
+        refreshBadges()
     }
 
     private fun showAdminActionMenu() {
@@ -1078,9 +1113,7 @@ class MainActivity : AppCompatActivity() {
                 .setItems(options) { dialog, which ->
                     when (which) {
                         0 -> {
-                            kioskManager.launchStockAndroidHome(this)
-                            clearKioskWindowFlags()
-                            Toast.makeText(this, "تم الخروج من وضع الكشك والعودة لواجهة أندرويد.", Toast.LENGTH_SHORT).show()
+                            exitKioskToAndroid()
                         }
                         1 -> {
                             showServerSettingsDialog()
