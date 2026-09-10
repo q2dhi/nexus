@@ -14,7 +14,8 @@ import com.nexus.mdm.agent.kiosk.AppWhitelistManager
  */
 class KioskAppsAdapter(
     private val apps: List<AppWhitelistManager.AppItem>,
-    private val onAppClick: (AppWhitelistManager.AppItem) -> Unit
+    private val onAppClick: (AppWhitelistManager.AppItem) -> Unit,
+    private val onAppLongClick: ((AppWhitelistManager.AppItem) -> Unit)? = null
 ) : RecyclerView.Adapter<KioskAppsAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -33,6 +34,10 @@ class KioskAppsAdapter(
         holder.tvName.text = item.appName
         holder.itemView.setOnClickListener {
             onAppClick(item)
+        }
+        holder.itemView.setOnLongClickListener {
+            onAppLongClick?.invoke(item)
+            true
         }
     }
 

@@ -1097,31 +1097,115 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateKioskGrid() {
         val whitelistedApps = allInstalledApps.filter { AppWhitelistManager.isPackageAllowed(it.packageName, selectedWhitelist) }
-        val kioskAdapter = KioskAppsAdapter(whitelistedApps) { app ->
-            isLaunchingWhitelistedApp = true
-            // Pre-grant essential runtime permissions (Location, Camera) if Device Owner
-            if (policyHelper.isDeviceOwner()) {
+        val kioskAdapter = KioskAppsAdapter(
+            whitelistedApps,
+            onAppClick = { app ->
+                isLaunchingWhitelistedApp = true
+                // Pre-grant essential runtime permissions (Location, Camera) if Device Owner
+                if (policyHelper.isDeviceOwner()) {
+                    try {
+                        val dpm = policyHelper.dpm
+                        val admin = policyHelper.adminComponent
+                        for (p in listOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                            android.Manifest.permission.CAMERA
+                        )) {
+                            try {
+                                dpm.setPermissionGrantState(admin, app.packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                            } catch (_: Exception) {}
+                        }
+                    } catch (_: Exception) {}
+                }
+                val ok = kioskManager.launchWhitelistedApp(this, app.packageName)
+                if (!ok) {
+                    isLaunchingWhitelistedApp = false
+                    Toast.makeText(this, "تعذر تشغيل التطبيق: ${app.appName}", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onAppLongClick = { app ->
+                promptRepairApp(app)
+            }
+        )
+        rvKioskApps.adapter = kioskAdapter
+    }
+
+    private fun promptRepairApp(app: AppWhitelistManager.AppItem) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("إصلاح تطبيق ${app.appName}")
+            .setMessage("هل تواجه مشكلة إغلاق التطبيق؟ سيقوم هذا الإجراء بمسح الكاش التالف وتصفير بيانات التطبيق وإعادة تنشيط صلاحيات الموقع وخدمات جوجل بالكامل.")
+            .setPositiveButton("إصلاح وتصفير الآن") { _, _ ->
+                repairAndResetApp(app.packageName, app.appName)
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    private fun repairAndResetApp(packageName: String, appName: String) {
+        if (!policyHelper.isDeviceOwner()) {
+            Toast.makeText(this, "يتطلب صلاحيات مسؤول الجهاز", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val dpm = policyHelper.dpm
+            val admin = policyHelper.adminComponent
+
+            // 1. Clear application user data (clears corrupted SQLite cache)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
-                    val dpm = policyHelper.dpm
-                    val admin = policyHelper.adminComponent
+                    dpm.clearApplicationUserData(admin, packageName, mainExecutor) { pkg, success ->
+                        AppLogger.i("MainActivity", "clearApplicationUserData for $pkg finished: $success")
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 2. Unhide and enable system app
+            try {
+                dpm.setApplicationHidden(admin, packageName, false)
+                dpm.enableSystemApp(admin, packageName)
+            } catch (_: Exception) {}
+
+            // 3. Grant runtime permissions
+            val perms = listOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                android.Manifest.permission.CAMERA,
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            for (p in perms) {
+                try {
+                    dpm.setPermissionGrantState(admin, packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                } catch (_: Exception) {}
+            }
+
+            // 4. If Google Maps, also repair Google Play Services and GPS
+            val isMaps = packageName.contains("maps", ignoreCase = true) || AppWhitelistManager.MAPS_PACKAGES.contains(packageName)
+            if (isMaps) {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        dpm.setLocationEnabled(admin, true)
+                    }
+                    dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_SHARE_LOCATION)
+                    dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_CONFIG_LOCATION)
+                    dpm.setApplicationHidden(admin, "com.google.android.gms", false)
+                    dpm.enableSystemApp(admin, "com.google.android.gms")
                     for (p in listOf(
                         android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                        android.Manifest.permission.CAMERA
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
                     )) {
                         try {
-                            dpm.setPermissionGrantState(admin, app.packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                            dpm.setPermissionGrantState(admin, "com.google.android.gms", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
                         } catch (_: Exception) {}
                     }
                 } catch (_: Exception) {}
             }
-            val ok = kioskManager.launchWhitelistedApp(this, app.packageName)
-            if (!ok) {
-                isLaunchingWhitelistedApp = false
-                Toast.makeText(this, "تعذر تشغيل التطبيق: ${app.appName}", Toast.LENGTH_SHORT).show()
-            }
+
+            Toast.makeText(this, "تم تصفير وإصلاح تطبيق $appName بنجاح! جرب فتحه الآن.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed to repair app: $packageName", e)
+            Toast.makeText(this, "فشل الإصلاح: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-        rvKioskApps.adapter = kioskAdapter
     }
 
     private fun activateKioskView() {

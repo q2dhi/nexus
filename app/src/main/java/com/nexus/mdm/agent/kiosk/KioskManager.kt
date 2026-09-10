@@ -382,6 +382,19 @@ class KioskManager(private val context: Context) {
             }
 
             if (launchIntent != null) {
+                // If LockTask is currently active, temporarily disengage it so that external applications
+                // (like Google Maps or Play Services) can initialize their internal activities without
+                // triggering a fatal LockTask mode violation (START_RETURN_LOCK_TASK_MODE_VIOLATION).
+                // When the user presses Home/Back, MainActivity.onResume() re-engages startLockTask() immediately.
+                if (context is Activity && activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE) {
+                    try {
+                        context.stopLockTask()
+                        AppLogger.i("KioskManager", "Temporarily released LockTask before launching: $packageName")
+                    } catch (te: Exception) {
+                        AppLogger.w("KioskManager", "stopLockTask exception: ${te.message}")
+                    }
+                }
+
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 context.startActivity(launchIntent)
                 AppLogger.i("KioskManager", "Launched whitelisted app: $packageName")
