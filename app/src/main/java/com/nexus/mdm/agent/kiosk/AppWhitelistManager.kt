@@ -107,6 +107,25 @@ class AppWhitelistManager(private val context: Context) {
             "com.honeywell.tools.scanwedge"
         )
 
+        val MAPS_PACKAGES = setOf(
+            "com.google.android.apps.maps",
+            "com.google.android.apps.mapslite"
+        )
+
+        val SYSTEM_LOCK_TASK_PACKAGES = setOf(
+            "com.google.android.gms",                 // Google Play Services (required for Maps, Firebase, SafetyNet, Auth)
+            "com.google.android.gsf",                 // Google Services Framework
+            "com.google.android.permissioncontroller",// Google Permission Controller
+            "com.android.permissioncontroller",       // AOSP Permission Controller
+            "com.google.android.packageinstaller",    // Package Installer dialogs
+            "com.android.packageinstaller",           // AOSP Package Installer
+            "com.android.settings",                   // Android Settings (GPS/Wi-Fi toggle dialogs)
+            "com.google.android.location",            // Location services
+            "com.google.android.apps.maps",           // Google Maps
+            "com.google.android.apps.mapslite",       // Google Maps Lite
+            "com.android.systemui"                    // System UI
+        )
+
         val DEFAULT_ENTERPRISE_APPS = setOf(
             "org.codeaurora.snapcam",
             "com.android.camera2",
@@ -115,7 +134,8 @@ class AppWhitelistManager(private val context: Context) {
             "com.honeywell.decode",
             "com.honeywell.demos.scandemo",
             "com.honeywell.systemsettings",
-            "com.android.chrome"
+            "com.android.chrome",
+            "com.google.android.apps.maps"
         )
 
         /**
@@ -134,6 +154,12 @@ class AppWhitelistManager(private val context: Context) {
             // Calculator family
             val isCalc = CALCULATOR_PACKAGES.contains(installedPkg) || installedPkg.contains("calculator", ignoreCase = true)
             if (isCalc && whitelistedPackages.any { CALCULATOR_PACKAGES.contains(it) || it.contains("calculator", ignoreCase = true) }) {
+                return true
+            }
+
+            // Maps family
+            val isMaps = MAPS_PACKAGES.contains(installedPkg) || installedPkg.contains("maps", ignoreCase = true)
+            if (isMaps && whitelistedPackages.any { MAPS_PACKAGES.contains(it) || it.contains("maps", ignoreCase = true) }) {
                 return true
             }
 
@@ -193,6 +219,9 @@ class AppWhitelistManager(private val context: Context) {
             if (!whitelisted.contains(context.packageName)) {
                 whitelisted.add(context.packageName)
             }
+
+            // Always add system & Google support packages so Maps, Play Services, and Permissions dialogs work flawlessly
+            whitelisted.addAll(SYSTEM_LOCK_TASK_PACKAGES)
 
             // Auto-expand LockTask to include any installed app matching alias rules
             val installed = getInstalledLaunchableApps()

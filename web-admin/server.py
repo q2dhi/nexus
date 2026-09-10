@@ -38,6 +38,65 @@ os.makedirs(DOWNLOADS_DIR, exist_ok=True)
 # --------------------------------------------------------------------------
 import struct
 import shutil
+import zipfile
+
+def extract_apk_package_name(apk_path):
+    """Extract real application package name from binary AndroidManifest.xml inside an APK."""
+    try:
+        with zipfile.ZipFile(apk_path, 'r') as z:
+            if 'AndroidManifest.xml' not in z.namelist():
+                return None
+            data = z.read('AndroidManifest.xml')
+        
+        pos = 8
+        chunk_type, header_size, chunk_size, string_count, style_count, flags, strings_offset, styles_offset = struct.unpack('<HHIIIIII', data[pos:pos+28])
+        is_utf8 = bool(flags & (1 << 8))
+        offsets = struct.unpack(f'<{string_count}I', data[pos+28:pos+28+string_count*4])
+        str_data_start = pos + strings_offset
+        strings = []
+        for off in offsets:
+            cur = str_data_start + off
+            if is_utf8:
+                u8len = data[cur]
+                cur += 1
+                if u8len & 0x80: cur += 1
+                u8bytes = data[cur]
+                cur += 1
+                if u8bytes & 0x80: cur += 1
+                strings.append(data[cur:cur+u8bytes].decode('utf-8', errors='ignore'))
+            else:
+                u16len = struct.unpack('<H', data[cur:cur+2])[0]
+                cur += 2
+                if u16len & 0x8000: cur += 2
+                strings.append(data[cur:cur+u16len*2].decode('utf-16le', errors='ignore'))
+        
+        pos += chunk_size
+        if struct.unpack('<H', data[pos:pos+2])[0] == 0x0180:
+            res_chunk_size = struct.unpack('<I', data[pos+4:pos+8])[0]
+            pos += res_chunk_size
+
+        while pos < len(data):
+            tag_type = struct.unpack('<H', data[pos:pos+2])[0]
+            c_size = struct.unpack('<I', data[pos+4:pos+8])[0]
+            if tag_type == 0x0102: # START_TAG
+                name_idx = struct.unpack('<I', data[pos+20:pos+24])[0]
+                tag_name = strings[name_idx] if name_idx < len(strings) else ''
+                attr_count = struct.unpack('<H', data[pos+28:pos+30])[0]
+                attr_pos = pos + 36
+                attrs = {}
+                for _ in range(attr_count):
+                    a_ns, a_name, a_val_str, a_type, a_data = struct.unpack('<IIIIi', data[attr_pos:attr_pos+20])
+                    attr_pos += 20
+                    a_key = strings[a_name] if a_name < len(strings) else ''
+                    a_val = strings[a_val_str] if (a_val_str != 0xFFFFFFFF and a_val_str < len(strings)) else str(a_data)
+                    attrs[a_key] = a_val
+                if tag_name == 'manifest' and 'package' in attrs:
+                    return attrs['package']
+            pos += c_size
+        return None
+    except Exception as e:
+        print(f"[APK_PARSE_ERROR] Failed to extract package name from {apk_path}: {e}")
+        return None
 
 KNOWN_DEBUG_SIGNATURE_CHECKSUM = "186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8"
 
@@ -808,11 +867,12 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             file_size = os.path.getsize(target_path)
             checksum = sha256.hexdigest()
+            extracted_pkg = extract_apk_package_name(target_path) or ""
             host = self.headers.get('Host', f"localhost:{PORT}")
             proto = self.headers.get('X-Forwarded-Proto', 'https' if ('onrender.com' in host or self.headers.get('X-Forwarded-Ssl') == 'on') else 'http')
             apk_url = f"{proto}://{host}/downloads/{filename}"
 
-            add_audit_log('OTA_APK_UPLOAD', 'DEVELOPER', f"Uploaded {filename} ({file_size} bytes)")
+            add_audit_log('OTA_APK_UPLOAD', 'DEVELOPER', f"Uploaded {filename} ({file_size} bytes) - Package: {extracted_pkg or 'unknown'}")
 
             self._send_json(200, {
                 "success": True,
@@ -821,6 +881,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 "relativeUrl": f"/downloads/{filename}",
                 "size": file_size,
                 "sha256": checksum,
+                "packageName": extracted_pkg,
                 "message": "تم رفع ملف الـ APK بنجاح وحساب بصمة SHA-256."
             })
             return
@@ -1755,17 +1816,30 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         if path == '/api/apps/deploy':
             dev_id = data.get('deviceId')
             apk_url = data.get('apkUrl')
-            pkg_name = (data.get('packageName') or 'ota_update_app').strip()
+            pkg_name = (data.get('packageName') or '').strip()
             auto_whitelist = bool(data.get('autoWhitelist', False))
 
             if not apk_url:
                 self._send_json(400, {"error": "APK download URL required"})
                 return
 
+            # Auto-resolve real package name from local downloaded APK if omitted or generic
+            if not pkg_name or pkg_name in ('ota_update_app', 'ota_app', 'managed_app'):
+                url_fname = os.path.basename(urllib.parse.urlparse(apk_url).path)
+                local_apk = os.path.join(DOWNLOADS_DIR, url_fname)
+                if os.path.isfile(local_apk):
+                    extracted = extract_apk_package_name(local_apk)
+                    if extracted:
+                        pkg_name = extracted
+
+            if not pkg_name:
+                pkg_name = 'ota_update_app'
+
             install_cmd = {
                 "command": "INSTALL_APK_FROM_URL",
                 "url": apk_url,
                 "package_name": pkg_name,
+                "auto_whitelist": auto_whitelist,
                 "timestamp": int(time.time() * 1000)
             }
 
@@ -1776,21 +1850,22 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 pending_commands.setdefault(did, []).append(install_cmd)
 
                 if auto_whitelist and is_valid_pkg:
-                    current_pkgs = []
                     if did in devices:
                         current_pkgs = list(devices[did].get('whitelistedApps', []))
-                        if pkg_name not in current_pkgs:
-                            current_pkgs.append(pkg_name)
-                            devices[did]['whitelistedApps'] = current_pkgs
-                    else:
-                        current_pkgs = [pkg_name]
-
-                    whitelist_cmd = {
-                        "command": "SET_WHITELIST",
-                        "packages": current_pkgs,
-                        "timestamp": int(time.time() * 1000)
-                    }
-                    pending_commands.setdefault(did, []).append(whitelist_cmd)
+                        if current_pkgs:
+                            if pkg_name not in current_pkgs:
+                                current_pkgs.append(pkg_name)
+                                devices[did]['whitelistedApps'] = current_pkgs
+                            whitelist_cmd = {
+                                "command": "SET_WHITELIST",
+                                "packages": current_pkgs,
+                                "timestamp": int(time.time() * 1000)
+                            }
+                            pending_commands.setdefault(did, []).append(whitelist_cmd)
+                        else:
+                            # If no previous whitelist cache on server, don't overwrite device whitelist;
+                            # let device's InstallStatusReceiver auto-add the package safely.
+                            devices[did]['whitelistedApps'] = [pkg_name]
 
             if auto_whitelist and is_valid_pkg:
                 save_devices_cache(devices)

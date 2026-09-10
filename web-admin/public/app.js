@@ -2116,11 +2116,14 @@ function handleOtaFileUpload(event) {
                     const urlInput = document.getElementById('apkUrlInput');
                     if (urlInput) urlInput.value = data.url;
 
-                    // Suggest package name if empty
+                    // Populate real package name from server extraction
                     const pkgInput = document.getElementById('apkPackageInput');
-                    if (pkgInput && !pkgInput.value) {
-                        const baseName = file.name.replace(/\.apk$/i, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
-                        pkgInput.value = 'app.' + baseName;
+                    if (pkgInput) {
+                        if (data.packageName) {
+                            pkgInput.value = data.packageName;
+                        } else if (!pkgInput.value) {
+                            pkgInput.placeholder = 'يرجى كتابة معرّف الحزمة مثل com.example.app';
+                        }
                     }
 
                     if (percentLabel) percentLabel.innerText = 'اكتمل الرفع 100%';

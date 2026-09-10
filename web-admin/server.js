@@ -178,16 +178,20 @@ app.post('/api/apps/deploy', (req, res) => {
 
         if (autoWhitelist && isValidPkg) {
             const dev = devices.get(id);
-            const currentPkgs = (dev && dev.whitelistedApps) ? [...dev.whitelistedApps] : [];
-            if (!currentPkgs.includes(pkgName)) {
-                currentPkgs.push(pkgName);
-                if (dev) dev.whitelistedApps = currentPkgs;
+            const currentPkgs = (dev && dev.whitelistedApps && dev.whitelistedApps.length > 0) ? [...dev.whitelistedApps] : null;
+            if (currentPkgs) {
+                if (!currentPkgs.includes(pkgName)) {
+                    currentPkgs.push(pkgName);
+                    if (dev) dev.whitelistedApps = currentPkgs;
+                }
+                queue.push({
+                    command: 'SET_WHITELIST',
+                    packages: currentPkgs,
+                    timestamp: Date.now()
+                });
+            } else if (dev) {
+                dev.whitelistedApps = [pkgName];
             }
-            queue.push({
-                command: 'SET_WHITELIST',
-                packages: currentPkgs,
-                timestamp: Date.now()
-            });
         }
         pendingCommands.set(id, queue);
     });

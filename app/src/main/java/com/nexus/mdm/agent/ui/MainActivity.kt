@@ -158,15 +158,34 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
                     val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)
+
+                    // Auto-grant all runtime permissions so Maps and third-party apps never get blocked on permission requests
+                    try {
+                        dpm.setPermissionPolicy(admin, android.app.admin.DevicePolicyManager.PERMISSION_POLICY_AUTO_GRANT)
+                    } catch (pe: Exception) {
+                        AppLogger.w("MainActivity", "Failed to set PERMISSION_POLICY_AUTO_GRANT: ${pe.message}")
+                    }
+
                     val enterprisePerms = listOf(
                         android.Manifest.permission.ACCESS_FINE_LOCATION,
                         android.Manifest.permission.ACCESS_COARSE_LOCATION,
                         android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                        android.Manifest.permission.READ_PHONE_STATE
+                        android.Manifest.permission.READ_PHONE_STATE,
+                        android.Manifest.permission.CAMERA
                     )
                     for (p in enterprisePerms) {
                         try {
                             dpm.setPermissionGrantState(admin, packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                        } catch (_: Exception) {}
+                    }
+
+                    // Proactively grant location permissions to Google Maps
+                    for (p in listOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    )) {
+                        try {
+                            dpm.setPermissionGrantState(admin, "com.google.android.apps.maps", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
                         } catch (_: Exception) {}
                     }
                 } catch (_: Exception) {}
@@ -232,17 +251,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // If the user attempts to press Home or Recents to escape Kiosk:
-        if (configStore.isKioskEnabled && !isLaunchingWhitelistedApp) {
+        // In LockTask mode, pressing Home natively routes back to MainActivity (default launcher).
+        // Only reclaim if LockTask is somehow not active and not launching an authorized app.
+        if (configStore.isKioskEnabled && !isLaunchingWhitelistedApp && !kioskManager.isKioskActive()) {
             reclaimKioskForeground()
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (configStore.isKioskEnabled && !isLaunchingWhitelistedApp) {
-            reclaimKioskForeground()
-        }
+        // Do NOT call reclaimKioskForeground() in onStop()!
+        // When authorized apps (Google Maps, custom APKs) open, MainActivity naturally goes to onStop.
+        // Reclaiming foreground here kicks the user out of the authorized app immediately.
     }
 
     private fun reclaimKioskForeground() {
@@ -518,6 +538,17 @@ class MainActivity : AppCompatActivity() {
                 whitelistManager.saveWhitelistedPackages(currentSet)
                 if (policyHelper.isDeviceOwner()) {
                     whitelistManager.syncWithDevicePolicyManager(policyHelper.dpm, policyHelper.adminComponent)
+                    try {
+                        val dpm = policyHelper.dpm
+                        val admin = policyHelper.adminComponent
+                        for (p in listOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                            android.Manifest.permission.CAMERA
+                        )) {
+                            dpm.setPermissionGrantState(admin, newPkg, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                        }
+                    } catch (_: Exception) {}
                 }
                 selectedWhitelist.clear()
                 selectedWhitelist.addAll(currentSet)
@@ -1067,6 +1098,22 @@ class MainActivity : AppCompatActivity() {
         val whitelistedApps = allInstalledApps.filter { AppWhitelistManager.isPackageAllowed(it.packageName, selectedWhitelist) }
         val kioskAdapter = KioskAppsAdapter(whitelistedApps) { app ->
             isLaunchingWhitelistedApp = true
+            // Pre-grant essential runtime permissions (Location, Camera) if Device Owner
+            if (policyHelper.isDeviceOwner()) {
+                try {
+                    val dpm = policyHelper.dpm
+                    val admin = policyHelper.adminComponent
+                    for (p in listOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        android.Manifest.permission.CAMERA
+                    )) {
+                        try {
+                            dpm.setPermissionGrantState(admin, app.packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                        } catch (_: Exception) {}
+                    }
+                } catch (_: Exception) {}
+            }
             val ok = kioskManager.launchWhitelistedApp(this, app.packageName)
             if (!ok) {
                 isLaunchingWhitelistedApp = false

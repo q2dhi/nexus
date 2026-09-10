@@ -56,6 +56,9 @@ class KioskManager(private val context: Context) {
             whitelistManager.getWhitelistedPackages().toMutableSet().apply { add(context.packageName) }
         }
 
+        // Ensure system & Google service packages (Maps, Play Services, Permission Controller, Settings) are always available in LockTask
+        effectivePackages.addAll(AppWhitelistManager.SYSTEM_LOCK_TASK_PACKAGES)
+
         // Expand LockTask packages with any installed apps matching whitelist aliases (e.g. SnapCam on Honeywell)
         try {
             val allInstalled = whitelistManager.getInstalledLaunchableApps()
@@ -82,6 +85,13 @@ class KioskManager(private val context: Context) {
                 "KIOSK_ENGAGE",
                 "Configuring multi-app LockTask (${effectivePackages.size} packages): $effectivePackages"
             )
+
+            // 0. Auto-grant runtime permissions so Maps and third-party apps never crash or pop up blocked dialogs
+            try {
+                dpm.setPermissionPolicy(adminComponent, DevicePolicyManager.PERMISSION_POLICY_AUTO_GRANT)
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "setPermissionPolicy warning: ${e.message}")
+            }
 
             // 1. Whitelist packages permitted in LockTask mode
             try {
