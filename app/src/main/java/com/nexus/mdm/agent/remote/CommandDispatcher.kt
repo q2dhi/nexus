@@ -252,32 +252,66 @@ class CommandDispatcher(
 
             var connection: HttpURLConnection? = null
             var inputStream: InputStream? = null
+            var tempApkFile: java.io.File? = null
 
             try {
                 AppLogger.i("CommandDispatcher", "Downloading APK payload from: $downloadUrl")
-                val url = URL(downloadUrl)
-                connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 15_000
-                connection.readTimeout = 30_000
-                connection.requestMethod = "GET"
-                connection.connect()
+                var currentUrl = downloadUrl
+                var redirectCount = 0
+                val maxRedirects = 5
 
-                val responseCode = connection.responseCode
+                // Handle HTTP 301/302/307/308 redirects automatically across HTTP/HTTPS
+                while (redirectCount < maxRedirects) {
+                    val url = URL(currentUrl)
+                    connection = url.openConnection() as HttpURLConnection
+                    connection.instanceFollowRedirects = true
+                    connection.connectTimeout = 20_000
+                    connection.readTimeout = 45_000
+                    connection.requestMethod = "GET"
+                    connection.connect()
+
+                    val code = connection.responseCode
+                    if (code in listOf(HttpURLConnection.HTTP_MOVED_PERM, HttpURLConnection.HTTP_MOVED_TEMP, 307, 308)) {
+                        val newUrl = connection.getHeaderField("Location")
+                        connection.disconnect()
+                        if (!newUrl.isNullOrEmpty()) {
+                            currentUrl = newUrl
+                            redirectCount++
+                            continue
+                        }
+                    }
+                    break
+                }
+
+                val responseCode = connection?.responseCode ?: -1
                 if (responseCode != HttpURLConnection.HTTP_OK) {
-                    val err = "HTTP error $responseCode downloading APK"
+                    val err = "HTTP error $responseCode downloading APK from $currentUrl"
                     AppLogger.e("CommandDispatcher", err)
                     return@withContext Result.failure(RuntimeException(err))
                 }
 
-                val contentLength = connection.contentLength.toLong()
-                val effectiveSize = if (contentLength > 0) contentLength else 1024 * 1024 * 5
-                inputStream = connection.inputStream
+                // Download cleanly to cache directory first to guarantee exact file size and prevent partial session corruption
+                tempApkFile = java.io.File(context.cacheDir, "ota_download_${System.currentTimeMillis()}.apk")
+                inputStream = connection!!.inputStream
+                tempApkFile.outputStream().use { fos ->
+                    val buffer = ByteArray(64 * 1024)
+                    var read: Int
+                    while (inputStream.read(buffer).also { read = it } != -1) {
+                        fos.write(buffer, 0, read)
+                    }
+                    fos.flush()
+                }
 
-                val sessionResult = silentInstaller.installStream(
-                    inputStream = inputStream,
-                    totalBytes = effectiveSize,
-                    sessionName = pkgName
-                )
+                val exactSize = tempApkFile.length()
+                AppLogger.i("CommandDispatcher", "Downloaded APK to cache ($exactSize bytes). Committing to PackageInstaller...")
+
+                val sessionResult = java.io.FileInputStream(tempApkFile).use { fis ->
+                    silentInstaller.installStream(
+                        inputStream = fis,
+                        totalBytes = exactSize,
+                        sessionName = pkgName
+                    )
+                }
 
                 sessionResult.fold(
                     onSuccess = { sessionId ->
@@ -288,11 +322,12 @@ class CommandDispatcher(
                     }
                 )
             } catch (e: Exception) {
-                AppLogger.e("CommandDispatcher", "Failed to stream remote APK from URL", e)
+                AppLogger.e("CommandDispatcher", "Failed to download and install APK from URL", e)
                 Result.failure(e)
             } finally {
-                inputStream?.close()
-                connection?.disconnect()
+                try { inputStream?.close() } catch (_: Exception) {}
+                try { connection?.disconnect() } catch (_: Exception) {}
+                try { tempApkFile?.delete() } catch (_: Exception) {}
             }
         }
 

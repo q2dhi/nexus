@@ -144,6 +144,7 @@ class AppWhitelistManager(private val context: Context) {
          */
         fun isPackageAllowed(installedPkg: String, whitelistedPackages: Set<String>): Boolean {
             if (whitelistedPackages.contains(installedPkg)) return true
+            if (whitelistedPackages.any { it.equals(installedPkg, ignoreCase = true) }) return true
 
             // Camera family
             val isCamera = CAMERA_PACKAGES.contains(installedPkg) || installedPkg.contains("camera", ignoreCase = true)

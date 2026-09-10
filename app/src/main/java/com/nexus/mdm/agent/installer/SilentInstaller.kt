@@ -85,8 +85,8 @@ class SilentInstaller(private val context: Context) {
             session = packageInstaller.openSession(sessionId)
             InstallStatusReceiver.setInProgress(sessionId)
 
-            // 3. Asynchronously stream APK bytes
-            val outputStream: OutputStream = session.openWrite(sessionName, 0, totalBytes)
+            // 3. Asynchronously stream APK bytes (Android PackageInstaller requires standard .apk filename, e.g. "base.apk")
+            val outputStream: OutputStream = session.openWrite("base.apk", 0, totalBytes)
             val buffer = ByteArray(64 * 1024) // 64 KB streaming buffer
             var bytesRead: Int
             var totalWritten = 0L
@@ -106,6 +106,7 @@ class SilentInstaller(private val context: Context) {
                 action = InstallStatusReceiver.ACTION_INSTALL_COMMIT
                 // Explicit package routing to prevent interception
                 setPackage(context.packageName)
+                putExtra("EXTRA_TARGET_PKG", sessionName)
             }
 
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
