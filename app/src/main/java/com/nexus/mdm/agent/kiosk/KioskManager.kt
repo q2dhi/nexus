@@ -33,12 +33,37 @@ class KioskManager(private val context: Context) {
     fun isDeviceOwner(): Boolean = dpm.isDeviceOwnerApp(context.packageName)
 
     /**
-     * Checks if the device is currently running in LockTask mode or configured as active Kiosk.
+     * Checks if the device is currently running in LockTask mode.
      */
     fun isKioskActive(): Boolean {
-        return activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE || 
-               configStore.isKioskEnabled ||
-               KioskStateMachine.getState() == KioskState.KIOSK
+        return activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
+    }
+
+    /**
+     * Refreshes and expands the active LockTask whitelist in DevicePolicyManager.
+     */
+    fun refreshLockTaskPackages(additionalPackages: Collection<String> = emptyList()) {
+        if (!isDeviceOwner()) return
+        try {
+            val effective = whitelistManager.getWhitelistedPackages().toMutableSet().apply {
+                add(context.packageName)
+                addAll(additionalPackages)
+                addAll(AppWhitelistManager.SYSTEM_LOCK_TASK_PACKAGES)
+            }
+            try {
+                val installed = whitelistManager.getInstalledLaunchableApps()
+                for (app in installed) {
+                    if (AppWhitelistManager.isPackageAllowed(app.packageName, effective)) {
+                        effective.add(app.packageName)
+                    }
+                }
+            } catch (_: Exception) {}
+
+            dpm.setLockTaskPackages(adminComponent, effective.toTypedArray())
+            AppLogger.i("KioskManager", "Refreshed LockTask packages (${effective.size})")
+        } catch (e: Exception) {
+            AppLogger.w("KioskManager", "refreshLockTaskPackages warning: ${e.message}")
+        }
     }
 
     /**
@@ -125,12 +150,14 @@ class KioskManager(private val context: Context) {
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CREATE_WINDOWS)
             } catch (_: Exception) {}
 
-            // 5. Engage LockTask on the Activity
-            try {
-                activity.startLockTask()
-                AppLogger.i("KioskManager", "LockTask engaged successfully with multi-app support.")
-            } catch (e: Exception) {
-                AppLogger.w("KioskManager", "startLockTask warning: ${e.message}")
+            // 5. Engage LockTask on the Activity if not already locked
+            if (activityManager.lockTaskModeState == ActivityManager.LOCK_TASK_MODE_NONE) {
+                try {
+                    activity.startLockTask()
+                    AppLogger.i("KioskManager", "LockTask engaged successfully with multi-app support.")
+                } catch (e: Exception) {
+                    AppLogger.w("KioskManager", "startLockTask warning: ${e.message}")
+                }
             }
             true
         } catch (e: SecurityException) {
@@ -266,6 +293,49 @@ class KioskManager(private val context: Context) {
      */
     fun launchWhitelistedApp(context: Context, packageName: String): Boolean {
         return try {
+            // 1. Dynamic LockTask & Permission Pre-Configuration for the Target App
+            if (isDeviceOwner()) {
+                try {
+                    refreshLockTaskPackages(listOf(packageName))
+
+                    // Auto-grant runtime permissions
+                    val perms = listOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        android.Manifest.permission.CAMERA,
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    )
+                    for (p in perms) {
+                        try {
+                            dpm.setPermissionGrantState(adminComponent, packageName, p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                        } catch (_: Exception) {}
+                    }
+
+                    // Special treatment for Google Maps and Google Play Services
+                    val isMaps = packageName.contains("maps", ignoreCase = true) || AppWhitelistManager.MAPS_PACKAGES.contains(packageName)
+                    if (isMaps) {
+                        try {
+                            dpm.setApplicationHidden(adminComponent, packageName, false)
+                            dpm.enableSystemApp(adminComponent, packageName)
+                            dpm.setApplicationHidden(adminComponent, "com.google.android.gms", false)
+                            dpm.enableSystemApp(adminComponent, "com.google.android.gms")
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                dpm.setLocationEnabled(adminComponent, true)
+                            }
+                            for (p in listOf(
+                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                            )) {
+                                dpm.setPermissionGrantState(adminComponent, "com.google.android.gms", p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                            }
+                        } catch (_: Exception) {}
+                    }
+                } catch (pe: Exception) {
+                    AppLogger.w("KioskManager", "Pre-launch LockTask configuration exception: ${pe.message}")
+                }
+            }
+
             var launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
             if (launchIntent == null) {
                 val filterIntent = Intent(Intent.ACTION_MAIN).apply {
@@ -282,9 +352,11 @@ class KioskManager(private val context: Context) {
                 }
             }
 
-            // If still null, try alias fallback from known device families (Honeywell SnapCam, Google Calculator, etc.)
+            // If still null, try alias fallback from known device families (Maps, Camera, Calculator, etc.)
             if (launchIntent == null) {
                 val familyCandidates = when {
+                    AppWhitelistManager.MAPS_PACKAGES.contains(packageName) || packageName.contains("maps", ignoreCase = true) ->
+                        AppWhitelistManager.MAPS_PACKAGES
                     AppWhitelistManager.CAMERA_PACKAGES.contains(packageName) || packageName.contains("camera", ignoreCase = true) ->
                         AppWhitelistManager.CAMERA_PACKAGES
                     AppWhitelistManager.CALCULATOR_PACKAGES.contains(packageName) || packageName.contains("calculator", ignoreCase = true) ->
@@ -310,7 +382,7 @@ class KioskManager(private val context: Context) {
             }
 
             if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 context.startActivity(launchIntent)
                 AppLogger.i("KioskManager", "Launched whitelisted app: $packageName")
                 true

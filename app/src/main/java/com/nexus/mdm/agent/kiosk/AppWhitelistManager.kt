@@ -123,7 +123,11 @@ class AppWhitelistManager(private val context: Context) {
             "com.google.android.location",            // Location services
             "com.google.android.apps.maps",           // Google Maps
             "com.google.android.apps.mapslite",       // Google Maps Lite
-            "com.android.systemui"                    // System UI
+            "com.android.systemui",                   // System UI
+            "com.android.chrome",                     // Chrome / Custom Tabs
+            "com.google.android.webview",             // Webview
+            "com.android.webview",                    // AOSP Webview
+            "com.android.vending"                     // Google Play Store
         )
 
         val DEFAULT_ENTERPRISE_APPS = setOf(

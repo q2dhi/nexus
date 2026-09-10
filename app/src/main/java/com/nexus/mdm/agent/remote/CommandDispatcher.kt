@@ -158,6 +158,16 @@ class CommandDispatcher(
                     executeSyncTime(timestamp, timeZone)
                 }
 
+                "CLEAR_APP_DATA" -> {
+                    val pkg = json.optString("package_name", json.optString("packageName", "com.google.android.apps.maps"))
+                    executeClearAppData(pkg)
+                }
+
+                "ENABLE_APP", "UNHIDE_APP" -> {
+                    val pkg = json.optString("package_name", json.optString("packageName", "com.google.android.apps.maps"))
+                    executeEnableApp(pkg)
+                }
+
                 else -> {
                     val err = "Unknown or unsupported command: $action"
                     AppLogger.w("CommandDispatcher", err)
@@ -410,6 +420,43 @@ class CommandDispatcher(
             Result.success("Time synchronized successfully (timestamp=$timestamp, tz=$timeZone)")
         } catch (e: Exception) {
             AppLogger.e("CommandDispatcher", "Failed to execute sync time", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun executeClearAppData(packageName: String): Result<String> {
+        if (!policyHelper.isDeviceOwner()) {
+            return Result.failure(IllegalStateException("Agent is not Device Owner"))
+        }
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                policyHelper.dpm.clearApplicationUserData(
+                    policyHelper.adminComponent,
+                    packageName,
+                    context.mainExecutor
+                ) { pkg, succeeded ->
+                    AppLogger.i("CommandDispatcher", "clearApplicationUserData callback for $pkg: succeeded=$succeeded")
+                }
+                Result.success("Application user data clear requested for $packageName")
+            } else {
+                Result.failure(UnsupportedOperationException("clearApplicationUserData requires Android 9+"))
+            }
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to clear app data for $packageName", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun executeEnableApp(packageName: String): Result<String> {
+        if (!policyHelper.isDeviceOwner()) {
+            return Result.failure(IllegalStateException("Agent is not Device Owner"))
+        }
+        return try {
+            policyHelper.dpm.enableSystemApp(policyHelper.adminComponent, packageName)
+            policyHelper.dpm.setApplicationHidden(policyHelper.adminComponent, packageName, false)
+            Result.success("App enabled and unhidden: $packageName")
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to enable app $packageName", e)
             Result.failure(e)
         }
     }

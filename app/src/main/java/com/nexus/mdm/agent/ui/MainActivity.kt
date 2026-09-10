@@ -154,6 +154,7 @@ class MainActivity : AppCompatActivity() {
             requestBatteryOptimizationExemption()
 
             if (policyHelper.isDeviceOwner()) {
+                policyHelper.applyBaselineSecurityPolicies()
                 policyHelper.setAsDefaultHomeLauncher()
                 try {
                     val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
@@ -179,13 +180,14 @@ class MainActivity : AppCompatActivity() {
                         } catch (_: Exception) {}
                     }
 
-                    // Proactively grant location permissions to Google Maps
+                    // Proactively grant location permissions to Google Maps and Google Play Services
                     for (p in listOf(
                         android.Manifest.permission.ACCESS_FINE_LOCATION,
                         android.Manifest.permission.ACCESS_COARSE_LOCATION
                     )) {
                         try {
                             dpm.setPermissionGrantState(admin, "com.google.android.apps.maps", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                            dpm.setPermissionGrantState(admin, "com.google.android.gms", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
                         } catch (_: Exception) {}
                     }
                 } catch (_: Exception) {}
@@ -223,9 +225,8 @@ class MainActivity : AppCompatActivity() {
                 policyHelper.setStatusBarDisabled(true)
             }
             applyKioskWindowFlags()
-            if (!kioskManager.isKioskActive()) {
-                kioskManager.startKiosk(this)
-            }
+            kioskManager.startKiosk(this)
+            kioskManager.refreshLockTaskPackages()
         } else {
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.clearDefaultHomeLauncher()
@@ -239,8 +240,8 @@ class MainActivity : AppCompatActivity() {
         super.onWindowFocusChanged(hasFocus)
         if (configStore.isKioskEnabled) {
             applyKioskWindowFlags()
-            if (!hasFocus) {
-                // Instantly collapse notification panel / quick settings pull-down
+            if (!hasFocus && !isLaunchingWhitelistedApp) {
+                // Instantly collapse notification panel / quick settings pull-down only when NOT launching an authorized app
                 collapseStatusBar()
             }
             if (policyHelper.isDeviceOwner()) {
@@ -1130,9 +1131,8 @@ class MainActivity : AppCompatActivity() {
         if (policyHelper.isDeviceOwner()) {
             policyHelper.setStatusBarDisabled(true)
         }
-        if (!kioskManager.isKioskActive()) {
-            kioskManager.startKiosk(this)
-        }
+        kioskManager.startKiosk(this)
+        kioskManager.refreshLockTaskPackages()
         updateKioskGrid()
     }
 

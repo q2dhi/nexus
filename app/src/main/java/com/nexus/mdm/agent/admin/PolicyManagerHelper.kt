@@ -96,7 +96,24 @@ class PolicyManagerHelper(private val context: Context) {
                 AppLogger.w("PolicyManager", "Failed setting STAY_ON_WHILE_PLUGGED_IN: ${e.message}")
             }
 
-            // 5. Automatically set Nexus as Persistent Default Home Launcher (No system chooser dialog!)
+            // 5. Enable Location (GPS) permanently for Google Maps & Navigation
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    dpm.setLocationEnabled(adminComponent, true)
+                }
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting setLocationEnabled: ${e.message}")
+            }
+
+            // 6. Ensure Google Maps and Play Services are unhidden and enabled as system apps
+            try {
+                dpm.enableSystemApp(adminComponent, "com.google.android.apps.maps")
+                dpm.setApplicationHidden(adminComponent, "com.google.android.apps.maps", false)
+                dpm.enableSystemApp(adminComponent, "com.google.android.gms")
+                dpm.setApplicationHidden(adminComponent, "com.google.android.gms", false)
+            } catch (_: Exception) {}
+
+            // 7. Automatically set Nexus as Persistent Default Home Launcher (No system chooser dialog!)
             setAsDefaultHomeLauncher()
 
             AppLogger.i("PolicyManager", "Baseline enterprise security profile applied successfully.")
