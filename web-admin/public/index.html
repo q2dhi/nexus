@@ -15,95 +15,106 @@
 </head>
 
 <body class="rtl-mode">
-    <!-- COMPANY LOGIN SCREEN - ULTRA PREMIUM & EYE-FRIENDLY (ANIMATED MESH & FROSTED GLASS) -->
+    <!-- COMPANY LOGIN SCREEN - APPLE LIQUID GLASS & MINIMAL (NO CARDS, NO HEAVY BACKGROUNDS) -->
     <div id="companyLoginOverlay" class="company-login-overlay" style="display:none;">
-        <div class="company-login-card" id="companyLoginCard">
-            <!-- Brand Header -->
-            <div class="login-brand-header">
-                <div class="login-brand-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                    </svg>
-                </div>
-                <h1 class="login-brand-text" dir="ltr">Nexus<span class="login-brand-dot">.</span></h1>
-                <div class="login-enterprise-tag">
-                    <span class="pulse-indicator-blue"></span>
-                    <span>ENTERPRISE CLOUD DPC</span>
-                </div>
+        <div class="liquid-ambient-orb orb-1"></div>
+        <div class="liquid-ambient-orb orb-2"></div>
+        <div class="liquid-ambient-orb orb-3"></div>
+
+        <div class="login-floating-layout" id="companyLoginCard">
+            <!-- Floating Hero Illustration (Seamless, No Background, No Card) -->
+            <div class="login-hero-pane">
+                <img src="login-illustration.png" alt="Nexus Enterprise MDM" class="login-hero-illustration">
             </div>
 
-            <p class="login-card-subtitle" id="loginCardSubtitle">
-                بوابة الإدارة والتحكم المركزي بالأجهزة والأسطول
-            </p>
-
-            <form onsubmit="handleCompanyLogin(event)" class="login-form" id="companyLoginForm">
-                <div id="companyLoginError" class="login-error-alert" style="display:none;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="error-alert-icon">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <span id="companyLoginErrorText"></span>
-                </div>
-
-                <div class="form-group mb-3">
-                    <label for="companyLoginEmail" id="lblLoginEmail">رقم دخول الفرع، أو كود الشركة، أو البريد</label>
-                    <div class="input-with-icon">
-                        <span class="input-icon">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </span>
-                        <input type="text" id="companyLoginEmail" class="form-input login-input" dir="ltr"
-                            placeholder="مثال: 07701111111 أو CODE" required autofocus autocomplete="username">
+            <!-- Floating Liquid Glass Form Pane -->
+            <div class="login-form-pane">
+                <!-- Brand Header -->
+                <div class="login-brand-header">
+                    <div class="login-brand-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <h1 class="login-brand-text" dir="ltr">Nexus<span class="login-brand-dot">.</span></h1>
+                    <div class="login-enterprise-tag">
+                        <span class="pulse-indicator-blue"></span>
+                        <span>ENTERPRISE DPC</span>
                     </div>
                 </div>
 
-                <div class="form-group mb-4">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <label for="companyLoginPassword" id="lblLoginPassword" style="margin-bottom:0;">كلمة المرور</label>
-                        <span class="login-hint-text">حسابات الشركات والفروع</span>
-                    </div>
-                    <div class="input-with-icon">
-                        <span class="input-icon">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                        </span>
-                        <input type="password" id="companyLoginPassword" class="form-input login-input" dir="ltr"
-                            placeholder="••••••••" required autocomplete="current-password">
-                        <button type="button" class="login-pwd-toggle-btn" onclick="toggleLoginPasswordVisibility()"
-                            title="إظهار / إخفاء كلمة المرور" id="btnLoginPwdToggle" aria-label="تبديل إظهار كلمة المرور">
-                            <svg id="loginEyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <p class="login-card-subtitle" id="loginCardSubtitle">
+                    بوابة الإدارة والتحكم المركزي
+                </p>
 
-                <button type="submit" id="btnCompanyLoginSubmit" class="btn btn-primary btn-block login-submit-btn">
-                    <span id="loginSubmitBtnLabel">تسجيل الدخول إلى البوابة</span>
-                    <svg id="loginBtnSpinner" class="login-spinner" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
-                        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                    </svg>
-                </button>
-            </form>
+                <form onsubmit="handleCompanyLogin(event)" class="login-form" id="companyLoginForm">
+                    <div id="companyLoginError" class="login-error-alert" style="display:none;">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" class="error-alert-icon">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span id="companyLoginErrorText"></span>
+                    </div>
 
-            <div class="login-card-footer">
-                <div class="login-trust-badge">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        <polyline points="9 12 11 14 15 10"></polyline>
-                    </svg>
-                    <span>اتصال سحابي آمن 256-bit TLS • Nexus Guard</span>
+                    <div class="form-group mb-3">
+                        <label for="companyLoginEmail" id="lblLoginEmail">رقم الدخول أو كود الشركة</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </span>
+                            <input type="text" id="companyLoginEmail" class="form-input login-input" dir="ltr"
+                                placeholder="07701111111 أو كود الشركة" required autofocus autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <label for="companyLoginPassword" id="lblLoginPassword" style="margin-bottom:0;">كلمة المرور</label>
+                        </div>
+                        <div class="input-with-icon">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </span>
+                            <input type="password" id="companyLoginPassword" class="form-input login-input" dir="ltr"
+                                placeholder="••••••••" required autocomplete="current-password">
+                            <button type="button" class="login-pwd-toggle-btn" onclick="toggleLoginPasswordVisibility()"
+                                title="إظهار / إخفاء كلمة المرور" id="btnLoginPwdToggle" aria-label="تبديل إظهار كلمة المرور">
+                                <svg id="loginEyeIcon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnCompanyLoginSubmit" class="btn btn-primary btn-block login-submit-btn">
+                        <span id="loginSubmitBtnLabel">تسجيل الدخول</span>
+                        <svg id="loginBtnSpinner" class="login-spinner" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="login-card-footer">
+                    <div class="login-trust-badge">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            <polyline points="9 12 11 14 15 10"></polyline>
+                        </svg>
+                        <span>اتصال مشفر وآمن • Nexus Guard</span>
+                    </div>
+                    <small id="loginFooterNote" class="login-footer-desc">
+                        للحصول على حساب، يرجى التواصل مع إدارة النظام.
+                    </small>
                 </div>
-                <small id="loginFooterNote" class="login-footer-desc">
-                    إذا لم يكن لديك حساب، يرجى التواصل مع إدارة النظام لإنشاء حساب شركتك وتفعيل الاشتراك.
-                </small>
             </div>
         </div>
     </div>
@@ -176,17 +187,14 @@
                     <span class="nav-tab-label">إدارة الفروع</span>
                 </button>
             </div>
-
-            <!-- TAB 1: FLEET DEVICES -->
             <section id="tab-devices" class="tab-pane active">
                 <div class="pane-header">
                     <div>
-                        <h2 id="fleetSectionTitle">الاجهزة المدارة المركزية</h2>
-                        <p class="section-desc" id="fleetSectionDesc">الحالة المباشرة، قياسات الأداء اللحظية، والتحكم
-                            الإداري الفوري عن بُعد.</p>
+                        <h2 id="fleetSectionTitle">الأجهزة المدارة</h2>
+                        <p class="section-desc" id="fleetSectionDesc">مراقبة الحالة والتحكم المباشر بالأسطول.</p>
                     </div>
                     <div class="pane-actions">
-                        <div class="branch-filter-container" style="display:inline-flex; align-items:center; gap:6px; background:#F8FAFC; border:1px solid #CBD5E1; padding:3px 10px; border-radius:6px;">
+                        <div class="branch-filter-container" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); border:1px solid rgba(226,232,240,0.8); padding:3px 10px; border-radius:8px;">
                             <label for="selectFleetBranchFilter" style="font-size:12px; font-weight:700; color:#475569; margin:0;">الفرع:</label>
                             <select id="selectFleetBranchFilter" class="form-input" style="padding:2px 8px; font-size:12px; height:28px; width:auto; border:none; background:transparent; font-weight:700; color:#0F172A; cursor:pointer;" onchange="onFleetBranchFilterChange()">
                                 <option value="ALL">جميع الأجهزة (كافة الفروع)</option>
@@ -199,11 +207,11 @@
                         <button class="btn btn-secondary btn-sm" id="btnSyncTimeFleet" onclick="syncFleetTime()"
                             title="مزامنة الوقت والتاريخ تلقائياً لجميع أجهزة الأسطول">
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                            <span id="btnSyncTimeLabel">مزامنة الوقت والتاريخ</span>
+                            <span id="btnSyncTimeLabel">مزامنة الوقت</span>
                         </button>
                         <button class="btn btn-secondary btn-sm" id="btnRefreshFleet" onclick="fetchDevices()">
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            <span>تحديث الأسطول</span>
+                            <span>تحديث</span>
                         </button>
                     </div>
                 </div>
@@ -233,16 +241,16 @@
                             <span class="kpi-title" id="kpiGpsTitle">تتبع الأقمار الصناعية</span>
                             <div class="kpi-val-row">
                                 <strong id="kpiGpsStatus" class="kpi-val">جاهز للرصد</strong>
-                                <span class="kpi-badge kpi-badge-green">دقة ±12م</span>
+                                <span class="kpi-badge kpi-badge-green">دقة عالية</span>
                             </div>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-content">
-                            <span class="kpi-title" id="kpiSecTitle">درع الأمان والنزاهة</span>
+                            <span class="kpi-title" id="kpiSecTitle">درع الأمان</span>
                             <div class="kpi-val-row">
                                 <strong id="kpiSecurityStatus" class="kpi-val">0 تهديدات</strong>
-                                <span class="kpi-badge kpi-badge-green">محمي تماماً</span>
+                                <span class="kpi-badge kpi-badge-green">محمي</span>
                             </div>
                         </div>
                     </div>
@@ -256,7 +264,9 @@
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
                         <input type="text" id="fleetSearchInput" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
-                        <button type="button" id="fleetSearchClearBtn" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">✕</button>
+                        <button type="button" id="fleetSearchClearBtn" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
                     
                     <div class="fleet-filters-pills" id="fleetFilterPills">
@@ -280,7 +290,7 @@
                             <span class="pill-count" id="countPillKiosk">0</span>
                         </button>
                         <button type="button" class="filter-pill" data-filter="low_battery" onclick="setFleetFilter('low_battery')">
-                            <span style="color:#F59E0B; font-weight:bold;">⚡</span>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#F59E0B" stroke-width="2" style="vertical-align:-1px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                             <span id="pillBatteryText">بطارية منخفضة</span>
                             <span class="pill-count" id="countPillBattery">0</span>
                         </button>
@@ -345,7 +355,7 @@
                                 <span>حذف الأجهزة</span>
                             </button>
                             <button type="button" class="bulk-btn-close" onclick="deselectAllDevices()" title="إلغاء التحديد">
-                                ✕
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                     </div>
@@ -356,21 +366,21 @@
             <section id="tab-whitelist" class="tab-pane">
                 <div class="pane-header">
                     <div>
-                        <h2 id="whitelistTitle">إدارة واختيار تطبيقات وضع الكشك (App Whitelist)</h2>
-                        <p class="section-desc" id="whitelistDesc">اختر التطبيقات المسموحة للمستخدمين في الكشك بنقرة واحدة، أو أضف تطبيقات مخصصة.</p>
+                        <h2 id="whitelistTitle">تطبيقات وضع الكشك</h2>
+                        <p class="section-desc" id="whitelistDesc">تحديد التطبيقات المصرح بتشغيلها على الأجهزة المدارة.</p>
                     </div>
                     <div class="pane-actions">
                         <button id="btnDeployWhitelistTop" class="btn btn-primary btn-sm" onclick="deployWhitelist()">
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                            <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
+                            <span>حفظ وتوزيع التطبيقات</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="form-container" style="max-width: 980px;">
                     <!-- Target Device Selector -->
-                    <div class="form-group" style="margin-bottom: 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px;">
-                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700; color: #0F172A; margin-bottom: 8px; display: block;">الجهاز المستهدف (Target Device):</label>
+                    <div class="form-group" style="margin-bottom: 20px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 14px 18px;">
+                        <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700; color: #0F172A; margin-bottom: 8px; display: block;">الجهاز المستهدف:</label>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <select id="whitelistDeviceSelect" class="form-input" onchange="onWhitelistDeviceChanged()"
                                 style="font-weight: 600; flex: 1; min-width: 260px;">
@@ -380,7 +390,7 @@
                                 onclick="fetchDevices().then(initWhitelistView)" title="تحديث قائمة تطبيقات الجهاز"
                                 style="white-space: nowrap;">
                                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                                <span>تحديث التطبيقات</span>
+                                <span>تحديث</span>
                             </button>
                         </div>
                     </div>
@@ -388,11 +398,11 @@
                     <!-- Quick Suggestions Section (Camera, Maps, Chrome, etc.) -->
                     <div style="margin-bottom: 24px;">
                         <div style="margin-bottom: 12px;">
-                            <h3 style="font-size: 15px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px;">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#2563EB" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                <span>اقتراحات سهلة الوصول (انقر للإضافة أو الإزالة مباشرة)</span>
+                            <h3 style="font-size: 14.5px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563EB" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <span>تطبيقات مقترحة</span>
                             </h3>
-                            <p style="font-size: 12.5px; color: #64748B; margin-top: 2px;">تطبيقات الكاميرا، الخرائط، والتطبيقات الأساسية مجهزة للاختيار الفوري بنقرة واحدة:</p>
+                            <p style="font-size: 12px; color: #64748B; margin-top: 2px;">انقر لإضافة أو إزالة التطبيق من الكشك:</p>
                         </div>
 
                         <!-- Suggestions Cards Grid -->
@@ -402,24 +412,24 @@
                     </div>
 
                     <!-- Add Custom Application Section -->
-                    <div style="margin-bottom: 24px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px;">
-                        <h3 style="font-size: 14.5px; font-weight: 700; color: #0F172A; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1E40AF" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                            <span>إضافة تطبيق آخر مخصص (Add Custom Application)</span>
+                    <div style="margin-bottom: 24px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 18px 20px;">
+                        <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1E40AF" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span>إضافة تطبيق مخصص</span>
                         </h3>
-                        <p style="font-size: 12.5px; color: #64748B; margin-bottom: 12px;">أضف أي تطبيق آخر مثبت على الهاتف بكتابة اسم الحزمة Package ID (مثل تطبيق مبيعات، نقاط بيع POS، أو محاسبة):</p>
+                        <p style="font-size: 12px; color: #64748B; margin-bottom: 12px;">أدخل معرّف الحزمة واسم التطبيق:</p>
                         
                         <div style="display: grid; grid-template-columns: 2fr 1.5fr auto; gap: 10px; align-items: flex-end;">
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">معرّف حزمة التطبيق (Package ID) *</label>
+                                <label style="display: block; font-size: 11.5px; font-weight: 600; color: #334155; margin-bottom: 4px;">معرّف حزمة التطبيق (Package ID) *</label>
                                 <input type="text" id="customPackageInput" class="form-input"
-                                    placeholder="مثال: com.company.pos أو com.custom.app"
+                                    placeholder="com.company.pos أو com.custom.app"
                                     onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">اسم التطبيق المقروء (اختياري)</label>
+                                <label style="display: block; font-size: 11.5px; font-weight: 600; color: #334155; margin-bottom: 4px;">اسم التطبيق (اختياري)</label>
                                 <input type="text" id="customPackageLabelInput" class="form-input"
-                                    placeholder="مثال: نظام المبيعات"
+                                    placeholder="نظام المبيعات"
                                     onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPackage();}">
                             </div>
                             <button type="button" id="btnAddCustomPkg" class="btn btn-primary" onclick="addCustomPackage()" style="white-space: nowrap; height: 42px;">
@@ -432,32 +442,32 @@
                     <!-- Currently Allowed Applications List -->
                     <div style="margin-bottom: 20px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                            <h3 style="font-size: 14.5px; font-weight: 700; color: #0F172A;">
-                                التطبيقات المسموحة حالياً في شاشة الكشك (<span id="kioskSelectedCount" style="color: #16A34A; font-weight: 800;">0</span> تطبيق)
+                            <h3 style="font-size: 14px; font-weight: 700; color: #0F172A;">
+                                التطبيقات المسموحة في الكشك (<span id="kioskSelectedCount" style="color: #16A34A; font-weight: 800;">0</span>)
                             </h3>
-                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()" style="color: #DC2626; border-color: #FECACA;">
+                            <button type="button" class="btn btn-xs btn-secondary" onclick="clearWhitelistTags()" style="color: #DC2626; border-color: rgba(254,202,202,0.8);">
                                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                <span>مسح كل التطبيقات</span>
+                                <span>مسح الكل</span>
                             </button>
                         </div>
 
-                        <div id="whitelistTagsContainer" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; min-height: 70px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <div id="whitelistTagsContainer" style="background: rgba(255,255,255,0.7); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 14px; min-height: 70px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
 
                     <!-- Selection Summary & Deploy Bar -->
-                    <div class="kiosk-selection-summary-bar" style="margin-top: 20px; padding: 16px 20px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div class="kiosk-selection-summary-bar" style="margin-top: 20px; padding: 14px 18px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 13.5px; font-weight: 700; color: #0F172A;">
-                                احفظ التغييرات وانشرها مباشرة على الأجهزة:
+                            <span style="font-size: 13px; font-weight: 700; color: #0F172A;">
+                                حفظ التغييرات وتطبيقها على الأجهزة:
                             </span>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <button id="btnDeployWhitelist" class="btn btn-primary" onclick="deployWhitelist()"
-                                style="padding: 10px 26px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 6px rgba(30, 64, 175, 0.25);">
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                                <span>توزيع وحفظ التطبيقات المسموحة للأجهزة</span>
+                                style="padding: 9px 22px; font-weight: 700; font-size: 13.5px;">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                <span>حفظ وتوزيع التطبيقات</span>
                             </button>
                         </div>
                     </div>
@@ -469,17 +479,16 @@
             <!-- TAB 3: OTA APP DEPLOYMENT -->
             <section id="tab-ota" class="tab-pane">
                 <div class="pane-header">
-                    <h2>توزيع وتثبيت التطبيقات عن بُعد (Over-The-Air Updates)</h2>
-                    <p class="section-desc">رفع وتثبيت تطبيقات APK على أجهزة الأسطول عن بعد بنقرة زر واحدة وبدون تدخل
-                        المستخدم.</p>
+                    <h2>توزيع التطبيقات (OTA)</h2>
+                    <p class="section-desc">رفع وتثبيت حزم APK على أجهزة الأسطول عن بُعد.</p>
                 </div>
 
                 <div class="form-container" style="max-width: 780px;">
                     <!-- Direct APK Upload Dropzone -->
                     <div class="form-group"
-                        style="background: #F8FAFC; border: 2px dashed #93C5FD; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 22px;">
-                        <div style="margin-bottom: 10px; display: flex; justify-content: center; color: #2563EB;">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        style="background: rgba(255,255,255,0.6); border: 2px dashed rgba(147,197,253,0.8); border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 20px;">
+                        <div style="margin-bottom: 8px; display: flex; justify-content: center; color: #2563EB;">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <path
                                     d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
@@ -488,27 +497,25 @@
                                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
                             </svg>
                         </div>
-                        <strong style="display: block; font-size: 16px; color: #1E3A8A; margin-bottom: 6px;">رفع ملف
-                            التطبيق (APK) مباشرة من جهازك</strong>
-                        <p style="font-size: 13px; color: #64748B; margin-bottom: 16px;">اختر ملف التطبيق (.apk) المخزن
-                            على جهازك لرفعه لسيرفرك تلقائياً وتوليد رابط التحميل المباشر الآمن.</p>
+                        <strong style="display: block; font-size: 15px; color: #1E3A8A; margin-bottom: 4px;">رفع ملف APK من جهازك</strong>
+                        <p style="font-size: 12.5px; color: #64748B; margin-bottom: 14px;">اختر ملف التطبيق (.apk) لرفعه وتوليد رابط التحميل المباشر.</p>
 
                         <input type="file" id="otaApkFileInput" accept=".apk" style="display: none;"
                             onchange="handleOtaFileUpload(event)">
                         <button type="button" class="btn btn-primary"
                             onclick="document.getElementById('otaApkFileInput').click()"
-                            style="padding: 10px 24px; font-weight: 700;">
-                            اختر ملف APK من جهازك
+                            style="padding: 9px 22px; font-weight: 700;">
+                            اختيار ملف APK
                         </button>
 
                         <div id="otaUploadProgressWrap"
-                            style="display: none; margin-top: 16px; max-width: 420px; margin-left: auto; margin-right: auto;">
+                            style="display: none; margin-top: 14px; max-width: 420px; margin-left: auto; margin-right: auto;">
                             <div
-                                style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; color: #1E40AF; font-weight: 700;">
+                                style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; color: #1E40AF; font-weight: 700;">
                                 <span id="otaUploadFileName">جاري الرفع...</span>
                                 <span id="otaUploadPercent">0%</span>
                             </div>
-                            <div style="background: #E2E8F0; border-radius: 6px; height: 10px; overflow: hidden;">
+                            <div style="background: rgba(226,232,240,0.8); border-radius: 6px; height: 8px; overflow: hidden;">
                                 <div id="otaProgressBar"
                                     style="background: #2563EB; width: 0%; height: 100%; transition: width 0.2s;"></div>
                             </div>
@@ -516,47 +523,39 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="targetDeviceSelect" style="font-weight: 700;">الجهاز المستهدف (Target
-                            Device):</label>
+                        <label for="targetDeviceSelect" style="font-weight: 700;">الجهاز المستهدف:</label>
                         <select id="targetDeviceSelect" class="form-input" style="font-weight: 600;">
                             <option value="ALL">جميع أجهزة الأسطول (All Enrolled Fleet Devices - Broadcast)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="apkUrlInput" style="font-weight: 700;">رابط تحميل الـ APK المباشر (Direct Download
-                            URL):</label>
+                        <label for="apkUrlInput" style="font-weight: 700;">رابط تحميل APK المباشر:</label>
                         <input type="url" id="apkUrlInput" class="form-input"
-                            placeholder="سيتم تعبئة الرابط تلقائياً عند رفع الملف أعلاه، أو ضع رابطاً مباشراً ينتهي بـ .apk">
+                            placeholder="يتم التعبئة تلقائياً عند الرفع، أو أدخل رابطاً مباشراً ينتهي بـ .apk">
                         <span class="input-hint"
-                            style="color: #64748B; font-size: 11.5px; display: block; margin-top: 5px;">
-                            <strong>ملاحظة هامة:</strong> يجب أن ينتهي الرابط بـ <code>.apk</code> مباشر. روابط المواقع
-                            (مثل صفحات APKPure أو Mediafire) تفشل لأنها صفحات ويب وليست ملفات خام. استخدم زر الرفع أعلاه
-                            لضمان التحميل 100%.
+                            style="color: #64748B; font-size: 11px; display: block; margin-top: 4px;">
+                            ملاحظة: يجب أن ينتهي الرابط بـ <code>.apk</code> مباشر.
                         </span>
                     </div>
 
                     <div class="form-group">
-                        <label for="apkPackageInput" style="font-weight: 700;">اسم حزمة التطبيق (اختياري - Application
-                            Package Name):</label>
+                        <label for="apkPackageInput" style="font-weight: 700;">معرّف حزمة التطبيق (اختياري):</label>
                         <input type="text" id="apkPackageInput" class="form-input"
-                            placeholder="مثال: com.google.android.calculator أو com.company.pos">
+                            placeholder="مثال: com.company.pos">
                     </div>
 
-                    <div class="form-group" style="margin-top: 16px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 14px 16px; border-radius: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-size: 13.5px; font-weight: 700; color: #1E293B;">
-                            <input type="checkbox" id="chkOtaAutoWhitelist" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563EB;">
-                            <span>السماح بالتطبيق وإظهاره تلقائياً في شاشة وضع الكشك فور تثبيته (Auto-Whitelist)</span>
+                    <div class="form-group" style="margin-top: 14px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); padding: 12px 16px; border-radius: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-size: 13px; font-weight: 700; color: #1E293B;">
+                            <input type="checkbox" id="chkOtaAutoWhitelist" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: #2563EB;">
+                            <span>السماح بالتطبيق وإظهاره تلقائياً في وضع الكشك فور تثبيته</span>
                         </label>
-                        <span style="display: block; margin-top: 5px; font-size: 12px; color: #64748B; margin-right: 28px;">
-                            عند تفعيل هذا الخيار، سيقوم النظام تلقائياً بإدراج التطبيق ضمن قائمة التطبيقات المسموحة ليظهر فوراً على شاشات الأجهزة.
-                        </span>
                     </div>
 
-                    <div style="margin-top: 20px;">
+                    <div style="margin-top: 18px;">
                         <button class="btn btn-primary" onclick="deployOtaUpdate()"
-                            style="padding: 12px 28px; font-weight: 700; font-size: 14.5px;">
-                            إرسال وتثبيت التطبيق على الأجهزة الآن
+                            style="padding: 11px 26px; font-weight: 700; font-size: 14px;">
+                            إرسال وتثبيت التطبيق على الأجهزة
                         </button>
                     </div>
                     <div id="otaStatusMessage" class="status-box" style="margin-top: 14px; display: none;"></div>
@@ -566,38 +565,33 @@
             <!-- TAB 3: ZERO-TOUCH QR PROVISIONING -->
             <section id="tab-qr" class="tab-pane">
                 <div class="pane-header">
-                    <h2>Zero-Touch Android Enterprise QR Provisioning</h2>
-                    <p class="section-desc">Instantly turn any fresh or factory-reset Android device into a dedicated
-                        Nexus Kiosk appliance without entering Google accounts.</p>
+                    <h2>تجهيز الأجهزة (Zero-Touch QR)</h2>
+                    <p class="section-desc">تهيئة وتعيين الأجهزة كـ Device Owner عبر مسح الرمز فوراً.</p>
                 </div>
 
                 <div class="qr-layout">
                     <!-- Left: Configuration Form -->
                     <div class="form-container" style="flex: 1;">
-                        <h3 style="margin-bottom: 16px; font-size: 15px;">1. Enrollment Parameters</h3>
+                        <h3 style="margin-bottom: 14px; font-size: 14.5px;">بيانات التجهيز السريع</h3>
 
                         <div class="form-group">
-                            <label for="qrDeviceTag" id="lblQrDeviceTag">اسم / وسم الجهاز (Device Name / Tag) *</label>
+                            <label for="qrDeviceTag" id="lblQrDeviceTag">اسم / وسم الجهاز *</label>
                             <input type="text" id="qrDeviceTag" class="form-input" value="POS-TERMINAL-01"
                                 placeholder="مثال: كاشير 1 أو POS-01" oninput="generateQrCode()">
-                            <small style="color: #64748B; font-size: 11px;" id="descQrDeviceTag">يتم تثبيت هذا الاسم
-                                تلقائياً في الجهاز عند مسح كود الـ QR بعد الفرمتة.</small>
+                            <small style="color: #64748B; font-size: 11px;" id="descQrDeviceTag">يُعيّن هذا الاسم للجهاز تلقائياً بعد مسح الكود.</small>
                         </div>
 
                         <div class="form-group">
-                            <label for="qrCompanySelect" id="lblQrCompany">الشركة التابعة للجهاز (Assigned
-                                Company)</label>
+                            <label for="qrCompanySelect" id="lblQrCompany">الشركة التابعة للجهاز</label>
                             <select id="qrCompanySelect" class="form-input" onchange="onQrCompanyChange()"></select>
-                            <small style="color: #64748B; font-size: 11px;">سيتم ربط الجهاز باشتراك هذه الشركة تلقائياً
-                                فور التجهيز.</small>
+                            <small style="color: #64748B; font-size: 11px;">يتم ربط الجهاز بهذه الشركة تلقائياً.</small>
                         </div>
 
                         <div class="form-group">
                             <label for="qrDownloadUrl">APK Download URL (Hosted on this PC)</label>
                             <input type="text" id="qrDownloadUrl" class="form-input"
                                 value="http://192.168.0.101:3000/download/nexus-agent.apk">
-                            <small style="color: #64748B; font-size: 11px;">The target phone must be able to reach this
-                                IP over local Wi-Fi.</small>
+                            <small style="color: #64748B; font-size: 11px;">The target phone must be able to reach this IP.</small>
                         </div>
 
                         <div class="form-group">
@@ -613,20 +607,18 @@
 
                         <div style="display: flex; gap: 12px;">
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiSsid">Wi-Fi Network Name (SSID) <small
-                                        style="color:#94A3B8;">Optional</small></label>
+                                <label for="qrWifiSsid">Wi-Fi SSID <small style="color:#94A3B8;">Optional</small></label>
                                 <input type="text" id="qrWifiSsid" class="form-input" placeholder="e.g., Office-WiFi">
                             </div>
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiPassword">Wi-Fi Password <small
-                                        style="color:#94A3B8;">Optional</small></label>
+                                <label for="qrWifiPassword">Wi-Fi Password <small style="color:#94A3B8;">Optional</small></label>
                                 <input type="password" id="qrWifiPassword" class="form-input" placeholder="Password">
                             </div>
                         </div>
 
                         <div style="display: flex; gap: 10px; margin-top: 12px;">
-                            <button class="btn btn-primary" onclick="generateQrCode()">Regenerate QR Code</button>
-                            <button class="btn btn-secondary" onclick="copyQrJson()">Copy JSON Payload</button>
+                            <button class="btn btn-primary" onclick="generateQrCode()">توليد رمز QR</button>
+                            <button class="btn btn-secondary" onclick="copyQrJson()">نسخ كود JSON</button>
                         </div>
                     </div>
 
@@ -636,15 +628,12 @@
                             <div id="qrcodeCanvas"></div>
                         </div>
                         <div class="qr-instructions">
-                            <h4>How to Enroll Fresh / Factory Reset Phone:</h4>
+                            <h4>خطوات التجهيز بعد الفرمتة:</h4>
                             <ol>
-                                <li>Turn on new or freshly factory-reset Android device.</li>
-                                <li>At the first <strong>"Welcome" (مرحباً)</strong> screen, tap <strong>6 times
-                                        rapidly</strong> anywhere on the screen.</li>
-                                <li>The phone's enterprise QR camera will automatically activate.</li>
-                                <li>Point the camera at this QR code on your laptop screen.</li>
-                                <li>The phone will download Nexus, configure <strong>Device Owner</strong>, and launch
-                                    the Kiosk automatically!</li>
+                                <li>شغّل الهاتف الجديد أو المفرمت.</li>
+                                <li>في شاشة الترحيب (Welcome)، انقر 6 نقرات متتالية في أي مكان على الشاشة.</li>
+                                <li>وجّه كاميرا التجهيز نحو رمز QR.</li>
+                                <li>سيكتمل التثبيت والتسجيل وتفعيل وضع الكشك تلقائياً.</li>
                             </ol>
                         </div>
                     </div>
@@ -655,18 +644,17 @@
             <section id="tab-branches" class="tab-pane">
                 <div class="pane-header">
                     <div>
-                        <h2 id="branchesSectionTitle">إدارة الفروع والويبات الفرعية</h2>
-                        <p class="section-desc" id="branchesSectionDesc">إنشاء حسابات دخول ويب مستقلة لكل فرع برقم دخول
-                            خاص مع حظر فك وضع الكشك للفروع وحصره بالإدارة الرئيسية.</p>
+                        <h2 id="branchesSectionTitle">إدارة الفروع</h2>
+                        <p class="section-desc" id="branchesSectionDesc">حسابات الويب الفرعية وإدارة صلاحيات الفروع.</p>
                     </div>
                     <div class="pane-actions" style="display:flex; align-items:center; gap:12px;">
                         <div class="branches-quota-badge"
-                            style="background:#EFF6FF; border:1px solid #BFDBFE; padding:6px 14px; font-size:13px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px;">
-                            <span>حصة الفروع المتاحة:</span>
+                            style="background:rgba(239,246,255,0.7); border:1px solid rgba(191,219,254,0.8); padding:5px 12px; font-size:12.5px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px; border-radius:8px;">
+                            <span>حصة الفروع:</span>
                             <span id="branchesQuotaDisplay">0 من 5</span>
                         </div>
                         <button class="btn btn-primary btn-sm" id="btnAddBranchBtn" onclick="openAddBranchModal()">
-                            <span>إضافة ويب فرعي جديد</span>
+                            <span>إضافة فرع جديد</span>
                         </button>
                     </div>
                 </div>
@@ -743,17 +731,16 @@
     <!-- Quick Rename Device Modal -->
     <div id="companyRenameModal" class="modal" style="display:none;">
         <div class="modal-card">
-            <h3 id="renameModalTitle">إعادة تسمية الجهاز عن بعد</h3>
-            <p id="renameModalDesc">أدخل الاسم الجديد للجهاز، وسيتم تحديثه فوراً في النظام وتوجيه أمر عن بعد لتحديثه
-                داخل هاتف العميل.</p>
+            <h3 id="renameModalTitle">إعادة تسمية الجهاز</h3>
+            <p id="renameModalDesc">أدخل الاسم الجديد للجهاز للتحديث الفوري.</p>
             <input type="hidden" id="adminRenameDeviceId">
             <div class="form-group" style="margin: 16px 0;">
                 <input type="text" id="adminRenameInput" class="form-input"
-                    placeholder="اسم الجهاز الجديد (مثال: كاشير 1)">
+                    placeholder="اسم الجهاز الجديد">
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeRenameModal()">إلغاء</button>
-                <button class="btn btn-primary" onclick="confirmDeviceRename()">حفظ وتحديث الاسم</button>
+                <button class="btn btn-primary" onclick="confirmDeviceRename()">حفظ التسمية</button>
             </div>
         </div>
     </div>
@@ -762,27 +749,26 @@
     <div id="modalAddBranch" class="modal" style="display:none;">
         <div class="modal-card" style="max-width:520px;">
             <div class="modal-header-flex"
-                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
-                <h3 style="margin:0; font-size:17px; font-weight:700; color:#0F172A;">إضافة ويب فرعي جديد للفرع</h3>
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(226,232,240,0.8); padding-bottom:12px;">
+                <h3 style="margin:0; font-size:16px; font-weight:700; color:#0F172A;">إضافة فرع جديد</h3>
                 <button class="btn-close" onclick="closeAddBranchModal()">&times;</button>
             </div>
             <form onsubmit="submitCreateBranch(event)">
                 <div class="form-group mb-3 text-start">
                     <label for="branchNameInput">اسم الفرع *</label>
                     <input type="text" id="branchNameInput" class="form-input"
-                        placeholder="مثال: فرع الكرادة، فرع المنصور" required>
+                        placeholder="فرع الكرادة، فرع المنصور" required>
                 </div>
                 <div class="form-group mb-3 text-start">
-                    <label for="branchNumberInput">رقم الدخول (رقم هاتف أو رقم المعرف الخاص بالفرع) *</label>
+                    <label for="branchNumberInput">رقم الدخول (المعرف) *</label>
                     <input type="text" id="branchNumberInput" class="form-input" dir="ltr"
-                        placeholder="مثال: 07701234567 أو 101" required>
-                    <small style="color:#64748B; font-size:11.5px; display:block; margin-top:4px;">يستخدمه مسؤول الفرع
-                        لتسجيل الدخول إلى لوحة التحكم الخاصة به بدلاً من البريد.</small>
+                        placeholder="07701234567 أو 101" required>
+                    <small style="color:#64748B; font-size:11px; display:block; margin-top:4px;">يستخدمه مسؤول الفرع لتسجيل الدخول.</small>
                 </div>
                 <div class="row-2 mb-3" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="form-group text-start">
                         <label for="branchCodeInput">كود الفرع</label>
-                        <input type="text" id="branchCodeInput" class="form-input" dir="ltr" placeholder="مثال: BR-01">
+                        <input type="text" id="branchCodeInput" class="form-input" dir="ltr" placeholder="BR-01">
                     </div>
                     <div class="form-group text-start">
                         <label for="branchPasswordInput">كلمة المرور *</label>
@@ -791,9 +777,8 @@
                     </div>
                 </div>
                 <div
-                    style="background:#FEF3C7; border:1px solid #FDE68A; padding:10px 12px; margin-bottom:16px; font-size:12px; color:#92400E; line-height:1.5;">
-                    <strong>ملاحظة أمنية:</strong> لا يمتلك مسؤولو الفروع رمز الأدمن ولا صلاحية فك أو إلغاء وضع الكشك
-                    للأجهزة المدارة؛ صلاحية إلغاء الكشك محصورة بالشركة الرئيسية فقط.
+                    style="background:rgba(254,243,199,0.7); border:1px solid rgba(253,230,138,0.8); padding:8px 12px; margin-bottom:14px; font-size:11.5px; color:#92400E; line-height:1.4; border-radius:8px;">
+                    <strong>ملاحظة أمنية:</strong> صلاحية إلغاء وضع الكشك محصورة بالإدارة العامة فقط.
                 </div>
                 <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:8px;">
                     <button type="button" class="btn btn-secondary" onclick="closeAddBranchModal()">إلغاء</button>

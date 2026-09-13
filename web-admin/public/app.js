@@ -850,7 +850,7 @@ function renderDeviceTable(devices) {
                 <td>
                     <div style="display:flex; align-items:center; gap:5px; line-height:1.2;">
                         <strong style="color:#0F172A; font-size:12px;">${d.battery || 0}%</strong>
-                        ${d.isCharging ? '<span style="color:#D97706; font-size:10px; font-weight:700;">⚡</span>' : ''}
+                        ${d.isCharging ? '<span style="color:#2563EB; display:inline-flex; align-items:center;" title="جاري الشحن"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>' : ''}
                         <small style="color:#64748B; font-size:10.5px; margin-right:4px;">${d.temperature || 0}°C</small>
                     </div>
                     <div style="width:65px; height:3.5px; background:#E2E8F0; margin-top:3px; border-radius:2px; overflow:hidden;">
