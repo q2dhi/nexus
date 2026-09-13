@@ -850,7 +850,7 @@ function renderDeviceTable(devices) {
                 <td>
                     <div style="display:flex; align-items:center; gap:5px; line-height:1.2;">
                         <strong style="color:#0F172A; font-size:12px;">${d.battery || 0}%</strong>
-                        ${d.isCharging ? '<span style="color:#2563EB; display:inline-flex; align-items:center;" title="جاري الشحن"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>' : ''}
+                        ${d.isCharging ? '<span class="battery-charging-chip" title="جاري الشحن">شحن</span>' : ''}
                         <small style="color:#64748B; font-size:10.5px; margin-right:4px;">${d.temperature || 0}°C</small>
                     </div>
                     <div style="width:65px; height:3.5px; background:#E2E8F0; margin-top:3px; border-radius:2px; overflow:hidden;">
@@ -871,7 +871,6 @@ function renderDeviceTable(devices) {
                 <td>
                     <div class="actions-cell">
                         <button type="button" class="btn-action-primary-compact" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();" title="${isRtl ? 'عرض لوحة التحكم والإجراءات' : 'Manage Device'}">
-                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1.5px; margin-left:3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0 2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                             <span>${isRtl ? 'إدارة وتحكم' : 'Manage'}</span>
                         </button>
                     </div>
@@ -1249,7 +1248,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "محرك المسح الضوئي لأجهزة Honeywell CT47/CT40",
         packages: ["com.honeywell.decode", "com.honeywell.demos.scandemo", "com.honeywell.tools.scanwedge"],
         primaryPkg: "com.honeywell.decode",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="8" x2="7" y2="16"></line><line x1="12" y1="8" x2="12" y2="16"></line><line x1="17" y1="8" x2="17" y2="16"></line></svg>`
+        icon: ""
     },
     {
         id: "hw_settings",
@@ -1257,7 +1256,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "لوحة ضبط العتاد وتهيئة أجهزة Honeywell",
         packages: ["com.honeywell.systemsettings", "com.honeywell.tools.ezconfig", "com.android.settings"],
         primaryPkg: "com.honeywell.systemsettings",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
+        icon: ""
     },
     {
         id: "hw_browser",
@@ -1265,7 +1264,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "تصفح الأنظمة السحابية وبوابات العمل",
         packages: ["com.honeywell.enterprisebrowser", "com.android.chrome"],
         primaryPkg: "com.honeywell.enterprisebrowser",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>`
+        icon: ""
     },
     {
         id: "camera",
@@ -1273,7 +1272,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "التقاط الصور والمستندات في أجهزة هني ويل (SnapCam/AOSP)",
         packages: ["org.codeaurora.snapcam", "com.android.camera2", "com.google.android.GoogleCamera", "com.honeywell.camera", "com.sec.android.app.camera"],
         primaryPkg: "org.codeaurora.snapcam",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`
+        icon: ""
     },
     {
         id: "calculator",
@@ -1281,7 +1280,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "حاسبة النظام (Google Calculator / AOSP Calc)",
         packages: ["com.google.android.calculator", "com.android.calculator2", "com.android.calculator", "com.sec.android.app.popupcalculator"],
         primaryPkg: "com.google.android.calculator",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>`
+        icon: ""
     },
     {
         id: "files",
@@ -1289,7 +1288,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "تصفح وإدارة مستندات الجهاز",
         packages: ["com.android.documentsui", "com.honeywell.filebrowser", "com.google.android.apps.nbu.files"],
         primaryPkg: "com.android.documentsui",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`
+        icon: ""
     },
     {
         id: "dialer",
@@ -1297,7 +1296,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "إجراء المكالمات ولوحة الاتصال",
         packages: ["com.android.dialer", "com.google.android.dialer"],
         primaryPkg: "com.android.dialer",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`
+        icon: ""
     },
     {
         id: "maps",
@@ -1305,7 +1304,7 @@ const QUICK_SUGGESTIONS = [
         subtitle: "تطبيق الخرائط والملاحة",
         packages: ["com.google.android.apps.maps"],
         primaryPkg: "com.google.android.apps.maps",
-        icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>`
+        icon: ""
     }
 ];
 
@@ -1358,21 +1357,12 @@ function renderQuickSuggestions() {
         const isSelected = s.packages.some(pkg => currentWhitelistPackages.includes(pkg));
         return `
             <div class="kiosk-suggestion-card ${isSelected ? 'selected' : ''}" onclick="toggleQuickSuggestion('${s.id}')" title="انقر لتفعيل أو إلغاء تطبيق ${escapeHtml(s.title)}">
-                <div class="kiosk-suggestion-icon">
-                    ${s.icon}
-                </div>
                 <div class="kiosk-suggestion-info">
                     <span class="kiosk-suggestion-title">${escapeHtml(s.title)}</span>
                     <span class="kiosk-suggestion-sub">${escapeHtml(s.subtitle)}</span>
                 </div>
                 <div class="kiosk-suggestion-badge">
-                    ${isSelected ? `
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span>مسموح</span>
-                    ` : `
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        <span>إضافة</span>
-                    `}
+                    <span>${isSelected ? 'مسموح' : 'إضافة'}</span>
                 </div>
             </div>
         `;
@@ -1461,7 +1451,6 @@ function renderWhitelistTags() {
         const label = PRESET_APP_LABELS[pkg] || pkg;
         return `
             <div class="whitelist-tag-chip">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>${escapeHtml(label)}</span>
                 <span class="whitelist-tag-pkg">${escapeHtml(pkg)}</span>
                 <button type="button" class="whitelist-tag-del" onclick="removeWhitelistTag('${escapeHtml(pkg)}')" title="إزالة">&times;</button>
@@ -2705,18 +2694,12 @@ function toggleLoginPasswordVisibility() {
     if (input.type === 'password') {
         input.type = 'text';
         if (eyeIcon) {
-            eyeIcon.innerHTML = `
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                <line x1="1" y1="1" x2="23" y2="23"></line>
-            `;
+            eyeIcon.textContent = 'إخفاء';
         }
     } else {
         input.type = 'password';
         if (eyeIcon) {
-            eyeIcon.innerHTML = `
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-            `;
+            eyeIcon.textContent = 'إظهار';
         }
     }
 }
@@ -2965,11 +2948,6 @@ function renderDacChassis(d) {
             </div>
 
             <div class="sim-screen-center">
-                <div class="sim-shield-icon">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-                    </svg>
-                </div>
                 <div class="sim-device-title" title="${escapeHtml(deviceName)}">${escapeHtml(deviceName)}</div>
                 <span class="sim-lock-badge ${isKiosk ? 'sim-lock-active' : 'sim-lock-idle'}">
                     ${isKiosk ? 'وضع الكشك: مقيد' : 'الوضع: غير مقيد'}
@@ -2979,7 +2957,6 @@ function renderDacChassis(d) {
 
             <div class="sim-screen-bottom">
                 <button class="sim-quick-stream-btn" onclick="dacExecuteStream()">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                     <span>فتح البث المباشر للشاشة</span>
                 </button>
             </div>
@@ -3158,7 +3135,7 @@ function updateDacModalContent(d) {
     if (wlContainer) {
         const apps = d.whitelistedApps || [];
         if (apps.length > 0) {
-            wlContainer.innerHTML = apps.map(pkg => `<span class="dac-app-tag"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-left:3px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>${escapeHtml(pkg)}</span>`).join('');
+            wlContainer.innerHTML = apps.map(pkg => `<span class="dac-app-tag">${escapeHtml(pkg)}</span>`).join('');
         } else {
             wlContainer.innerHTML = '<span style="font-size:12px; color:#94A3B8;">لم يتم تقييد تطبيقات محددة، الهاتف يعمل بالوضع القياسي.</span>';
         }
