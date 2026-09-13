@@ -171,7 +171,7 @@
                         <p class="section-desc" id="fleetSectionDesc">مراقبة الحالة والتحكم المباشر بالأسطول.</p>
                     </div>
                     <div class="pane-actions">
-                        <div class="branch-filter-container" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.6); border:1px solid rgba(226,232,240,0.8); padding:3px 10px; border-radius:8px;">
+                        <div class="branch-filter-container" style="display:inline-flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E2E8F0; padding:3px 10px; border-radius:8px;">
                             <label for="selectFleetBranchFilter" style="font-size:12px; font-weight:700; color:#475569; margin:0;">الفرع:</label>
                             <select id="selectFleetBranchFilter" class="form-input" style="padding:2px 8px; font-size:12px; height:28px; width:auto; border:none; background:transparent; font-weight:700; color:#0F172A; cursor:pointer;" onchange="onFleetBranchFilterChange()">
                                 <option value="ALL">جميع الأجهزة (كافة الفروع)</option>
@@ -335,7 +335,7 @@
 
                 <div class="form-container" style="max-width: 980px;">
                     <!-- Target Device Selector -->
-                    <div class="form-group" style="margin-bottom: 20px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 14px 18px;">
+                    <div class="form-group" style="margin-bottom: 20px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px;">
                         <label for="whitelistDeviceSelect" id="whitelistTargetLbl" style="font-weight: 700; color: #0F172A; margin-bottom: 8px; display: block;">الجهاز المستهدف:</label>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <select id="whitelistDeviceSelect" class="form-input" onchange="onWhitelistDeviceChanged()"
@@ -368,7 +368,7 @@
                     </div>
 
                     <!-- Add Custom Application Section -->
-                    <div style="margin-bottom: 24px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 18px 20px;">
+                    <div style="margin-bottom: 24px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px;">
                         <h3 style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                             
                             <span>إضافة تطبيق مخصص</span>
@@ -407,13 +407,13 @@
                             </button>
                         </div>
 
-                        <div id="whitelistTagsContainer" style="background: rgba(255,255,255,0.7); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; padding: 14px; min-height: 70px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <div id="whitelistTagsContainer" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; min-height: 70px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
 
                     <!-- Selection Summary & Deploy Bar -->
-                    <div class="kiosk-selection-summary-bar" style="margin-top: 20px; padding: 14px 18px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div class="kiosk-selection-summary-bar" style="margin-top: 20px; padding: 14px 18px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 13px; font-weight: 700; color: #0F172A;">
                                 حفظ التغييرات وتطبيقها على الأجهزة:
@@ -442,7 +442,7 @@
                 <div class="form-container" style="max-width: 780px;">
                     <!-- Direct APK Upload Dropzone -->
                     <div class="form-group"
-                        style="background: rgba(255,255,255,0.6); border: 2px dashed rgba(147,197,253,0.8); border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 20px;">
+                        style="background: rgba(255,255,255,0.6); border: 2px dashed #BFDBFE; border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 20px;">
                         <div style="margin-bottom: 8px; display: flex; justify-content: center; color: #2563EB;">
                             
                         </div>
@@ -464,7 +464,7 @@
                                 <span id="otaUploadFileName">جاري الرفع...</span>
                                 <span id="otaUploadPercent">0%</span>
                             </div>
-                            <div style="background: rgba(226,232,240,0.8); border-radius: 6px; height: 8px; overflow: hidden;">
+                            <div style="background: #E2E8F0; border-radius: 6px; height: 8px; overflow: hidden;">
                                 <div id="otaProgressBar"
                                     style="background: #2563EB; width: 0%; height: 100%; transition: width 0.2s;"></div>
                             </div>
@@ -494,7 +494,7 @@
                             placeholder="مثال: com.company.pos">
                     </div>
 
-                    <div class="form-group" style="margin-top: 14px; background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.8); padding: 12px 16px; border-radius: 10px;">
+                    <div class="form-group" style="margin-top: 14px; background: #FFFFFF; border: 1px solid #E2E8F0; padding: 12px 16px; border-radius: 10px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-size: 13px; font-weight: 700; color: #1E293B;">
                             <input type="checkbox" id="chkOtaAutoWhitelist" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: #2563EB;">
                             <span>السماح بالتطبيق وإظهاره تلقائياً في وضع الكشك فور تثبيته</span>
@@ -598,7 +598,7 @@
                     </div>
                     <div class="pane-actions" style="display:flex; align-items:center; gap:12px;">
                         <div class="branches-quota-badge"
-                            style="background:rgba(239,246,255,0.7); border:1px solid rgba(191,219,254,0.8); padding:5px 12px; font-size:12.5px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px; border-radius:8px;">
+                            style="background:#EFF6FF; border:1px solid #BFDBFE; padding:5px 12px; font-size:12.5px; font-weight:700; color:#1E40AF; display:inline-flex; align-items:center; gap:6px; border-radius:8px;">
                             <span>حصة الفروع:</span>
                             <span id="branchesQuotaDisplay">0 من 5</span>
                         </div>
@@ -698,7 +698,7 @@
     <div id="modalAddBranch" class="modal" style="display:none;">
         <div class="modal-card" style="max-width:520px;">
             <div class="modal-header-flex"
-                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(226,232,240,0.8); padding-bottom:12px;">
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
                 <h3 style="margin:0; font-size:16px; font-weight:700; color:#0F172A;">إضافة فرع جديد</h3>
                 <button class="btn-close" onclick="closeAddBranchModal()">&times;</button>
             </div>
@@ -726,7 +726,7 @@
                     </div>
                 </div>
                 <div
-                    style="background:rgba(254,243,199,0.7); border:1px solid rgba(253,230,138,0.8); padding:8px 12px; margin-bottom:14px; font-size:11.5px; color:#92400E; line-height:1.4; border-radius:8px;">
+                    style="background:#FFFBEB; border:1px solid #FDE68A; padding:8px 12px; margin-bottom:14px; font-size:11.5px; color:#92400E; line-height:1.4; border-radius:8px;">
                     <strong>ملاحظة أمنية:</strong> صلاحية إلغاء وضع الكشك محصورة بالإدارة العامة فقط.
                 </div>
                 <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:8px;">
