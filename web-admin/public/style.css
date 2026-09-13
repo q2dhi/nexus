@@ -562,19 +562,27 @@ body.ltr-mode {
    ========================================================================== */
 
 .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
-    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 22px;
+    align-items: stretch;
 }
 
 .kpi-card {
+    flex: 0 1 270px;
+    width: 270px;
+    max-width: 320px;
+    min-width: 220px;
     background: var(--neo-surface);
     border: var(--neo-border-light);
     border-radius: var(--radius-lg);
-    padding: 18px 22px;
+    padding: 16px 20px;
     box-shadow: var(--neo-shadow-raised-sm);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .kpi-card:hover {
@@ -582,21 +590,25 @@ body.ltr-mode {
     box-shadow: var(--neo-shadow-raised);
 }
 
+.kpi-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .kpi-title {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     display: block;
-    margin-bottom: 6px;
 }
 
 .kpi-val-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
 }
 
 .kpi-val {
@@ -604,25 +616,37 @@ body.ltr-mode {
     font-weight: 800;
     color: var(--slate-900);
     letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
 .kpi-badge {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 2px 7px;
+    padding: 3px 9px;
     border-radius: var(--radius-pill);
+    white-space: nowrap;
 }
 
 .kpi-badge-green {
-    background: rgba(236, 253, 245, 0.85);
+    background: rgba(236, 253, 245, 0.95);
     color: #065F46;
-    border: 1px solid rgba(167, 243, 208, 0.8);
+    border: 1px solid rgba(167, 243, 208, 0.85);
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.06);
 }
 
 .kpi-badge-blue {
-    background: rgba(239, 246, 255, 0.85);
+    background: rgba(239, 246, 255, 0.95);
     color: #1E40AF;
-    border: 1px solid rgba(191, 219, 254, 0.8);
+    border: 1px solid rgba(191, 219, 254, 0.85);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.06);
+}
+
+@media (max-width: 640px) {
+    .kpi-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+        width: 100%;
+    }
 }
 
 /* ==========================================================================
@@ -966,8 +990,8 @@ body.ltr-mode .fleet-table th {
 
 .kiosk-suggestions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
+    gap: 12px;
 }
 
 .btn-action-primary-compact {
@@ -1094,6 +1118,7 @@ body.ltr-mode .fleet-table th {
     grid-template-columns: 1fr 340px;
     gap: 20px;
     align-items: start;
+    max-width: 960px;
 }
 
 @media (max-width: 900px) {
