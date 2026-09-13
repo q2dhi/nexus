@@ -37,8 +37,8 @@
     --brand-blue: #0066FF;
     --brand-blue-dark: #0052CC;
     --brand-blue-gradient: linear-gradient(135deg, #0066FF 0%, #0052CC 100%);
-    --brand-blue-shadow: 5px 5px 14px rgba(0, 102, 255, 0.32), -3px -3px 10px #ffffff;
-    --brand-blue-shadow-hover: 7px 7px 18px rgba(0, 102, 255, 0.42), -4px -4px 12px #ffffff;
+    --brand-blue-shadow: none;
+    --brand-blue-shadow-hover: none;
 
     /* Text Tones (High contrast, clean typography) */
     --text-main: #0F172A;
@@ -100,14 +100,14 @@ body.ltr-mode {
 
 .top-header {
     background: var(--neo-surface);
-    border: var(--neo-border-light);
+    border: 1px solid rgba(218, 228, 238, 0.8);
     border-radius: var(--radius-xl);
     padding: 12px 22px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 22px;
-    box-shadow: var(--neo-shadow-raised);
+    box-shadow: none;
     flex-wrap: wrap;
     gap: 12px;
 }
@@ -234,12 +234,12 @@ body.ltr-mode {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #E4ECF4;
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: #E8EFF5;
+    border: 1px solid rgba(218, 228, 238, 0.8);
     border-radius: var(--radius-pill);
-    padding: 6px;
+    padding: 5px;
     margin-bottom: 24px;
-    box-shadow: var(--neo-shadow-sunken);
+    box-shadow: none;
     overflow-x: auto;
 }
 
@@ -249,7 +249,7 @@ body.ltr-mode {
     justify-content: center;
     padding: 9px 22px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--radius-pill);
     color: var(--text-muted);
     font-size: 13px;
@@ -261,14 +261,16 @@ body.ltr-mode {
 
 .nav-tab:hover {
     color: var(--brand-blue);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: none;
 }
 
 .nav-tab.active {
     background: #FFFFFF;
     color: var(--brand-blue);
     font-weight: 700;
-    box-shadow: 4px 4px 10px #cad6e3, -4px -4px 10px #ffffff;
+    box-shadow: none;
+    border-color: rgba(205, 218, 232, 0.9);
     animation: navPillPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -405,22 +407,17 @@ body.ltr-mode {
     border: none !important;
     border-radius: 12px;
     font-weight: 700;
-    box-shadow: var(--brand-blue-shadow);
+    box-shadow: none !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
 }
 .btn-primary:hover {
-    box-shadow: var(--brand-blue-shadow-hover);
+    box-shadow: none !important;
     transform: translateY(-1px);
 }
 .btn-primary:active {
     box-shadow: inset 3px 3px 6px rgba(0, 60, 160, 0.5), inset -3px -3px 6px rgba(255, 255, 255, 0.2) !important;
     transform: translateY(0);
-}
-
-.btn-primary:hover {
-    box-shadow: 0 6px 18px 0 rgba(37, 99, 235, 0.42), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
-    transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -527,13 +524,8 @@ body.ltr-mode {
 .form-input:focus {
     background: #FFFFFF;
     border-color: var(--brand-blue);
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15), var(--neo-shadow-sunken-sm);
-}
-
-.form-input:focus {
-    border-color: rgba(37, 99, 235, 0.6);
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12), inset 0 1px 2px rgba(15, 23, 42, 0.02);
+    box-shadow: none;
+    outline: none;
 }
 
 .form-input-sm {
@@ -703,8 +695,9 @@ body.ltr-mode .fleet-search-box input {
 
 .fleet-search-box input:focus {
     background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(37, 99, 235, 0.5);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: var(--brand-blue);
+    box-shadow: none;
+    outline: none;
 }
 
 .search-clear-btn {
@@ -754,9 +747,9 @@ body.ltr-mode .search-clear-btn {
 
 .filter-pill.active {
     background: #FFFFFF;
-    color: var(--brand-accent);
+    color: var(--brand-blue);
     border-color: rgba(191, 219, 254, 0.9);
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+    box-shadow: none;
     font-weight: 700;
 }
 
@@ -1078,7 +1071,7 @@ body.ltr-mode .fleet-table th {
 .kiosk-suggestion-card.selected .kiosk-suggestion-badge {
     background: var(--brand-blue);
     color: #FFFFFF;
-    box-shadow: 2px 2px 6px rgba(0, 102, 255, 0.35);
+    box-shadow: none;
 }
 
 .whitelist-tag {
@@ -1938,13 +1931,8 @@ body.ltr-mode .dac-btn { text-align: left; }
 .input-with-icon .login-input:focus {
     background: #FFFFFF;
     border-color: var(--brand-blue);
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15), var(--neo-shadow-sunken-sm);
-}
-
-.input-with-icon .login-input:focus {
-    background: #FFFFFF;
-    border-color: var(--brand-accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    box-shadow: none;
+    outline: none;
 }
 
 /* RTL Password toggle */
