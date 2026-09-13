@@ -261,6 +261,7 @@ body.ltr-mode {
 
 .nav-tab:hover {
     color: var(--brand-blue);
+    transform: translateY(-1px);
 }
 
 .nav-tab.active {
@@ -268,24 +269,37 @@ body.ltr-mode {
     color: var(--brand-blue);
     font-weight: 700;
     box-shadow: 4px 4px 10px #cad6e3, -4px -4px 10px #ffffff;
+    animation: navPillPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes navPillPop {
+    0% { transform: scale(0.96); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 /* ==========================================================================
-   TAB PANES & PANE HEADERS
+   TAB PANES & PANE HEADERS (SMOOTH TRANSITION ANIMATION)
    ========================================================================== */
 
 .tab-pane {
     display: none;
-    animation: paneFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab-pane.active {
     display: block;
+    animation: tabSmoothTransition 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes paneFadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes tabSmoothTransition {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .pane-header {
