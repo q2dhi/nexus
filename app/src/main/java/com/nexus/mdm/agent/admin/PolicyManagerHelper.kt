@@ -244,20 +244,16 @@ class PolicyManagerHelper(private val context: Context) {
     }
 
     /**
-     * Automatically activates NexusAccessibilityService via Device Owner privileges.
+     * Automatically permits and prepares NexusAccessibilityService via Device Owner privileges.
      * Ensures system-wide remote touch, navigation, and screen streaming across all third-party apps.
      */
     fun ensureAccessibilityServiceActive(context: Context): Boolean {
         if (!isDeviceOwner()) return false
         return try {
+            // Unrestrict accessibility services so Nexus can be toggled by user or system
             dpm.setPermittedAccessibilityServices(adminComponent, null)
-            dpm.setPermissionGrantState(
-                adminComponent,
-                context.packageName,
-                android.Manifest.permission.WRITE_SECURE_SETTINGS,
-                DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
-            )
 
+            // If WRITE_SECURE_SETTINGS is present (e.g., granted via ADB or system image), auto-activate directly
             val expectedService = "${context.packageName}/${com.nexus.mdm.agent.remote.NexusAccessibilityService::class.java.canonicalName}"
             val currentEnabled = android.provider.Settings.Secure.getString(
                 context.contentResolver,
@@ -265,22 +261,26 @@ class PolicyManagerHelper(private val context: Context) {
             ) ?: ""
 
             if (!currentEnabled.contains(expectedService)) {
-                val updated = if (currentEnabled.isEmpty()) expectedService else "$currentEnabled:$expectedService"
-                android.provider.Settings.Secure.putString(
-                    context.contentResolver,
-                    android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-                    updated
-                )
-                android.provider.Settings.Secure.putString(
-                    context.contentResolver,
-                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED,
-                    "1"
-                )
-                AppLogger.securityAudit("A11Y_POLICY", "Auto-enabled Nexus Accessibility Service for remote control: $updated")
+                try {
+                    val updated = if (currentEnabled.isEmpty()) expectedService else "$currentEnabled:$expectedService"
+                    android.provider.Settings.Secure.putString(
+                        context.contentResolver,
+                        android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                        updated
+                    )
+                    android.provider.Settings.Secure.putString(
+                        context.contentResolver,
+                        android.provider.Settings.Secure.ACCESSIBILITY_ENABLED,
+                        "1"
+                    )
+                    AppLogger.securityAudit("A11Y_POLICY", "Auto-enabled Nexus Accessibility Service for remote control: $updated")
+                } catch (se: SecurityException) {
+                    AppLogger.i("PolicyManager", "Direct secure settings write restricted by Android OS. Service is permitted via DPM; user toggle in Settings activates it.")
+                }
             }
             true
         } catch (e: Exception) {
-            AppLogger.w("PolicyManager", "Could not auto-enable accessibility service: ${e.message}")
+            AppLogger.w("PolicyManager", "Could not configure accessibility service: ${e.message}")
             false
         }
     }

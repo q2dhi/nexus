@@ -126,6 +126,19 @@ class CommandDispatcher(
                     Result.success("Live screen streaming stopped.")
                 }
 
+                "OPEN_ACCESSIBILITY_SETTINGS" -> {
+                    try {
+                        val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            putExtra("EXTRA_OPEN_A11Y_SETTINGS", true)
+                        }
+                        context.startActivity(intent)
+                        Result.success("Accessibility activation screen opened on device.")
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                }
+
                 "TEST_TAMPER_ALARM" -> {
                     val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)

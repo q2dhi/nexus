@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.nexus.mdm.agent.util.AppLogger
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.Executors
 
@@ -50,23 +51,40 @@ class NexusAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
+    private val screenshotMutex = kotlinx.coroutines.sync.Mutex()
+    @Volatile
+    private var lastScreenshotTime = 0L
+
     /**
      * Captures a system-wide hardware-accelerated screenshot of the device display across all applications.
      * Uses Android 11+ (API 30+) AccessibilityService.takeScreenshot API without any user prompts.
+     * Implements strict rate-limit protection to avoid Android's ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT (code 3).
      */
     suspend fun captureScreen(): Bitmap? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return null
         }
 
-        val deferred = CompletableDeferred<Bitmap?>()
+        // Only one screenshot in-flight at a time
+        if (!screenshotMutex.tryLock()) {
+            return null
+        }
 
-        try {
+        return try {
+            val now = System.currentTimeMillis()
+            val elapsedSinceLast = now - lastScreenshotTime
+            if (elapsedSinceLast < 400L) {
+                delay(400L - elapsedSinceLast)
+            }
+
+            val deferred = CompletableDeferred<Bitmap?>()
+
             takeScreenshot(
                 Display.DEFAULT_DISPLAY,
                 screenshotExecutor,
                 object : TakeScreenshotCallback {
                     override fun onSuccess(screenshotResult: ScreenshotResult) {
+                        lastScreenshotTime = System.currentTimeMillis()
                         try {
                             val hardwareBuffer = screenshotResult.hardwareBuffer
                             val colorSpace = screenshotResult.colorSpace
@@ -82,22 +100,28 @@ class NexusAccessibilityService : AccessibilityService() {
                     }
 
                     override fun onFailure(errorCode: Int) {
-                        AppLogger.w("AccessibilityService", "takeScreenshot failed with code: $errorCode")
+                        lastScreenshotTime = System.currentTimeMillis()
+                        val errorName = when (errorCode) {
+                            1 -> "ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR"
+                            2 -> "ERROR_TAKE_SCREENSHOT_NO_ACCESSIBILITY_ACCESS"
+                            3 -> "ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT"
+                            4 -> "ERROR_TAKE_SCREENSHOT_INVALID_DISPLAY"
+                            else -> "UNKNOWN_ERROR_$errorCode"
+                        }
+                        AppLogger.w("AccessibilityService", "takeScreenshot failed with code: $errorCode ($errorName)")
                         deferred.complete(null)
                     }
                 }
             )
-        } catch (e: Exception) {
-            AppLogger.w("AccessibilityService", "Exception requesting system screenshot: ${e.message}")
-            deferred.complete(null)
-        }
 
-        return try {
-            withTimeoutOrNull(600L) {
+            withTimeoutOrNull(1500L) {
                 deferred.await()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.w("AccessibilityService", "Exception requesting system screenshot: ${e.message}")
             null
+        } finally {
+            screenshotMutex.unlock()
         }
     }
 

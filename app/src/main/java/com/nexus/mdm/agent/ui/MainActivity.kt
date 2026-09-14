@@ -448,6 +448,14 @@ class MainActivity : AppCompatActivity() {
         rvKioskApps = findViewById(R.id.rvKioskApps)
         rvKioskApps.layoutManager = GridLayoutManager(this, 3)
 
+        // Accessibility Setup Banner
+        findViewById<View>(R.id.btnActivateA11y)?.setOnClickListener {
+            openAccessibilitySettings()
+        }
+        findViewById<View>(R.id.cardA11yNotice)?.setOnClickListener {
+            openAccessibilitySettings()
+        }
+
         // Admin Console Views
         tvDeviceOwnerBadge = findViewById(R.id.tvDeviceOwnerBadge)
         tvHomeLauncherBadge = findViewById(R.id.tvHomeLauncherBadge)
@@ -561,6 +569,9 @@ class MainActivity : AppCompatActivity() {
             val serverUrl = intent.getStringExtra("EXTRA_SERVER_URL") ?: configStore.serverUrl
             val deviceId = intent.getStringExtra("EXTRA_DEVICE_ID") ?: "DEVICE"
             com.nexus.mdm.agent.remote.ScreenCaptureManager.startStream(applicationContext, serverUrl, deviceId)
+        }
+        if (intent.getBooleanExtra("EXTRA_OPEN_A11Y_SETTINGS", false)) {
+            openAccessibilitySettings()
         }
         if (intent.hasExtra("EXTRA_TRIGGER_TAMPER")) {
             val reason = intent.getStringExtra("EXTRA_TRIGGER_TAMPER") ?: "Security breach detected"
@@ -1351,20 +1362,7 @@ class MainActivity : AppCompatActivity() {
                             ensureDefaultHomeLauncher()
                         }
                         8 -> {
-                            val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
-                            if (isAccActive) {
-                                Toast.makeText(this, "خدمة التحكم السحابي باللمس مفعلة ونشطة بالفعل!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                try {
-                                    val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    }
-                                    startActivity(intent)
-                                    Toast.makeText(this, "يرجى تفعيل خدمة Nexus Remote Cloud Control للتحكم باللمس عن بعد.", Toast.LENGTH_LONG).show()
-                                } catch (_: Exception) {
-                                    Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول.", Toast.LENGTH_SHORT).show()
-                                }
-                            }
+                            openAccessibilitySettings()
                         }
                         9 -> {
                             dialog.dismiss()
@@ -1374,6 +1372,31 @@ class MainActivity : AppCompatActivity() {
                 .show()
         } catch (e: Exception) {
             AppLogger.e("MainActivity", "Failed showing admin action menu", e)
+        }
+    }
+
+    fun openAccessibilitySettings() {
+        try {
+            isLaunchingWhitelistedApp = true
+            if (policyHelper.isDeviceOwner()) {
+                policyHelper.ensureAccessibilityServiceActive(this)
+                val current = policyHelper.dpm.getLockTaskPackages(policyHelper.adminComponent).toMutableSet()
+                if (!current.contains("com.android.settings")) {
+                    current.add("com.android.settings")
+                    policyHelper.dpm.setLockTaskPackages(policyHelper.adminComponent, current.toTypedArray())
+                }
+            }
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            if (am?.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE) {
+                try { stopLockTask() } catch (_: Exception) {}
+            }
+            val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            Toast.makeText(this, "يرجى اختيار Nexus MDM وتفعيل الخدمة للتحكم عن بعد وبث الشاشة.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1481,6 +1504,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         tvCloudStatusBadge.text = "Sync: Ready"
+        
+        // Show activation card if accessibility service is not yet enabled on device
+        val isAccActive = com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
+        findViewById<View>(R.id.cardA11yNotice)?.visibility = if (isAccActive) View.GONE else View.VISIBLE
     }
 
     private fun startClockUpdates() {

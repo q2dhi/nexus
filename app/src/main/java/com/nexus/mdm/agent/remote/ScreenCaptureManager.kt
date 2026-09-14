@@ -58,7 +58,7 @@ object ScreenCaptureManager {
                 }
 
                 // If disconnected from server for a very long time, back off slightly to save battery
-                val interval = if (consecutiveNetworkErrors > 15) 1000L else 320L
+                val interval = if (consecutiveNetworkErrors > 15) 1000L else 480L
                 delay(interval)
             }
         }
@@ -88,9 +88,12 @@ object ScreenCaptureManager {
             }
         }
 
-        // Priority 2: Fallback to PixelCopy if MainActivity is currently active in foreground
+        // Priority 2: Fallback to PixelCopy ONLY IF MainActivity is currently active and RESUMED in foreground
         val mainActivity = MainActivity.instance
-        if (mainActivity != null && !mainActivity.isFinishing && !mainActivity.isDestroyed) {
+        if (mainActivity != null &&
+            mainActivity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) &&
+            !mainActivity.isFinishing && !mainActivity.isDestroyed
+        ) {
             try {
                 val pixelCopyBitmap = capturePixelCopy(mainActivity)
                 if (pixelCopyBitmap != null) {

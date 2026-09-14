@@ -1789,6 +1789,16 @@ function openScreenStream(deviceId, deviceName) {
         kioskLabel.innerText = dev?.isKiosk ? 'إلغاء وضع الكشك' : 'تفعيل وضع الكشك';
     }
 
+    const a11yAlert = document.getElementById('streamA11yAlert');
+    if (a11yAlert) {
+        // If device explicitly reports false, show the alert; if true, hide it
+        if (dev && dev.isAccessibilityActive === false) {
+            a11yAlert.style.display = 'flex';
+        } else {
+            a11yAlert.style.display = 'none';
+        }
+    }
+
     const screenModal = document.getElementById('screenModal');
     if (screenModal) {
         screenModal.style.display = 'flex';
@@ -1876,6 +1886,31 @@ function closeScreenStream() {
     if (wasDacOpenBeforeStream && prevDevice) {
         wasDacOpenBeforeStream = false;
         openDeviceActionCenter(prevDevice);
+    }
+}
+
+async function sendOpenA11ySettingsCommand() {
+    if (!activeStreamDeviceId) return;
+    try {
+        const res = await fetch('/api/commands', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({
+                deviceId: activeStreamDeviceId,
+                command: 'OPEN_ACCESSIBILITY_SETTINGS',
+                payload: { timestamp: Date.now() }
+            })
+        });
+        if (res.ok) {
+            showToast('تم إرسال أمر فتح شاشة تفعيل التحكم عن بعد على الهاتف بنجاح.', 'success');
+        } else {
+            showToast('تعذر إرسال الأمر للجهاز.', 'error');
+        }
+    } catch (_) {
+        showToast('خطأ في الاتصال بالخادم.', 'error');
     }
 }
 
@@ -3176,6 +3211,19 @@ function updateDacModalContent(d) {
     const fTime = document.getElementById('dacFooterTime');
     if (fTime) {
         fTime.innerText = `آخر مزامنة: ${new Date().toLocaleTimeString('ar-EG')}`;
+    }
+
+    const streamBtnSub = document.querySelector('#dacBtnStream small');
+    if (streamBtnSub) {
+        if (d.isAccessibilityActive === false) {
+            streamBtnSub.innerText = '⚠️ يتطلب تفعيل الخدمة على الهاتف';
+            streamBtnSub.style.color = '#D97706';
+            streamBtnSub.style.fontWeight = '700';
+        } else {
+            streamBtnSub.innerText = 'بث حي وتحكم باللمس لجميع التطبيقات';
+            streamBtnSub.style.color = '';
+            streamBtnSub.style.fontWeight = 'normal';
+        }
     }
 
     // Render the hardware chassis mockup
