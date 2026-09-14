@@ -223,6 +223,7 @@ class MainActivity : AppCompatActivity() {
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.setAsDefaultHomeLauncher()
                 policyHelper.setStatusBarDisabled(true)
+                policyHelper.ensureAccessibilityServiceActive(this)
             }
             applyKioskWindowFlags()
             kioskManager.startKiosk(this)
@@ -231,6 +232,7 @@ class MainActivity : AppCompatActivity() {
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.clearDefaultHomeLauncher()
                 policyHelper.setStatusBarDisabled(false)
+                policyHelper.ensureAccessibilityServiceActive(this)
             }
             clearKioskWindowFlags()
         }
@@ -252,11 +254,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // In LockTask mode, pressing Home natively routes back to MainActivity (default launcher).
-        // Only reclaim if LockTask is somehow not active and not launching an authorized app.
-        if (configStore.isKioskEnabled && !isLaunchingWhitelistedApp && !kioskManager.isKioskActive()) {
-            reclaimKioskForeground()
-        }
+        // Do NOT call reclaimKioskForeground() here!
+        // When authorized apps launch, Android triggers onUserLeaveHint. Reclaiming foreground here
+        // prevents third-party apps from displaying and traps the screen on the Kiosk.
     }
 
     override fun onStop() {

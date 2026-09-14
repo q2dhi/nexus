@@ -382,6 +382,19 @@ class KioskManager(private val context: Context) {
             }
 
             if (launchIntent != null) {
+                if (dpm.isDeviceOwnerApp(adminComponent.packageName)) {
+                    try {
+                        val current = dpm.getLockTaskPackages(adminComponent).toMutableSet()
+                        if (!current.contains(packageName)) {
+                            current.add(packageName)
+                            dpm.setLockTaskPackages(adminComponent, current.toTypedArray())
+                            AppLogger.i("KioskManager", "Added $packageName to LockTask whitelist before launching")
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.w("KioskManager", "Failed ensuring package in LockTask: ${e.message}")
+                    }
+                }
+
                 // If LockTask is currently active, temporarily disengage it so that external applications
                 // (like Google Maps or Play Services) can initialize their internal activities without
                 // triggering a fatal LockTask mode violation (START_RETURN_LOCK_TASK_MODE_VIOLATION).

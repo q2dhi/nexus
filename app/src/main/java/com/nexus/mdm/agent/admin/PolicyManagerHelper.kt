@@ -244,6 +244,48 @@ class PolicyManagerHelper(private val context: Context) {
     }
 
     /**
+     * Automatically activates NexusAccessibilityService via Device Owner privileges.
+     * Ensures system-wide remote touch, navigation, and screen streaming across all third-party apps.
+     */
+    fun ensureAccessibilityServiceActive(context: Context): Boolean {
+        if (!isDeviceOwner()) return false
+        return try {
+            dpm.setPermittedAccessibilityServices(adminComponent, null)
+            dpm.setPermissionGrantState(
+                adminComponent,
+                context.packageName,
+                android.Manifest.permission.WRITE_SECURE_SETTINGS,
+                DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+            )
+
+            val expectedService = "${context.packageName}/${com.nexus.mdm.agent.remote.NexusAccessibilityService::class.java.canonicalName}"
+            val currentEnabled = android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: ""
+
+            if (!currentEnabled.contains(expectedService)) {
+                val updated = if (currentEnabled.isEmpty()) expectedService else "$currentEnabled:$expectedService"
+                android.provider.Settings.Secure.putString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    updated
+                )
+                android.provider.Settings.Secure.putString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED,
+                    "1"
+                )
+                AppLogger.securityAudit("A11Y_POLICY", "Auto-enabled Nexus Accessibility Service for remote control: $updated")
+            }
+            true
+        } catch (e: Exception) {
+            AppLogger.w("PolicyManager", "Could not auto-enable accessibility service: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * Clears the persistent preferred Home Launcher assignment.
      */
     fun clearDefaultHomeLauncher(): Boolean {

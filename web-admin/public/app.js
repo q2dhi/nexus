@@ -3150,7 +3150,14 @@ function updateDacModalContent(d) {
     if (wlContainer) {
         const apps = d.whitelistedApps || [];
         if (apps.length > 0) {
-            wlContainer.innerHTML = apps.map(pkg => `<span class="dac-app-tag">${escapeHtml(pkg)}</span>`).join('');
+            wlContainer.innerHTML = apps.map(pkg => {
+                const shortName = pkg.split('.').pop() || pkg;
+                return `<span class="dac-app-tag" title="${escapeHtml(pkg)}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-left:3px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <strong>${escapeHtml(shortName)}</strong>
+                    <small style="opacity:0.75; font-size:9.5px; margin-right:3px;">(${escapeHtml(pkg)})</small>
+                </span>`;
+            }).join('');
         } else {
             wlContainer.innerHTML = '<span style="font-size:12px; color:#94A3B8;">لم يتم تقييد تطبيقات محددة، الهاتف يعمل بالوضع القياسي.</span>';
         }
