@@ -483,6 +483,13 @@ def add_audit_log(action, target, details):
     if len(audit_logs) > 100:
         audit_logs.pop()
 
+SimpleHTTPRequestHandler.extensions_map.update({
+    '.otf': 'font/otf',
+    '.ttf': 'font/ttf',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+})
+
 class NexusAdminHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)

@@ -1,7 +1,56 @@
 /* ==========================================================================
    NEXUS ENTERPRISE MDM — MINIMAL WHITE & ROYAL BLUE DESIGN SYSTEM
    Palette: Pure White & Royal Blue (#0066FF) | Style: Apple / Linear Minimalist
+   Font: Thmanyah Serif Text (Desktop Font)
    ========================================================================== */
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thmanyah Serif';
+    src: url('fonts/thmanyahseriftext-Medium.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
 
 :root {
     /* Background Canvas & Pure White Surfaces */
@@ -57,7 +106,7 @@
     --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
     --shadow-xl: 0 20px 32px -6px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.04);
 
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Cairo", "Segoe UI", Roboto, sans-serif;
+    --font-sans: 'Thmanyah Serif', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Cairo", "Inter", sans-serif;
     --font-mono: "SF Mono", Menlo, Consolas, monospace;
 
     --radius-sm: 8px;
@@ -78,11 +127,16 @@ body {
     background-color: var(--bg-canvas);
     background-image: none !important;
     color: var(--text-main);
+    font-family: var(--font-sans) !important;
     font-size: 13px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+}
+
+button, input, select, textarea, optgroup {
+    font-family: var(--font-sans) !important;
 }
 
 body.rtl-mode {
