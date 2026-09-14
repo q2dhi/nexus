@@ -27,6 +27,10 @@ class NexusApp : Application() {
         AppLogger.i("NexusApp", "Nexus DPC Agent initializing (API ${Build.VERSION.SDK_INT})")
         setupNotificationChannels()
         setupUncaughtExceptionHandler()
+
+        try {
+            com.nexus.mdm.agent.location.LocationTracker.getInstance(this).startTracking()
+        } catch (_: Exception) {}
     }
 
     private fun setupNotificationChannels() {

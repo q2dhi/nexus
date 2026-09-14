@@ -1548,29 +1548,44 @@ async function deployWhitelist() {
 // --------------------------------------------------------------------------
 const customPulseMarkerIcon = L.divIcon({
     className: '',
-    html: '<div style="width:16px; height:16px; background:#1E40AF; border:2px solid #FFFFFF; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -10]
+    html: '<div style="width:20px; height:20px; background:#2563EB; border:3px solid #FFFFFF; border-radius:50%; box-shadow:0 0 12px rgba(37,99,235,0.8), 0 2px 6px rgba(0,0,0,0.3);"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -12]
 });
 
 async function openDeviceTrackModal(deviceId, deviceName) {
     activeTrackDeviceId = deviceId;
-    document.getElementById('trackModalTitle').innerText = `GPS Sentinel: ${deviceName || deviceId}`;
+    document.getElementById('trackModalTitle').innerText = `تتبع الموقع الحي (GPS): ${deviceName || deviceId}`;
     document.getElementById('trackModal').style.display = 'flex';
 
     if (!deviceMap) {
         deviceMap = L.map('deviceMap', { zoomControl: true }).setView([33.3152, 44.3661], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd',
-            attribution: '© OpenStreetMap © CARTO'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(deviceMap);
     }
 
     setTimeout(() => {
         if (deviceMap) deviceMap.invalidateSize();
     }, 200);
+
+    // Proactively send a background GPS ping to request fresh satellite/network fix
+    try {
+        fetch('/api/commands', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({
+                deviceId: deviceId,
+                command: 'REFRESH_GPS',
+                payload: {}
+            })
+        }).catch(() => {});
+    } catch (_) {}
 
     try {
         const res = await fetch('/api/geofence');
@@ -1597,16 +1612,18 @@ function updateDeviceTrackModal(deviceId) {
 
         document.getElementById('hudCoords').innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         document.getElementById('hudSpeed').innerText = `${((loc.speed || 0) * 3.6).toFixed(1)} km/h`;
-        document.getElementById('hudAccuracy').innerText = `±${(loc.accuracy || 0).toFixed(0)} m`;
+        document.getElementById('hudAccuracy').innerText = `±${(loc.accuracy || 0).toFixed(0)} م`;
 
         const isBreached = device.geofenceBreach;
         const statusEl = document.getElementById('hudGeofenceStatus');
-        if (isBreached) {
-            statusEl.innerText = 'OUTSIDE SAFE ZONE';
-            statusEl.className = 'hud-val status-breach';
-        } else {
-            statusEl.innerText = 'INSIDE SAFE ZONE';
-            statusEl.className = 'hud-val status-safe';
+        if (statusEl) {
+            if (isBreached) {
+                statusEl.innerText = 'خارج نطاق الأمان';
+                statusEl.className = 'hud-val status-breach';
+            } else {
+                statusEl.innerText = 'داخل نطاق الأمان';
+                statusEl.className = 'hud-val status-safe';
+            }
         }
 
         if (deviceTrackMarker) {
@@ -1618,7 +1635,8 @@ function updateDeviceTrackModal(deviceId) {
         deviceTrackMarker.bindPopup(`
             <div style="font-family:Cairo,Inter,sans-serif; text-align:center;">
                 <strong style="color:#0F172A; font-size:13px;">${escapeHtml(device.name || device.id)}</strong><br>
-                <small style="color:#64748B;">${escapeHtml(device.model || '')} • ${device.battery}% Battery</small>
+                <small style="color:#64748B;">${escapeHtml(device.model || '')} • ${device.battery}% بطارية</small><br>
+                <small style="color:#2563EB;">إحداثيات: ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
             </div>
         `).openPopup();
 
@@ -1640,6 +1658,50 @@ function updateDeviceTrackModal(deviceId) {
             }).addTo(deviceMap);
         }
         deviceMap.setView([lat, lng], 16);
+    } else {
+        const hudCoords = document.getElementById('hudCoords');
+        if (hudCoords) hudCoords.innerText = 'بانتظار إشارة GPS / الأقمار الصناعية...';
+        const hudSpeed = document.getElementById('hudSpeed');
+        if (hudSpeed) hudSpeed.innerText = '--';
+        const hudAccuracy = document.getElementById('hudAccuracy');
+        if (hudAccuracy) hudAccuracy.innerText = '--';
+        const statusEl = document.getElementById('hudGeofenceStatus');
+        if (statusEl) {
+            statusEl.innerText = 'غير محدد بعد';
+            statusEl.className = 'hud-val';
+        }
+    }
+}
+
+async function requestGpsPing() {
+    if (!activeTrackDeviceId) {
+        showToast('يرجى تحديد جهاز متصل أولاً', 'warning');
+        return;
+    }
+    showToast('جاري إرسال أمر التقاط وتحديث إحداثيات GPS إلى الجهاز...', 'info');
+    try {
+        const res = await fetch('/api/commands', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({
+                deviceId: activeTrackDeviceId,
+                command: 'REFRESH_GPS',
+                payload: {}
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('تم إرسال أمر تحديث الإحداثيات بنجاح!', 'success');
+            setTimeout(fetchDevices, 1500);
+            setTimeout(fetchDevices, 3500);
+        } else {
+            showToast('فشل إرسال الأمر: ' + (data.error || 'خطأ غير معروف'), 'error');
+        }
+    } catch (e) {
+        showToast('خطأ في الاتصال بالخادم: ' + e.message, 'error');
     }
 }
 

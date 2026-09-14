@@ -190,7 +190,39 @@ class MainActivity : AppCompatActivity() {
                             dpm.setPermissionGrantState(admin, "com.google.android.gms", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
                         } catch (_: Exception) {}
                     }
+
+                    // Ensure GPS Location is permanently enabled and restrictions cleared
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        try {
+                            dpm.setLocationEnabled(admin, true)
+                        } catch (_: Exception) {}
+                    }
+                    try {
+                        dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_SHARE_LOCATION)
+                        dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_CONFIG_LOCATION)
+                    } catch (_: Exception) {}
                 } catch (_: Exception) {}
+            }
+
+            // Proactively request runtime location permissions if not already granted
+            val locPermsToRequest = mutableListOf<String>()
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                locPermsToRequest.add(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                locPermsToRequest.add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+            if (locPermsToRequest.isNotEmpty()) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, locPermsToRequest.toTypedArray(), 1002)
+            }
+
+            try {
+                val locTracker = com.nexus.mdm.agent.location.LocationTracker.getInstance(this)
+                locTracker.ensureLocationHardwareEnabled()
+                locTracker.startTracking()
+                locTracker.requestImmediateFix()
+            } catch (e: Exception) {
+                AppLogger.w("MainActivity", "LocationTracker start error: ${e.message}")
             }
 
             try {
@@ -212,6 +244,19 @@ class MainActivity : AppCompatActivity() {
         } catch (t: Throwable) {
             AppLogger.e("MainActivity", "Guarded startup error in onCreate: ${t.message}", t)
         }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        try {
+            val locTracker = com.nexus.mdm.agent.location.LocationTracker.getInstance(this)
+            locTracker.startTracking()
+            locTracker.requestImmediateFix()
+        } catch (_: Exception) {}
     }
 
     override fun onResume() {

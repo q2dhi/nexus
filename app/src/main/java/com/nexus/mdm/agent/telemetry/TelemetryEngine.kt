@@ -93,34 +93,9 @@ class TelemetryEngine(private val context: Context) {
 
     fun getLocationStatus(): LocationInfo? {
         return try {
-            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager ?: return null
-            
-            val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-            if (!hasFine && !hasCoarse) {
-                return null
-            }
-
-            val gpsLoc = try { locationManager.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER) } catch (_: Exception) { null }
-            val netLoc = try { locationManager.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER) } catch (_: Exception) { null }
-            val passiveLoc = try { locationManager.getLastKnownLocation(android.location.LocationManager.PASSIVE_PROVIDER) } catch (_: Exception) { null }
-
-            val bestLoc = listOfNotNull(gpsLoc, netLoc, passiveLoc).maxByOrNull { it.time } ?: return null
-
-            LocationInfo(
-                latitude = bestLoc.latitude,
-                longitude = bestLoc.longitude,
-                accuracy = bestLoc.accuracy,
-                speed = bestLoc.speed,
-                altitude = bestLoc.altitude,
-                timestamp = bestLoc.time,
-                isMock = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) bestLoc.isMock else false
-            )
+            val tracker = com.nexus.mdm.agent.location.LocationTracker.getInstance(context)
+            tracker.startTracking()
+            tracker.getBestLocation()
         } catch (e: Exception) {
             AppLogger.w("TelemetryEngine", "Location acquisition error: ${e.message}")
             null

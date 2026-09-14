@@ -1830,8 +1830,46 @@ body.ltr-mode .dac-btn { text-align: left; }
 .status-safe { color: #059669; }
 
 .device-map-canvas {
-    height: 380px;
+    height: 420px;
     width: 100%;
+    background: #E2E8F0;
+}
+
+.status-breach {
+    color: #DC2626 !important;
+}
+
+.geofence-drawer {
+    padding: 14px 18px;
+    background: #F8FAFC;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.geofence-fields {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.radius-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.radius-field .form-input-sm {
+    width: 90px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    font-size: 13px;
+    background: #FFFFFF;
+    text-align: center;
 }
 
 /* ==========================================================================

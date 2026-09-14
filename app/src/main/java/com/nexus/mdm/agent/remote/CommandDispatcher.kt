@@ -139,6 +139,10 @@ class CommandDispatcher(
                     }
                 }
 
+                "REFRESH_LOCATION", "REFRESH_GPS", "REQUEST_LOCATION" -> {
+                    executeRefreshLocation()
+                }
+
                 "TEST_TAMPER_ALARM" -> {
                     val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -478,6 +482,20 @@ class CommandDispatcher(
             Result.success("App enabled and unhidden: $packageName")
         } catch (e: Exception) {
             AppLogger.e("CommandDispatcher", "Failed to enable app $packageName", e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun executeRefreshLocation(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val tracker = com.nexus.mdm.agent.location.LocationTracker.getInstance(context)
+            tracker.ensureLocationHardwareEnabled()
+            tracker.startTracking()
+            tracker.requestImmediateFix()
+            MdmCloudSyncService.performSyncNow(context)
+            Result.success("GPS location refresh triggered successfully.")
+        } catch (e: Exception) {
+            AppLogger.w("CommandDispatcher", "executeRefreshLocation error: ${e.message}")
             Result.failure(e)
         }
     }

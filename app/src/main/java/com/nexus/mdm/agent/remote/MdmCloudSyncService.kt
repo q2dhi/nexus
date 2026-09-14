@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -25,6 +26,7 @@ import com.nexus.mdm.agent.config.SecureConfigStore
 import com.nexus.mdm.agent.installer.SilentInstaller
 import com.nexus.mdm.agent.kiosk.AppWhitelistManager
 import com.nexus.mdm.agent.kiosk.KioskManager
+import com.nexus.mdm.agent.location.LocationTracker
 import com.nexus.mdm.agent.oem.OemProviderFactory
 import com.nexus.mdm.agent.security.PeripheralPolicyManager
 import com.nexus.mdm.agent.telemetry.TelemetryEngine
@@ -115,6 +117,9 @@ class MdmCloudSyncService : Service() {
         fun performSyncNow(context: Context) {
             // Always chain next RTC alarm first
             scheduleNextRtcAlarm(context)
+            try {
+                LocationTracker.getInstance(context).requestImmediateFix()
+            } catch (_: Exception) {}
 
             val current = instance
             if (current != null) {
@@ -282,6 +287,12 @@ class MdmCloudSyncService : Service() {
         startSyncLoop()
         scheduleNextRtcAlarm(this)
 
+        try {
+            LocationTracker.getInstance(applicationContext).startTracking()
+        } catch (e: Exception) {
+            AppLogger.w("CloudSync", "LocationTracker init warning: ${e.message}")
+        }
+
         AppLogger.i("CloudSync", "Cloud sync service initialized as Foreground Service. Endpoint: ${configStore.serverUrl}")
     }
 
@@ -296,6 +307,9 @@ class MdmCloudSyncService : Service() {
     }
 
     fun triggerImmediateSync() {
+        try {
+            LocationTracker.getInstance(applicationContext).requestImmediateFix()
+        } catch (_: Exception) {}
         if (!serviceJob.isActive) {
             serviceJob = Job()
             scope = CoroutineScope(Dispatchers.IO + serviceJob)
@@ -371,7 +385,17 @@ class MdmCloudSyncService : Service() {
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .build()
 
-            startForeground(NOTIFICATION_ID, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                var fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    fgsType = fgsType or
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
+                }
+                startForeground(NOTIFICATION_ID, notification, fgsType)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
         } catch (e: Exception) {
             AppLogger.w("CloudSync", "startForeground warning: ${e.message}")
         }

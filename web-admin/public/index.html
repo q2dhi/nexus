@@ -887,10 +887,9 @@
                 <div class="modal-header-info">
                     <div class="modal-title-wrap">
                         <span class="pulse-indicator"></span>
-                        <h3 id="trackModalTitle">Device Live GPS Tracking</h3>
+                        <h3 id="trackModalTitle">تتبع الموقع الحي (GPS Sentinel)</h3>
                     </div>
-                    <p id="trackModalSub" class="modal-subtitle">Tracking satellite coordinates &amp; geofence
-                        sentinel...</p>
+                    <p id="trackModalSub" class="modal-subtitle">مراقبة إحداثيات الأقمار الصناعية وشبكة الاتصال ونطاق الأمان الجغرافي</p>
                 </div>
                 <button class="btn-close" onclick="closeDeviceTrackModal()">&times;</button>
             </div>
@@ -898,20 +897,20 @@
             <!-- Floating Telemetry HUD Grid -->
             <div class="hud-grid">
                 <div class="hud-metric-card">
-                    <span class="hud-label">GPS Coordinates</span>
-                    <strong id="hudCoords" class="hud-val">Waiting for satellite...</strong>
+                    <span class="hud-label">إحداثيات GPS</span>
+                    <strong id="hudCoords" class="hud-val">بانتظار التقاط الإشارة...</strong>
                 </div>
                 <div class="hud-metric-card">
-                    <span class="hud-label">Ground Speed</span>
+                    <span class="hud-label">السرعة الأرضية</span>
                     <strong id="hudSpeed" class="hud-val">0.0 km/h</strong>
                 </div>
                 <div class="hud-metric-card">
-                    <span class="hud-label">Signal Accuracy</span>
-                    <strong id="hudAccuracy" class="hud-val">±0 m</strong>
+                    <span class="hud-label">دقة الإشارة</span>
+                    <strong id="hudAccuracy" class="hud-val">±0 م</strong>
                 </div>
                 <div class="hud-metric-card">
-                    <span class="hud-label">Perimeter Status</span>
-                    <strong id="hudGeofenceStatus" class="hud-val status-safe">INSIDE SAFE ZONE</strong>
+                    <span class="hud-label">نطاق الأمان الجغرافي</span>
+                    <strong id="hudGeofenceStatus" class="hud-val status-safe">داخل النطاق الآمن</strong>
                 </div>
             </div>
 
@@ -924,16 +923,16 @@
                     <label class="toggle-control">
                         <input type="checkbox" id="modalGeoEnabled" checked
                             onchange="toggleDeviceGeofence(this.checked)">
-                        <span class="toggle-text">Enforce Perimeter</span>
+                        <span class="toggle-text">تفعيل نطاق الأمان</span>
                     </label>
                     <div class="radius-field">
-                        <span class="radius-label">Perimeter Radius:</span>
+                        <span class="radius-label">نصف القطر:</span>
                         <input type="number" id="modalGeoRadius" step="100" value="3000" class="form-input-sm">
-                        <span class="radius-unit">meters</span>
+                        <span class="radius-unit">متر</span>
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="saveDeviceGeofence()">Save Geofence</button>
-                    <button class="btn btn-secondary btn-sm" onclick="centerOnDeviceLocation()">Center on
-                        Device</button>
+                    <button class="btn btn-primary btn-sm" onclick="requestGpsPing()">تحديث الإحداثيات فوراً (GPS Ping)</button>
+                    <button class="btn btn-secondary btn-sm" onclick="centerOnDeviceLocation()">توسيط على الجهاز</button>
+                    <button class="btn btn-secondary btn-sm" onclick="saveDeviceGeofence()">حفظ النطاق</button>
                 </div>
             </div>
         </div>
