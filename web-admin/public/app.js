@@ -1857,6 +1857,21 @@ function closeScreenStream() {
     activeStreamDeviceId = null;
     isPollingScreen = false;
 
+    if (prevDevice) {
+        fetch('/api/commands', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({
+                deviceId: prevDevice,
+                command: 'STOP_SCREEN_STREAM',
+                payload: { timestamp: Date.now() }
+            })
+        }).catch(() => { });
+    }
+
     // If stream was launched from Device Action Center, seamlessly restore it
     if (wasDacOpenBeforeStream && prevDevice) {
         wasDacOpenBeforeStream = false;

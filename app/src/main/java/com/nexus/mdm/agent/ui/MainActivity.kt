@@ -560,7 +560,7 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra("EXTRA_START_SCREEN_STREAM", false)) {
             val serverUrl = intent.getStringExtra("EXTRA_SERVER_URL") ?: configStore.serverUrl
             val deviceId = intent.getStringExtra("EXTRA_DEVICE_ID") ?: "DEVICE"
-            com.nexus.mdm.agent.remote.ScreenCaptureManager.startStream(this, serverUrl, deviceId)
+            com.nexus.mdm.agent.remote.ScreenCaptureManager.startStream(applicationContext, serverUrl, deviceId)
         }
         if (intent.hasExtra("EXTRA_TRIGGER_TAMPER")) {
             val reason = intent.getStringExtra("EXTRA_TRIGGER_TAMPER") ?: "Security breach detected"
@@ -616,7 +616,7 @@ class MainActivity : AppCompatActivity() {
         if (::antiTamperGuard.isInitialized) {
             antiTamperGuard.stopMonitoring()
         }
-        com.nexus.mdm.agent.remote.ScreenCaptureManager.stopStream()
+        // Keep ScreenCaptureManager running across apps if active
         securityActionDialog?.dismiss()
         securityActionDialog = null
     }

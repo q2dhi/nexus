@@ -103,13 +103,21 @@ class CommandDispatcher(
                     } catch (_: Exception) { "DEVICE" }
                     val deviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
 
-                    val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        putExtra("EXTRA_START_SCREEN_STREAM", true)
-                        putExtra("EXTRA_SERVER_URL", configStore.serverUrl)
-                        putExtra("EXTRA_DEVICE_ID", deviceId)
+                    // Start stream immediately using applicationContext (system-wide capture)
+                    ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, deviceId)
+
+                    // Ensure MainActivity is ready if accessibility service is not yet enabled
+                    if (NexusAccessibilityService.instance == null && com.nexus.mdm.agent.ui.MainActivity.instance == null) {
+                        try {
+                            val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                putExtra("EXTRA_START_SCREEN_STREAM", true)
+                                putExtra("EXTRA_SERVER_URL", configStore.serverUrl)
+                                putExtra("EXTRA_DEVICE_ID", deviceId)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
                     }
-                    context.startActivity(intent)
                     Result.success("Live screen streaming initiated.")
                 }
 

@@ -5,13 +5,18 @@ import android.accessibilityservice.GestureDescription
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Path
 import android.os.Build
 import android.os.Bundle
 import android.util.DisplayMetrics
+import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.nexus.mdm.agent.util.AppLogger
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.Executors
 
 /**
  * Enterprise Remote Cloud Control Accessibility Engine.
@@ -19,6 +24,8 @@ import com.nexus.mdm.agent.util.AppLogger
  * dispatched from the Web Admin cloud interface without requiring ADB or USB cables.
  */
 class NexusAccessibilityService : AccessibilityService() {
+
+    private val screenshotExecutor = Executors.newSingleThreadExecutor()
 
     companion object {
         @Volatile
@@ -36,8 +43,62 @@ class NexusAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         instance = null
+        try {
+            screenshotExecutor.shutdown()
+        } catch (_: Exception) {}
         AppLogger.i("AccessibilityService", "Nexus Remote Accessibility Service destroyed.")
         super.onDestroy()
+    }
+
+    /**
+     * Captures a system-wide hardware-accelerated screenshot of the device display across all applications.
+     * Uses Android 11+ (API 30+) AccessibilityService.takeScreenshot API without any user prompts.
+     */
+    suspend fun captureScreen(): Bitmap? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return null
+        }
+
+        val deferred = CompletableDeferred<Bitmap?>()
+
+        try {
+            takeScreenshot(
+                Display.DEFAULT_DISPLAY,
+                screenshotExecutor,
+                object : TakeScreenshotCallback {
+                    override fun onSuccess(screenshotResult: ScreenshotResult) {
+                        try {
+                            val hardwareBuffer = screenshotResult.hardwareBuffer
+                            val colorSpace = screenshotResult.colorSpace
+                            val hwBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
+                            val softwareBitmap = hwBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                            hwBitmap?.recycle()
+                            hardwareBuffer.close()
+                            deferred.complete(softwareBitmap)
+                        } catch (e: Exception) {
+                            AppLogger.w("AccessibilityService", "Error converting screenshot buffer: ${e.message}")
+                            deferred.complete(null)
+                        }
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        AppLogger.w("AccessibilityService", "takeScreenshot failed with code: $errorCode")
+                        deferred.complete(null)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            AppLogger.w("AccessibilityService", "Exception requesting system screenshot: ${e.message}")
+            deferred.complete(null)
+        }
+
+        return try {
+            withTimeoutOrNull(600L) {
+                deferred.await()
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

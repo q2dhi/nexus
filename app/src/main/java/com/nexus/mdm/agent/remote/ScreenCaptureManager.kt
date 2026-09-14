@@ -1,13 +1,14 @@
 package com.nexus.mdm.agent.remote
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
-import android.os.Looper
 import android.util.Base64
 import android.view.PixelCopy
+import com.nexus.mdm.agent.ui.MainActivity
 import com.nexus.mdm.agent.util.AppLogger
 import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
@@ -17,8 +18,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Enterprise Remote Screen Capture Engine.
- * Takes low-latency hardware-accelerated snapshots of the device screen (via PixelCopy)
- * and streams compressed JPEG frames to the Web Admin live monitor.
+ * Captures live screen frames across the entire Android system (all third-party apps,
+ * settings, and launcher) via NexusAccessibilityService.takeScreenshot (Android 11+ / API 30+)
+ * with fallback to hardware PixelCopy for the Kiosk interface.
+ * Streams compressed JPEG frames to the Web Admin live monitor.
  */
 object ScreenCaptureManager {
 
@@ -29,25 +32,34 @@ object ScreenCaptureManager {
 
     fun isCurrentlyStreaming(): Boolean = isStreaming.get()
 
-    fun startStream(activity: Activity, serverUrl: String, deviceId: String) {
+    fun startStream(context: Context, serverUrl: String, deviceId: String) {
         if (isStreaming.getAndSet(true)) {
             AppLogger.i("ScreenCapture", "Stream already running.")
             return
         }
 
-        AppLogger.securityAudit("SCREEN_STREAM_START", "Remote screen monitoring session started.")
+        AppLogger.securityAudit("SCREEN_STREAM_START", "Remote screen monitoring session started for device $deviceId.")
 
+        val appContext = context.applicationContext
         streamJob = CoroutineScope(Dispatchers.IO).launch {
+            var consecutiveNetworkErrors = 0
             while (isStreaming.get() && isActive) {
                 try {
-                    val frameBase64 = captureFrame(activity)
-                    if (frameBase64 != null) {
-                        pushFrameToServer(activity.applicationContext, serverUrl, deviceId, frameBase64)
+                    val frameBase64 = captureFrame()
+                    val pushed = pushFrameToServer(appContext, serverUrl, deviceId, frameBase64)
+                    if (pushed) {
+                        consecutiveNetworkErrors = 0
+                    } else {
+                        consecutiveNetworkErrors++
                     }
                 } catch (e: Exception) {
+                    consecutiveNetworkErrors++
                     AppLogger.w("ScreenCapture", "Frame capture/push error: ${e.message}")
                 }
-                delay(350) // ~2.8 FPS (responsive and smooth)
+
+                // If disconnected from server for a very long time, back off slightly to save battery
+                val interval = if (consecutiveNetworkErrors > 15) 1000L else 320L
+                delay(interval)
             }
         }
     }
@@ -60,7 +72,64 @@ object ScreenCaptureManager {
         }
     }
 
-    private suspend fun captureFrame(activity: Activity): String? {
+    private suspend fun captureFrame(): String? {
+        // Priority 1: System-wide screenshot via Accessibility Service (Captures ALL apps, launcher, settings)
+        val a11yService = NexusAccessibilityService.instance
+        if (a11yService != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val bitmap = a11yService.captureScreen()
+                if (bitmap != null) {
+                    return withContext(Dispatchers.IO) {
+                        processAndCompressBitmap(bitmap)
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.w("ScreenCapture", "Accessibility screenshot failed: ${e.message}")
+            }
+        }
+
+        // Priority 2: Fallback to PixelCopy if MainActivity is currently active in foreground
+        val mainActivity = MainActivity.instance
+        if (mainActivity != null && !mainActivity.isFinishing && !mainActivity.isDestroyed) {
+            try {
+                val pixelCopyBitmap = capturePixelCopy(mainActivity)
+                if (pixelCopyBitmap != null) {
+                    return withContext(Dispatchers.IO) {
+                        processAndCompressBitmap(pixelCopyBitmap)
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.w("ScreenCapture", "PixelCopy fallback failed: ${e.message}")
+            }
+        }
+
+        return null
+    }
+
+    private fun processAndCompressBitmap(bitmap: Bitmap): String {
+        val targetWidth = 360
+        val targetHeight = if (bitmap.width > 0) (bitmap.height * targetWidth) / bitmap.width else 640
+
+        val scaledBitmap = if (bitmap.width > targetWidth) {
+            try {
+                Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true).also {
+                    if (it !== bitmap) bitmap.recycle()
+                }
+            } catch (_: Exception) {
+                bitmap
+            }
+        } else {
+            bitmap
+        }
+
+        val out = ByteArrayOutputStream()
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 65, out)
+        val bytes = out.toByteArray()
+        scaledBitmap.recycle()
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    }
+
+    private suspend fun capturePixelCopy(activity: Activity): Bitmap? {
         val (window, width, height) = withContext(Dispatchers.Main) {
             val w = activity.window ?: return@withContext Triple(null, 0, 0)
             val v = w.decorView.rootView ?: return@withContext Triple(null, 0, 0)
@@ -71,7 +140,6 @@ object ScreenCaptureManager {
 
         val targetWidth = 360
         val targetHeight = (height * targetWidth) / width
-
         val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
         val success = CompletableDeferred<Boolean>()
 
@@ -94,72 +162,80 @@ object ScreenCaptureManager {
         }
 
         val completed = try {
-            withTimeoutOrNull(600L) {
+            withTimeoutOrNull(450L) {
                 success.await()
             } ?: false
         } catch (_: Exception) {
             false
         }
 
-        return withContext(Dispatchers.IO) {
-            if (completed) {
-                val out = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 65, out)
-                val bytes = out.toByteArray()
-                bitmap.recycle()
-                Base64.encodeToString(bytes, Base64.NO_WRAP)
-            } else {
-                bitmap.recycle()
-                null
-            }
+        return if (completed) bitmap else {
+            bitmap.recycle()
+            null
         }
     }
 
-    private suspend fun pushFrameToServer(context: android.content.Context, serverBaseUrl: String, deviceId: String, frameBase64: String) {
+    private suspend fun pushFrameToServer(
+        context: Context,
+        serverBaseUrl: String,
+        deviceId: String,
+        frameBase64: String?
+    ): Boolean {
         var base = serverBaseUrl.trimEnd('/')
         if (!base.startsWith("http://") && !base.startsWith("https://")) {
             base = "http://$base"
         }
 
         val url = URL("$base/api/devices/$deviceId/screen-frame")
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            setRequestProperty("Content-Type", "application/json")
-            connectTimeout = 3000
-            readTimeout = 3000
-            doOutput = true
-        }
+        var conn: HttpURLConnection? = null
 
-        val json = org.json.JSONObject().apply {
-            put("deviceId", deviceId)
-            put("frame", frameBase64)
-            put("timestamp", System.currentTimeMillis())
-        }
+        return try {
+            conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json")
+                connectTimeout = 3000
+                readTimeout = 3000
+                doOutput = true
+            }
 
-        conn.outputStream.use { os ->
-            os.write(json.toString().toByteArray(Charsets.UTF_8))
-        }
+            val json = org.json.JSONObject().apply {
+                put("deviceId", deviceId)
+                if (frameBase64 != null) {
+                    put("frame", frameBase64)
+                }
+                put("timestamp", System.currentTimeMillis())
+            }
 
-        val code = conn.responseCode
-        if (code == HttpURLConnection.HTTP_OK) {
-            try {
-                val responseText = conn.inputStream.bufferedReader().use { it.readText() }
-                if (responseText.isNotEmpty()) {
-                    val respJson = org.json.JSONObject(responseText)
-                    val actionsArray = respJson.optJSONArray("actions")
-                    if (actionsArray != null && actionsArray.length() > 0) {
-                        for (i in 0 until actionsArray.length()) {
-                            val actionObj = actionsArray.getJSONObject(i)
-                            RemoteInputExecutor.executeAction(context, actionObj)
+            conn.outputStream.use { os ->
+                os.write(json.toString().toByteArray(Charsets.UTF_8))
+            }
+
+            val code = conn.responseCode
+            if (code == HttpURLConnection.HTTP_OK) {
+                try {
+                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                    if (responseText.isNotEmpty()) {
+                        val respJson = org.json.JSONObject(responseText)
+                        val actionsArray = respJson.optJSONArray("actions")
+                        if (actionsArray != null && actionsArray.length() > 0) {
+                            for (i in 0 until actionsArray.length()) {
+                                val actionObj = actionsArray.getJSONObject(i)
+                                RemoteInputExecutor.executeAction(context, actionObj)
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    AppLogger.w("ScreenCapture", "Error reading frame response: ${e.message}")
                 }
-            } catch (e: Exception) {
-                AppLogger.w("ScreenCapture", "Error reading frame response: ${e.message}")
+                true
+            } else {
+                AppLogger.w("ScreenCapture", "Push frame response code: $code")
+                false
             }
-        } else {
-            AppLogger.w("ScreenCapture", "Push frame response code: $code")
+        } catch (e: Exception) {
+            false
+        } finally {
+            conn?.disconnect()
         }
-        conn.disconnect()
     }
 }
