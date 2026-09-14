@@ -1835,6 +1835,16 @@ body.ltr-mode .dac-btn { text-align: left; }
     background: #E2E8F0;
 }
 
+/* Purge any legacy Carto / apikey watermark tiles from browser cache */
+img.leaflet-tile[src*="cartocdn"],
+img.leaflet-tile[src*="carto.com"],
+img.leaflet-tile[src*="apikey"],
+img.leaflet-tile[src*="api-key"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
 .status-breach {
     color: #DC2626 !important;
 }

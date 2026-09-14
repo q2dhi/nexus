@@ -1559,13 +1559,21 @@ async function openDeviceTrackModal(deviceId, deviceName) {
     document.getElementById('trackModalTitle').innerText = `تتبع الموقع الحي (GPS): ${deviceName || deviceId}`;
     document.getElementById('trackModal').style.display = 'flex';
 
-    if (!deviceMap) {
-        deviceMap = L.map('deviceMap', { zoomControl: true }).setView([33.3152, 44.3661], 15);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(deviceMap);
+    if (deviceMap) {
+        try {
+            deviceMap.remove();
+        } catch (_) {}
+        deviceMap = null;
+        deviceTrackMarker = null;
+        deviceGeofenceCircle = null;
     }
+
+    deviceMap = L.map('deviceMap', { zoomControl: true }).setView([33.3152, 44.3661], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c'],
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(deviceMap);
 
     setTimeout(() => {
         if (deviceMap) deviceMap.invalidateSize();
