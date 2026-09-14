@@ -24,6 +24,9 @@ class SecureConfigStore(context: Context) {
         private const val KEY_WHITELISTED_PACKAGES = "cfg_whitelisted_packages"
         private const val KEY_KIOSK_ENABLED = "cfg_kiosk_enabled"
         private const val KEY_COMPANY_CODE = "cfg_company_code"
+        private const val KEY_BRANCH_ID = "cfg_branch_id"
+        private const val KEY_BRANCH_NAME = "cfg_branch_name"
+        private const val KEY_BRANCH_CODE = "cfg_branch_code"
         private const val KEY_SUBSCRIPTION_ACTIVE = "cfg_subscription_active"
 
         private const val DEFAULT_SALT = "NEXUS_MDM_SALT_2026"
@@ -73,6 +76,18 @@ class SecureConfigStore(context: Context) {
     var companyCode: String
         get() = sharedPreferences.getString(KEY_COMPANY_CODE, "NEXUS-DEFAULT") ?: "NEXUS-DEFAULT"
         set(value) = sharedPreferences.edit().putString(KEY_COMPANY_CODE, value).apply()
+
+    var branchId: String
+        get() = sharedPreferences.getString(KEY_BRANCH_ID, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_BRANCH_ID, value).apply()
+
+    var branchName: String
+        get() = sharedPreferences.getString(KEY_BRANCH_NAME, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_BRANCH_NAME, value).apply()
+
+    var branchCode: String
+        get() = sharedPreferences.getString(KEY_BRANCH_CODE, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_BRANCH_CODE, value).apply()
 
     var isSubscriptionActive: Boolean
         get() = sharedPreferences.getBoolean(KEY_SUBSCRIPTION_ACTIVE, true)

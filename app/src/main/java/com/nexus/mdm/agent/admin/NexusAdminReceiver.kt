@@ -47,6 +47,9 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
                 val serverUrl = extrasBundle.getString("server_url")
                 val deviceTag = extrasBundle.getString("device_tag") ?: extrasBundle.getString("device_name")
                 val companyCode = extrasBundle.getString("company_code")
+                val branchId = extrasBundle.getString("branch_id")
+                val branchName = extrasBundle.getString("branch_name")
+                val branchCode = extrasBundle.getString("branch_code")
 
                 if (!serverUrl.isNullOrBlank()) {
                     configStore.serverUrl = serverUrl
@@ -60,6 +63,12 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
                     configStore.companyCode = companyCode
                     AppLogger.i("AdminReceiver", "Configured company code from QR: $companyCode")
                 }
+                if (!branchId.isNullOrBlank()) {
+                    configStore.branchId = branchId
+                    configStore.branchName = branchName ?: ""
+                    configStore.branchCode = branchCode ?: ""
+                    AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
+                }
             } else {
                 val standardExtras = intent.getBundleExtra(android.app.admin.DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
                     ?: intent.extras?.getBundle("android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE")
@@ -67,10 +76,19 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
                     val serverUrl = standardExtras.getString("server_url")
                     val deviceTag = standardExtras.getString("device_tag") ?: standardExtras.getString("device_name")
                     val companyCode = standardExtras.getString("company_code")
+                    val branchId = standardExtras.getString("branch_id")
+                    val branchName = standardExtras.getString("branch_name")
+                    val branchCode = standardExtras.getString("branch_code")
 
                     if (!serverUrl.isNullOrBlank()) configStore.serverUrl = serverUrl
                     if (!deviceTag.isNullOrBlank()) configStore.deviceTag = deviceTag
                     if (!companyCode.isNullOrBlank()) configStore.companyCode = companyCode
+                    if (!branchId.isNullOrBlank()) {
+                        configStore.branchId = branchId
+                        configStore.branchName = branchName ?: ""
+                        configStore.branchCode = branchCode ?: ""
+                        AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
+                    }
                 }
             }
         } catch (e: Exception) {

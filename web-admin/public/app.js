@@ -371,7 +371,12 @@ async function checkCurrentCompanySubscription() {
                 }
             }
 
-            // If user is a branch admin, hide branches management tab!
+            // If user is a branch admin, lock filter and hide branches management tab!
+            if (t.isBranch) {
+                selectedFleetBranch = t.branchId || '';
+                updateFleetBranchFilterDropdown();
+            }
+
             const branchTabNav = document.getElementById('tabNavBranches');
             if (branchTabNav) {
                 if (t.isBranch) {
@@ -425,13 +430,22 @@ function applyScreensPermissions(screens) {
 // --------------------------------------------------------------------------
 // FLEET DEVICES
 // --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// FLEET DEVICES
+// --------------------------------------------------------------------------
 let selectedFleetBranch = 'ALL';
 
 async function fetchDevices() {
     try {
-        let url = `/api/devices?companyCode=${encodeURIComponent(currentCompanyCode)}`;
-        if (selectedFleetBranch && selectedFleetBranch !== 'ALL') {
-            url += `&branchId=${encodeURIComponent(selectedFleetBranch)}`;
+        let branchFilter = selectedFleetBranch;
+        if (currentTenantData && currentTenantData.isBranch && currentTenantData.branchId) {
+            branchFilter = currentTenantData.branchId;
+            selectedFleetBranch = currentTenantData.branchId;
+        }
+
+        let url = `/api/devices?companyCode=${encodeURIComponent(currentCompanyCode || '')}`;
+        if (branchFilter && branchFilter !== 'ALL') {
+            url += `&branchId=${encodeURIComponent(branchFilter)}`;
         }
         const headers = {};
         if (currentTenantToken) headers['X-Tenant-Token'] = currentTenantToken;
@@ -439,11 +453,11 @@ async function fetchDevices() {
 
         const res = await fetch(url, { headers });
         const devices = await res.json();
-        lastDevicesCache = devices;
+        lastDevicesCache = Array.isArray(devices) ? devices : [];
 
         // If Device Action Center is currently open, live-update its content
         if (activeDacDeviceId) {
-            const currentDacDevice = (devices || []).find(d => d.id === activeDacDeviceId);
+            const currentDacDevice = (lastDevicesCache || []).find(d => d.id === activeDacDeviceId);
             if (currentDacDevice) updateDacModalContent(currentDacDevice);
         }
 
@@ -459,15 +473,15 @@ async function fetchDevices() {
 
         const currentOpenDropdown = openDropdownDeviceId ? document.getElementById(`dropdown-${openDropdownDeviceId}`) : null;
         if (currentOpenDropdown && currentOpenDropdown.classList.contains('show')) {
-            updateDeviceSelect(devices);
-            updateHeaderMetrics(devices);
+            updateDeviceSelect(lastDevicesCache);
+            updateHeaderMetrics(lastDevicesCache);
             if (activeTrackDeviceId) updateDeviceTrackModal(activeTrackDeviceId);
             return;
         }
 
-        renderDeviceTable(devices);
-        updateDeviceSelect(devices);
-        updateHeaderMetrics(devices);
+        renderDeviceTable(lastDevicesCache);
+        updateDeviceSelect(lastDevicesCache);
+        updateHeaderMetrics(lastDevicesCache);
 
         if (activeTrackDeviceId) {
             updateDeviceTrackModal(activeTrackDeviceId);
@@ -480,6 +494,17 @@ async function fetchDevices() {
 function updateFleetBranchFilterDropdown() {
     const sel = document.getElementById('selectFleetBranchFilter');
     if (!sel) return;
+
+    if (currentTenantData && currentTenantData.isBranch) {
+        const bName = currentTenantData.branchName || 'الفرع';
+        const bId = currentTenantData.branchId || '';
+        sel.innerHTML = `<option value="${escapeHtml(bId)}" selected>${escapeHtml(bName)} (هذا الفرع)</option>`;
+        sel.disabled = true;
+        selectedFleetBranch = bId;
+        return;
+    }
+
+    sel.disabled = false;
     const currentVal = sel.value || selectedFleetBranch || 'ALL';
     let html = '<option value="ALL">جميع الأجهزة (كافة الفروع)</option>';
     (branchesCache || []).forEach(b => {
@@ -968,11 +993,37 @@ async function confirmDeleteDevice(deviceId, deviceName) {
 // --------------------------------------------------------------------------
 // ZERO-TOUCH QR PROVISIONING (With Device Naming & Company Code)
 // --------------------------------------------------------------------------
+let lastQrConfig = null;
+
+function updateQrBranchDropdown() {
+    const compSelect = document.getElementById('qrCompanySelect');
+    const branchSelect = document.getElementById('qrBranchSelect');
+    if (!branchSelect) return;
+
+    const selectedCompCode = compSelect ? compSelect.value : currentCompanyCode;
+    const compObj = (lastQrConfig?.companies || []).find(c => c.code === selectedCompCode);
+    const branches = compObj?.branches || branchesCache || [];
+
+    if (currentTenantData && currentTenantData.isBranch) {
+        branchSelect.innerHTML = `<option value="${escapeHtml(currentTenantData.branchId || '')}" selected>${escapeHtml(currentTenantData.branchName || 'الفرع')}</option>`;
+        branchSelect.disabled = true;
+        return;
+    }
+
+    branchSelect.disabled = false;
+    let bHtml = '<option value="">-- بدون تعيين لفرع (الإدارة العامة) --</option>';
+    branches.forEach(b => {
+        bHtml += `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.code || b.number || '')})</option>`;
+    });
+    branchSelect.innerHTML = bHtml;
+}
+
 async function initQrTab() {
     try {
         const res = await fetch('/api/qr-config');
         const cfg = await res.json();
         if (cfg) {
+            lastQrConfig = cfg;
             const origin = window.location.origin;
             const dlInput = document.getElementById('qrDownloadUrl');
             const srvInput = document.getElementById('qrServerUrl');
@@ -997,7 +1048,12 @@ async function initQrTab() {
                     optionsHtml += `<option value="${c.code}" ${isSelected}>${c.name} (${c.code})</option>`;
                 });
                 compSelect.innerHTML = optionsHtml;
+                if (currentTenantData && currentTenantData.isBranch) {
+                    compSelect.disabled = true;
+                }
             }
+
+            updateQrBranchDropdown();
         }
     } catch (e) {
         console.error('Failed to fetch QR config', e);
@@ -1006,6 +1062,7 @@ async function initQrTab() {
 }
 
 function onQrCompanyChange() {
+    updateQrBranchDropdown();
     generateQrCode();
 }
 
@@ -1029,16 +1086,36 @@ function generateQrCode() {
     const companySelect = document.getElementById('qrCompanySelect');
     const companyCode = companySelect ? companySelect.value || currentCompanyCode : currentCompanyCode;
 
+    const branchSelect = document.getElementById('qrBranchSelect');
+    const selectedBranchId = branchSelect ? branchSelect.value : '';
+
+    const adminExtras = {
+        "server_url": serverUrl,
+        "device_tag": deviceTag,
+        "company_code": companyCode
+    };
+
+    if (selectedBranchId) {
+        let bObj = null;
+        if (currentTenantData && currentTenantData.isBranch && currentTenantData.branchId === selectedBranchId) {
+            bObj = { id: currentTenantData.branchId, name: currentTenantData.branchName, code: currentTenantData.branchCode || '' };
+        } else {
+            const compObj = (lastQrConfig?.companies || []).find(c => c.code === companyCode);
+            bObj = (compObj?.branches || branchesCache || []).find(b => b.id === selectedBranchId);
+        }
+        if (bObj) {
+            adminExtras["branch_id"] = bObj.id;
+            adminExtras["branch_name"] = bObj.name;
+            adminExtras["branch_code"] = bObj.code || '';
+        }
+    }
+
     const payload = {
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": downloadUrl,
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
-        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
-            "server_url": serverUrl,
-            "device_tag": deviceTag,
-            "company_code": companyCode
-        }
+        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
 
     if (wifiSsid) {
@@ -2386,7 +2463,7 @@ function renderBranchesTable(branches) {
 // --------------------------------------------------------------------------
 let currentActiveBranchId = null;
 
-function openBranchDevicesModal(branchId) {
+async function openBranchDevicesModal(branchId) {
     const branch = (branchesCache || []).find(b => b.id === branchId);
     if (!branch) {
         showToast('لم يتم العثور على بيانات الفرع', 'error');
@@ -2405,6 +2482,17 @@ function openBranchDevicesModal(branchId) {
 
     const phoneBadge = document.getElementById('branchDevicesModalPhoneBadge');
     if (phoneBadge) phoneBadge.innerText = `معرف الدخول: ${branch.number || '-'}`;
+
+    // Ensure all devices are loaded so unassigned devices can be picked
+    if (selectedFleetBranch && selectedFleetBranch !== 'ALL') {
+        try {
+            const res = await fetch(`/api/devices?companyCode=${encodeURIComponent(currentCompanyCode)}&branchId=ALL`, {
+                headers: { 'X-Tenant-Token': currentTenantToken || '' }
+            });
+            const allDevs = await res.json();
+            if (Array.isArray(allDevs)) lastDevicesCache = allDevs;
+        } catch (_) {}
+    }
 
     populateBranchAssignSelect(branchId);
     renderBranchDevicesList(branchId);
@@ -3209,6 +3297,11 @@ function updateDacModalContent(d) {
     if (specBranch) {
         specBranch.innerText = d.branchName ? `${d.branchName} (${d.branchCode || ''})` : 'الإدارة العامة / غير مخصص';
         specBranch.style.color = d.branchName ? '#1E40AF' : '#64748B';
+    }
+
+    const btnChangeBranch = document.getElementById('btnChangeDacBranch');
+    if (btnChangeBranch) {
+        btnChangeBranch.style.display = (currentTenantData && currentTenantData.isBranch) ? 'none' : 'inline-block';
     }
 
     // Vitals

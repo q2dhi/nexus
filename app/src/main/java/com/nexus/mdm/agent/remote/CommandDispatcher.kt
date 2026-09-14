@@ -177,6 +177,33 @@ class CommandDispatcher(
                     }
                 }
 
+                "ASSIGN_BRANCH", "SET_BRANCH" -> {
+                    val branchId = json.optString("branchId", json.optJSONObject("payload")?.optString("branchId", "") ?: "")
+                    val branchName = json.optString("branchName", json.optJSONObject("payload")?.optString("branchName", "") ?: "")
+                    val branchCode = json.optString("branchCode", json.optJSONObject("payload")?.optString("branchCode", "") ?: "")
+                    val compCode = json.optString("companyCode", json.optJSONObject("payload")?.optString("companyCode", "") ?: "")
+                    val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+                    if (branchId.isNotEmpty()) {
+                        configStore.branchId = branchId
+                        configStore.branchName = branchName
+                        configStore.branchCode = branchCode
+                    }
+                    if (compCode.isNotEmpty()) {
+                        configStore.companyCode = compCode
+                    }
+                    AppLogger.i("CommandDispatcher", "Assigned branch: $branchName ($branchId)")
+                    Result.success("Assigned branch: $branchName")
+                }
+
+                "UNASSIGN_BRANCH", "CLEAR_BRANCH" -> {
+                    val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+                    configStore.branchId = ""
+                    configStore.branchName = ""
+                    configStore.branchCode = ""
+                    AppLogger.i("CommandDispatcher", "Unassigned branch")
+                    Result.success("Unassigned branch")
+                }
+
                 "SYNC_TIME", "SET_TIME", "SET_DATE_TIME" -> {
                     val timestamp = json.optLong("timestamp", System.currentTimeMillis())
                     val timeZone = json.optString("timeZone", "")

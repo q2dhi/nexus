@@ -37,10 +37,17 @@ app.post('/api/devices/heartbeat', (req, res) => {
     }
 
     const deviceId = data.id;
-    devices.set(deviceId, {
-        ...data,
-        lastSeen: Date.now()
-    });
+    const existingDev = devices.get(deviceId) || {};
+
+    // Preserve critical persistent fields
+    const preserveKeys = ['branchId', 'branchName', 'branchCode', 'branchNumber', 'customName', 'notes', 'tags', 'companyCode', 'companyName'];
+    const merged = { ...existingDev, ...data, lastSeen: Date.now() };
+    for (const key of preserveKeys) {
+        if (existingDev[key] && (!data[key] || data[key] === '')) {
+            merged[key] = existingDev[key];
+        }
+    }
+    devices.set(deviceId, merged);
 
     // Check if there are pending commands for this device
     const queue = pendingCommands.get(deviceId) || [];
@@ -53,7 +60,10 @@ app.post('/api/devices/heartbeat', (req, res) => {
 
     res.json({
         status: 'OK',
-        commands: commandsToExecute
+        commands: commandsToExecute,
+        branchId: merged.branchId || '',
+        branchName: merged.branchName || '',
+        branchCode: merged.branchCode || ''
     });
 });
 
@@ -65,7 +75,12 @@ app.get('/api/devices', (req, res) => {
     const reqBranch = (req.query.branchId || '').trim();
     let deviceList = Array.from(devices.values());
     if (reqBranch && reqBranch !== 'ALL') {
-        deviceList = deviceList.filter(dev => String(dev.branchId || '') === reqBranch);
+        deviceList = deviceList.filter(dev => {
+            const bId = String(dev.branchId || '').trim();
+            const bCode = String(dev.branchCode || '').trim();
+            const bNum = String(dev.branchNumber || '').trim();
+            return reqBranch === bId || reqBranch === bCode || reqBranch === bNum;
+        });
     }
     const result = deviceList.map(dev => ({
         ...dev,
@@ -78,7 +93,7 @@ app.get('/api/devices', (req, res) => {
 // ADMIN API: Assign Device to Branch
 // --------------------------------------------------------------------------
 app.post('/api/tenant/devices/assign-branch', (req, res) => {
-    const { deviceId, branchId, branchName, branchCode } = req.body;
+    const { deviceId, branchId, branchName, branchCode, branchNumber } = req.body;
     if (!deviceId) {
         return res.status(400).json({ error: 'Missing deviceId' });
     }
@@ -88,14 +103,16 @@ app.post('/api/tenant/devices/assign-branch', (req, res) => {
     }
     if (branchId && branchId !== 'UNASSIGN') {
         dev.branchId = branchId;
-        dev.branchName = branchName || 'فرع';
-        dev.branchCode = branchCode || '';
+        dev.branchName = branchName || dev.branchName || 'فرع';
+        dev.branchCode = branchCode || dev.branchCode || '';
+        dev.branchNumber = branchNumber || dev.branchNumber || '';
         devices.set(deviceId, dev);
         addAuditLog('DEVICE_BRANCH_ASSIGNED', deviceId, `Assigned to branch: ${dev.branchName}`);
     } else {
         delete dev.branchId;
         delete dev.branchName;
         delete dev.branchCode;
+        delete dev.branchNumber;
         devices.set(deviceId, dev);
         addAuditLog('DEVICE_BRANCH_UNASSIGNED', deviceId, 'Unassigned from branch');
     }

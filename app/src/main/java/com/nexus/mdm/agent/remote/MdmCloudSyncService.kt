@@ -205,6 +205,11 @@ class MdmCloudSyncService : Service() {
                 put("wifiSsid", snapshot.network.wifiSsid ?: "")
                 put("whitelistedApps", JSONArray(whitelistManager.getWhitelistedPackages()))
                 put("companyCode", configStore.companyCode)
+                if (configStore.branchId.isNotBlank()) {
+                    put("branchId", configStore.branchId)
+                    put("branchName", configStore.branchName)
+                    put("branchCode", configStore.branchCode)
+                }
                 put("capabilities", capabilities.toJson())
                 put("batteryOptimizationIgnored", isIgnoringBattery)
                 if (snapshot.location != null) {
@@ -492,6 +497,11 @@ class MdmCloudSyncService : Service() {
             put("wifiSsid", snapshot.network.wifiSsid ?: "")
             put("whitelistedApps", JSONArray(whitelistManager.getWhitelistedPackages()))
             put("companyCode", configStore.companyCode)
+            if (configStore.branchId.isNotBlank()) {
+                put("branchId", configStore.branchId)
+                put("branchName", configStore.branchName)
+                put("branchCode", configStore.branchCode)
+            }
             put("capabilities", capabilities.toJson())
             put("batteryOptimizationIgnored", isIgnoringBattery)
             if (snapshot.location != null) {
@@ -544,6 +554,20 @@ class MdmCloudSyncService : Service() {
 
                 val wasActive = configStore.isSubscriptionActive
                 configStore.isSubscriptionActive = subscriptionActive
+
+                // 1.5 Branch synchronization from server
+                val srvBranchId = resObj.optString("branchId", "")
+                val srvBranchName = resObj.optString("branchName", "")
+                val srvBranchCode = resObj.optString("branchCode", "")
+                if (srvBranchId.isNotEmpty()) {
+                    configStore.branchId = srvBranchId
+                    configStore.branchName = srvBranchName
+                    configStore.branchCode = srvBranchCode
+                } else if (resObj.has("branchId") && srvBranchId.isEmpty()) {
+                    configStore.branchId = ""
+                    configStore.branchName = ""
+                    configStore.branchCode = ""
+                }
 
                 // Only notify/launch MainActivity if subscription became inactive or state changed
                 if (!subscriptionActive || wasActive != subscriptionActive) {

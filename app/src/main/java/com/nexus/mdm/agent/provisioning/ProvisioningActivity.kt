@@ -77,10 +77,18 @@ class ProvisioningActivity : AppCompatActivity() {
                 val serverUrl = extrasBundle.getString("server_url")
                 val deviceTag = extrasBundle.getString("device_tag") ?: extrasBundle.getString("device_name")
                 val companyCode = extrasBundle.getString("company_code")
+                val branchId = extrasBundle.getString("branch_id")
+                val branchName = extrasBundle.getString("branch_name")
+                val branchCode = extrasBundle.getString("branch_code")
 
                 if (!serverUrl.isNullOrBlank()) configStore.serverUrl = serverUrl
                 if (!deviceTag.isNullOrBlank()) configStore.deviceTag = deviceTag
                 if (!companyCode.isNullOrBlank()) configStore.companyCode = companyCode
+                if (!branchId.isNullOrBlank()) {
+                    configStore.branchId = branchId
+                    configStore.branchName = branchName ?: ""
+                    configStore.branchCode = branchCode ?: ""
+                }
             }
         } catch (e: Exception) {
             AppLogger.e("ProvisioningActivity", "Error reading extras bundle in compliance activity", e)

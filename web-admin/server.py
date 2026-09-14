@@ -527,14 +527,15 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         qs = parse_qs(parsed.query)
 
         # ---------------------------------------------------------
+        # ---------------------------------------------------------
         # TENANT API: Company Info & Subscription Check
         # ---------------------------------------------------------
         if path == '/api/tenant/info':
-            company_code = qs.get('companyCode', [''])[0].strip().upper()
             session_token = self.headers.get('X-Tenant-Token') or qs.get('token', [''])[0]
             session = ACTIVE_TENANT_SESSIONS.get(session_token) if session_token else None
-            if not company_code and session:
-                company_code = session.get('code', '')
+            company_code = qs.get('companyCode', [''])[0].strip().upper()
+            if session and session.get('code'):
+                company_code = session.get('code', '').strip().upper()
 
             tenants_data = load_tenants_data()
             matched = None
@@ -583,10 +584,6 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
                 return
 
-            if session.get('isBranch'):
-                self._send_json(403, {"error": "غير مصرح لمدراء الفروع بإدارة فروع أخرى."})
-                return
-
             tenants_data = load_tenants_data()
             matched = None
             for t in tenants_data.get('tenants', []):
@@ -598,17 +595,57 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 self._send_json(404, {"error": "الشركة غير موجودة."})
                 return
 
+            now = time.time()
+
+            if session.get('isBranch'):
+                # For branch web admin sessions, return only their own branch info rather than 403 error
+                bid = str(session.get('branchId', ''))
+                bnum = str(session.get('branchNumber', ''))
+                my_branch = None
+                for b in matched.get('branches', []):
+                    if str(b.get('id', '')) == bid or str(b.get('number', '')) == bnum:
+                        my_branch = b
+                        break
+                enriched = []
+                if my_branch:
+                    b_copy = dict(my_branch)
+                    b_devs = [
+                        d for d in devices.values()
+                        if str(d.get('branchId', '')) == bid
+                        or str(d.get('branchCode', '')) == str(my_branch.get('code', ''))
+                        or str(d.get('branchNumber', '')) == bnum
+                    ]
+                    b_copy['devicesCount'] = len(b_devs)
+                    b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 120)
+                    b_copy['deviceIds'] = [d.get('id') for d in b_devs if d.get('id')]
+                    enriched.append(b_copy)
+
+                self._send_json(200, {
+                    "success": True,
+                    "branches": enriched,
+                    "usedBranches": len(enriched),
+                    "maxBranches": 1,
+                    "canAddMore": False
+                })
+                return
+
             branches = matched.get('branches', [])
             max_branches = int(matched.get('subscription', {}).get('maxBranches', 5))
             
-            now = time.time()
             enriched_branches = []
             for b in branches:
                 b_copy = dict(b)
                 bid = str(b.get('id', ''))
-                b_devs = [d for d in devices.values() if str(d.get('branchId', '')) == bid]
+                bcode = str(b.get('code', ''))
+                bnum = str(b.get('number', ''))
+                b_devs = [
+                    d for d in devices.values()
+                    if str(d.get('branchId', '')) == bid
+                    or (bcode and str(d.get('branchCode', '')) == bcode)
+                    or (bnum and str(d.get('branchNumber', '')) == bnum)
+                ]
                 b_copy['devicesCount'] = len(b_devs)
-                b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 25)
+                b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 120)
                 b_copy['deviceIds'] = [d.get('id') for d in b_devs if d.get('id')]
                 enriched_branches.append(b_copy)
 
@@ -683,19 +720,30 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             session = ACTIVE_TENANT_SESSIONS.get(session_token)
 
             req_company = qs.get('companyCode', [''])[0].strip().upper()
-            # Also check header
             header_company = self.headers.get('X-Company-Code', '').strip().upper()
             if header_company:
                 req_company = header_company
-            if not req_company and session:
-                req_company = str(session.get('code', '')).upper()
+
+            # If user has an active session, authoritatively use the session's company code!
+            if session and session.get('code'):
+                req_company = str(session.get('code', '')).strip().upper()
 
             req_branch = qs.get('branchId', [''])[0].strip()
+            # If session is a branch session, authoritatively enforce branch filtering!
             if session and session.get('isBranch'):
                 req_branch = str(session.get('branchId', '')).strip()
 
             tenants_data = load_tenants_data()
             single_tenant_code = tenants_data['tenants'][0].get('code', '').upper() if len(tenants_data.get('tenants', [])) == 1 else None
+
+            # Prepare target branch match identifiers
+            target_branch_identifiers = set()
+            if req_branch and req_branch != 'ALL':
+                target_branch_identifiers.add(req_branch)
+            if session and session.get('isBranch'):
+                if session.get('branchId'): target_branch_identifiers.add(str(session.get('branchId')).strip())
+                if session.get('branchNumber'): target_branch_identifiers.add(str(session.get('branchNumber')).strip())
+                if session.get('branchCode'): target_branch_identifiers.add(str(session.get('branchCode')).strip())
 
             device_list = []
             for d in devices.values():
@@ -705,9 +753,15 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                         pass
                     else:
                         continue
-                if req_branch and req_branch != 'ALL':
-                    if str(d.get('branchId', '')) != req_branch:
+
+                if target_branch_identifiers:
+                    b_id = str(d.get('branchId', '')).strip()
+                    b_code = str(d.get('branchCode', '')).strip()
+                    b_num = str(d.get('branchNumber', '')).strip()
+                    device_identifiers = {x for x in (b_id, b_code, b_num) if x}
+                    if not (target_branch_identifiers & device_identifiers):
                         continue
+
                 d_copy = dict(d)
                 d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
                 device_list.append(d_copy)
@@ -767,7 +821,20 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             tenants_data = load_tenants_data()
             companies_summary = [
-                {"code": t.get("code"), "name": t.get("name"), "status": t.get("subscription", {}).get("status", "ACTIVE")}
+                {
+                    "code": t.get("code"),
+                    "name": t.get("name"),
+                    "status": t.get("subscription", {}).get("status", "ACTIVE"),
+                    "branches": [
+                        {
+                            "id": b.get("id"),
+                            "name": b.get("name"),
+                            "code": b.get("code", ""),
+                            "number": b.get("number", "")
+                        }
+                        for b in t.get("branches", [])
+                    ]
+                }
                 for t in tenants_data.get("tenants", [])
             ]
 
@@ -1529,7 +1596,32 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 dev['branchId'] = target_branch.get('id')
                 dev['branchName'] = target_branch.get('name')
                 dev['branchCode'] = target_branch.get('code', '')
+                dev['branchNumber'] = target_branch.get('number', '')
+                dev['companyCode'] = tenant_code
+                dev['companyName'] = matched.get('name', '')
                 save_devices_cache(devices)
+
+                # Queue command to synchronize branch assignment directly to device
+                cmd_obj = {
+                    "command": "ASSIGN_BRANCH",
+                    "branchId": target_branch.get('id'),
+                    "branchName": target_branch.get('name'),
+                    "branchCode": target_branch.get('code', ''),
+                    "branchNumber": target_branch.get('number', ''),
+                    "companyCode": tenant_code,
+                    "companyName": matched.get('name', ''),
+                    "payload": {
+                        "branchId": target_branch.get('id'),
+                        "branchName": target_branch.get('name'),
+                        "branchCode": target_branch.get('code', ''),
+                        "branchNumber": target_branch.get('number', ''),
+                        "companyCode": tenant_code,
+                        "companyName": matched.get('name', '')
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }
+                pending_commands.setdefault(dev_id, []).append(cmd_obj)
+
                 add_audit_log('DEVICE_BRANCH_ASSIGNED', tenant_code, f"تم ربط الجهاز '{dev.get('name', dev_id)}' بالفرع '{target_branch.get('name')}'")
                 self._send_json(200, {
                     "success": True,
@@ -1540,7 +1632,16 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 dev.pop('branchId', None)
                 dev.pop('branchName', None)
                 dev.pop('branchCode', None)
+                dev.pop('branchNumber', None)
                 save_devices_cache(devices)
+
+                cmd_obj = {
+                    "command": "UNASSIGN_BRANCH",
+                    "payload": {},
+                    "timestamp": int(time.time() * 1000)
+                }
+                pending_commands.setdefault(dev_id, []).append(cmd_obj)
+
                 add_audit_log('DEVICE_BRANCH_UNASSIGNED', tenant_code, f"تم فك ارتباط الجهاز '{dev.get('name', dev_id)}' من الفرع")
                 self._send_json(200, {
                     "success": True,
@@ -1585,10 +1686,18 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 self._send_json(400, {"error": "Missing device id"})
                 return
 
+            existing_dev = devices.get(dev_id, {})
+
             data['lastSeen'] = time.time()
 
-            # Associate with company code
-            comp_code = str(data.get('companyCode') or data.get('company_code') or 'NEXUS-DEFAULT').strip().upper()
+            # Associate with company code (preserve existing tenant company if heartbeat sends default/empty)
+            comp_code = str(data.get('companyCode') or data.get('company_code') or '').strip().upper()
+            if not comp_code or comp_code == 'NEXUS-DEFAULT':
+                existing_comp = str(existing_dev.get('companyCode', '')).strip().upper()
+                if existing_comp and existing_comp != 'NEXUS-DEFAULT':
+                    comp_code = existing_comp
+                else:
+                    comp_code = 'NEXUS-DEFAULT'
             data['companyCode'] = comp_code
 
             # Lookup tenant subscription
@@ -1608,13 +1717,49 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 sub_active, sub_msg = is_subscription_active(tenant)
                 comp_name = tenant.get('name', 'Company')
             else:
-                # If company does not exist, check if first tenant works or block
                 sub_active = False
                 sub_msg = f"كود الشركة ({comp_code}) غير مسجل في خادم المطور."
                 comp_name = "Unknown"
 
             data['subscriptionActive'] = sub_active
             data['companyName'] = comp_name
+
+            # Resolve incoming branch or preserve existing branch
+            incoming_branch_id = data.get('branchId') or data.get('branch_id')
+            incoming_branch_name = data.get('branchName') or data.get('branch_name')
+            incoming_branch_code = data.get('branchCode') or data.get('branch_code')
+            incoming_branch_number = data.get('branchNumber') or data.get('branch_number')
+
+            if incoming_branch_id:
+                data['branchId'] = incoming_branch_id
+                if incoming_branch_name: data['branchName'] = incoming_branch_name
+                if incoming_branch_code: data['branchCode'] = incoming_branch_code
+                if incoming_branch_number: data['branchNumber'] = incoming_branch_number
+
+            # Enrich from tenant branches if tenant is found
+            if tenant and data.get('branchId'):
+                b_lookup = str(data.get('branchId')).strip()
+                for b in tenant.get('branches', []):
+                    if str(b.get('id', '')) == b_lookup or str(b.get('code', '')) == b_lookup or str(b.get('number', '')) == b_lookup:
+                        data['branchId'] = b.get('id')
+                        data['branchName'] = b.get('name')
+                        data['branchCode'] = b.get('code', '')
+                        data['branchNumber'] = b.get('number', '')
+                        break
+
+            # CRITICAL: Preserve all persistent server-assigned fields if not supplied in incoming heartbeat
+            preserve_fields = [
+                'branchId', 'branchName', 'branchCode', 'branchNumber',
+                'customName', 'notes', 'tags', 'assignedBranch'
+            ]
+            for field in preserve_fields:
+                if field in existing_dev and (field not in data or not data[field]):
+                    data[field] = existing_dev[field]
+
+            # Preserve custom name if device was renamed on server
+            if existing_dev.get('name') and ('customName' in existing_dev or existing_dev.get('name') != existing_dev.get('model')):
+                if not data.get('name') or data.get('name') in ('NEXUS-DEVICE-01', data.get('model')):
+                    data['name'] = existing_dev['name']
 
             # Geofence validation
             loc = data.get('location')
@@ -1631,9 +1776,11 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             if 'whitelistedApps' in data and isinstance(data['whitelistedApps'], list):
                 data['whitelistedApps'] = expand_whitelist_aliases(data['whitelistedApps'])
+            elif 'whitelistedApps' in existing_dev:
+                data['whitelistedApps'] = existing_dev['whitelistedApps']
 
             devices[dev_id] = data
-            save_devices_cache()
+            save_devices_cache(devices)
 
             # Get and flush pending commands for this device
             cmds = pending_commands.get(dev_id, [])
@@ -1649,6 +1796,10 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 "subscriptionMessage": sub_msg,
                 "companyCode": comp_code,
                 "companyName": comp_name,
+                "branchId": data.get('branchId', ''),
+                "branchName": data.get('branchName', ''),
+                "branchCode": data.get('branchCode', ''),
+                "branchNumber": data.get('branchNumber', ''),
                 "serverTime": int(time.time() * 1000),
                 "serverTimeZone": "Asia/Baghdad"
             })
@@ -1704,7 +1855,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             if dev_id in devices:
                 devices[dev_id]['name'] = new_name
-                save_devices_cache()
+                save_devices_cache(devices)
 
             # Queue remote command to sync to device
             cmd_obj = {
@@ -1728,6 +1879,12 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # DEVICE DELETE API (Remove device from fleet registry)
         # ---------------------------------------------------------
         if path == '/api/devices/delete':
+            session_token = self.headers.get('X-Tenant-Token')
+            session = ACTIVE_TENANT_SESSIONS.get(session_token) if session_token else None
+            if session and session.get('isBranch'):
+                self._send_json(403, {"error": "غير مصرح لمدراء الفروع بحذف أجهزة من النظام. هذه الصلاحية للإدارة العامة فقط."})
+                return
+
             dev_id = data.get('deviceId')
             if not dev_id:
                 self._send_json(400, {"error": "deviceId is required"})
@@ -1769,6 +1926,20 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             # SECURITY ENFORCEMENT: If caller is a Branch Web Admin:
             # Branches CANNOT exit Kiosk mode! (User specified: رمز الأدمن يكون فقط لدى الشركة الرئيسية يعني الافرع ما يقدرون يفكون الكشك)
             if session and session.get('isBranch'):
+                bid = str(session.get('branchId', '')).strip()
+                bnum = str(session.get('branchNumber', '')).strip()
+                branch_identifiers = {x for x in (bid, bnum) if x}
+
+                if dev_id != 'ALL':
+                    target_dev = devices.get(dev_id)
+                    if not target_dev:
+                        self._send_json(404, {"error": "الجهاز غير موجود في النظام."})
+                        return
+                    d_branch = {str(target_dev.get('branchId', '')).strip(), str(target_dev.get('branchCode', '')).strip(), str(target_dev.get('branchNumber', '')).strip()}
+                    if not (branch_identifiers & d_branch):
+                        self._send_json(403, {"error": "غير مصرح لمدير الفرع بالتحكم بأجهزة خارج فرعه."})
+                        return
+
                 if command == 'SET_KIOSK_MODE' and not payload.get('enable', True):
                     self._send_json(403, {
                         "error": "غير مصرح لمدراء الفروع بإلغاء وضع الكشك. هذه الصلاحية محصورة بالإدارة العامة للشركة فقط."
@@ -1790,9 +1961,21 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             cmd_obj['timestamp'] = int(time.time() * 1000)
 
             if dev_id == 'ALL':
-                for did in devices.keys():
+                target_ids = []
+                if session and session.get('isBranch'):
+                    bid = str(session.get('branchId', '')).strip()
+                    bnum = str(session.get('branchNumber', '')).strip()
+                    branch_identifiers = {x for x in (bid, bnum) if x}
+                    for did, d in devices.items():
+                        d_branch = {str(d.get('branchId', '')).strip(), str(d.get('branchCode', '')).strip(), str(d.get('branchNumber', '')).strip()}
+                        if branch_identifiers & d_branch:
+                            target_ids.append(did)
+                else:
+                    target_ids = list(devices.keys())
+
+                for did in target_ids:
                     pending_commands.setdefault(did, []).append(cmd_obj)
-                add_audit_log('BROADCAST_COMMAND', 'ALL_DEVICES', f"Dispatched: {command}")
+                add_audit_log('BROADCAST_COMMAND', 'ALL_DEVICES', f"Dispatched: {command} to {len(target_ids)} devices")
             else:
                 pending_commands.setdefault(dev_id, []).append(cmd_obj)
                 add_audit_log('DISPATCH_COMMAND', dev_id, f"Dispatched: {command}")
