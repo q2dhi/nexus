@@ -230,13 +230,13 @@ class MdmCloudSyncService : Service() {
                 val url = URL("$serverBase/api/devices/heartbeat")
                 val conn = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
-                    setRequestProperty("Content-Type", "application/json")
+                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                     connectTimeout = 7000
                     readTimeout = 7000
                     doOutput = true
                 }
 
-                OutputStreamWriter(conn.outputStream).use { it.write(heartbeatPayload.toString()) }
+                OutputStreamWriter(conn.outputStream, java.nio.charset.StandardCharsets.UTF_8).use { it.write(heartbeatPayload.toString()) }
                 val code = conn.responseCode
                 if (code == HttpURLConnection.HTTP_OK) {
                     AppLogger.i("CloudSync", "Heartbeat SUCCESS (RTC KeepAlive) to $serverBase")
@@ -531,17 +531,17 @@ class MdmCloudSyncService : Service() {
             val url = URL("$serverBase/api/devices/heartbeat")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                 connectTimeout = 7000
                 readTimeout = 7000
                 doOutput = true
             }
 
-            OutputStreamWriter(conn.outputStream).use { it.write(heartbeatPayload.toString()) }
+            OutputStreamWriter(conn.outputStream, java.nio.charset.StandardCharsets.UTF_8).use { it.write(heartbeatPayload.toString()) }
             val code = conn.responseCode
 
             if (code == HttpURLConnection.HTTP_OK) {
-                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val response = conn.inputStream.bufferedReader(java.nio.charset.StandardCharsets.UTF_8).use { it.readText() }
                 conn.disconnect()
                 AppLogger.i("CloudSync", "Heartbeat SUCCESS to $serverBase")
 

@@ -68,8 +68,8 @@ const i18n = {
         emptyFleet: "لا توجد أجهزة متصلة تابعة لهذه الشركة حالياً.",
         qrTitle: "تجهيز الأجهزة الجديد أو المفرمتة عبر كود الـ QR",
         qrDesc: "تحويل أي جهاز أندرويد مفرمت أو جديد إلى جهاز مخصص للشركة دون إدخال حسابات جوجل.",
-        lblQrDeviceTag: "اسم / وسم الجهاز (Device Name / Tag) *",
-        descQrDeviceTag: "يتم تثبيت هذا الاسم تلقائياً في الجهاز عند مسح كود الـ QR بعد الفرمتة.",
+        lblQrDeviceTag: "اسم / وسم الجهاز (بالعربية أو الإنجليزية) *",
+        descQrDeviceTag: "يتم تثبيت هذا الاسم تلقائياً في الجهاز باللغة العربية عند مسح كود الـ QR بعد الفرمتة.",
         lblQrCompany: "الشركة التابعة للجهاز (Assigned Company)",
         descQrCompany: "سيتم ربط الجهاز باشتراك هذه الشركة تلقائياً فور التجهيز.",
         btnRegenQr: "تحديث وتوليد كود الـ QR",
@@ -133,8 +133,8 @@ const i18n = {
         emptyFleet: "No devices currently connected for this company.",
         qrTitle: "Zero-Touch Android Enterprise QR Provisioning",
         qrDesc: "Instantly turn any fresh or factory-reset Android device into a dedicated Nexus Kiosk appliance without entering Google accounts.",
-        lblQrDeviceTag: "Device Name / Tag *",
-        descQrDeviceTag: "This custom name will be automatically assigned to the phone upon scanning.",
+        lblQrDeviceTag: "Device Name / Tag (Arabic or English) *",
+        descQrDeviceTag: "This custom name (Arabic or English) will be automatically assigned to the phone upon scanning.",
         lblQrCompany: "Assigned Company",
         descQrCompany: "Device will be bound to this company subscription automatically.",
         btnRegenQr: "Regenerate QR Code",
@@ -1079,9 +1079,9 @@ function generateQrCode() {
     const wifiSsid = wifiSsidInput ? wifiSsidInput.value.trim() : '';
     const wifiPassword = wifiPasswordInput ? wifiPasswordInput.value.trim() : '';
 
-    // Read the user-defined device name and selected company code
+    // Read the user-defined device name (supporting Arabic or English) and selected company code
     const deviceTagInput = document.getElementById('qrDeviceTag');
-    const deviceTag = deviceTagInput ? deviceTagInput.value.trim() || 'POS-TERMINAL-01' : 'POS-TERMINAL-01';
+    const deviceTag = deviceTagInput ? (deviceTagInput.value.trim() || 'كاشير 1') : 'كاشير 1';
 
     const companySelect = document.getElementById('qrCompanySelect');
     const companyCode = companySelect ? companySelect.value || currentCompanyCode : currentCompanyCode;
@@ -1092,6 +1092,7 @@ function generateQrCode() {
     const adminExtras = {
         "server_url": serverUrl,
         "device_tag": deviceTag,
+        "device_name": deviceTag,
         "company_code": companyCode
     };
 
@@ -1115,6 +1116,7 @@ function generateQrCode() {
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": downloadUrl,
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
+        "android.app.extra.PROVISIONING_DEVICE_TAG": deviceTag,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
 
@@ -1162,6 +1164,15 @@ function copyQrJson() {
         prompt('Copy this JSON:', formatted);
     });
 }
+
+function setQrDeviceName(name) {
+    const input = document.getElementById('qrDeviceTag');
+    if (input) {
+        input.value = name;
+        generateQrCode();
+    }
+}
+window.setQrDeviceName = setQrDeviceName;
 
 // --------------------------------------------------------------------------
 // DROPDOWN MENU MANAGEMENT

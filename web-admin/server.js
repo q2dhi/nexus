@@ -120,6 +120,38 @@ app.post('/api/tenant/devices/assign-branch', (req, res) => {
 });
 
 // --------------------------------------------------------------------------
+// ADMIN API: Rename Device (Supports Arabic & English)
+// --------------------------------------------------------------------------
+app.post('/api/devices/rename', (req, res) => {
+    const { deviceId, newName } = req.body;
+    if (!deviceId || !newName) {
+        return res.status(400).json({ error: 'Missing deviceId or newName' });
+    }
+    const dev = devices.get(deviceId);
+    if (!dev) {
+        return res.status(404).json({ error: 'Device not found' });
+    }
+    const cleanName = String(newName).trim();
+    const oldName = dev.name || deviceId;
+    dev.name = cleanName;
+    dev.customName = cleanName;
+    devices.set(deviceId, dev);
+
+    // Queue RENAME_DEVICE command for the Android agent
+    const queue = pendingCommands.get(deviceId) || [];
+    queue.push({
+        command: 'RENAME_DEVICE',
+        newName: cleanName,
+        name: cleanName,
+        timestamp: Date.now()
+    });
+    pendingCommands.set(deviceId, queue);
+
+    addAuditLog('DEVICE_RENAMED', deviceId, `Device renamed from "${oldName}" to "${cleanName}"`);
+    res.json({ success: true, name: cleanName, device: dev });
+});
+
+// --------------------------------------------------------------------------
 // ADMIN API: Delete Device from Registry
 // --------------------------------------------------------------------------
 app.post('/api/devices/delete', (req, res) => {

@@ -606,7 +606,7 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Device Identifier Name"
+                        android:hint="اسم / وسم الجهاز (مثال: كاشير 1)"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_marginBottom="14dp">
 
@@ -615,6 +615,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="text"
+                            android:textDirection="locale"
                             android:textColor="@color/nexus_text_primary"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>

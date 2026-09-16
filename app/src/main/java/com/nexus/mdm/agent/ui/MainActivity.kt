@@ -847,6 +847,7 @@ class MainActivity : AppCompatActivity() {
                     if (newName.isNotEmpty()) {
                         configStore.deviceTag = newName
                         etDeviceTag.setText(newName)
+                        MdmCloudSyncService.start(this)
                         Toast.makeText(this, "تم حفظ اسم الجهاز: $newName", Toast.LENGTH_SHORT).show()
                     }
                 }

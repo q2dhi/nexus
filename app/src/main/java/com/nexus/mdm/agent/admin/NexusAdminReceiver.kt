@@ -45,7 +45,9 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
 
             if (extrasBundle != null) {
                 val serverUrl = extrasBundle.getString("server_url")
-                val deviceTag = extrasBundle.getString("device_tag") ?: extrasBundle.getString("device_name")
+                val deviceTag = extrasBundle.getString("device_tag")
+                    ?: extrasBundle.getString("device_name")
+                    ?: extrasBundle.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
                 val companyCode = extrasBundle.getString("company_code")
                 val branchId = extrasBundle.getString("branch_id")
                 val branchName = extrasBundle.getString("branch_name")
@@ -74,7 +76,10 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
                     ?: intent.extras?.getBundle("android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE")
                 if (standardExtras != null) {
                     val serverUrl = standardExtras.getString("server_url")
-                    val deviceTag = standardExtras.getString("device_tag") ?: standardExtras.getString("device_name")
+                    val deviceTag = standardExtras.getString("device_tag")
+                        ?: standardExtras.getString("device_name")
+                        ?: standardExtras.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
+                        ?: intent.getStringExtra("android.app.extra.PROVISIONING_DEVICE_TAG")
                     val companyCode = standardExtras.getString("company_code")
                     val branchId = standardExtras.getString("branch_id")
                     val branchName = standardExtras.getString("branch_name")

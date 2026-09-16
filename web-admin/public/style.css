@@ -521,6 +521,27 @@ body.ltr-mode {
     border-radius: 6px;
 }
 
+.btn-chip {
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: 12px;
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    color: #1E293B;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-chip:hover {
+    background: #0284C7;
+    border-color: #0284C7;
+    color: #FFFFFF;
+}
+
 .btn-block {
     width: 100%;
 }

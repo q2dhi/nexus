@@ -75,7 +75,10 @@ class ProvisioningActivity : AppCompatActivity() {
 
             if (extrasBundle != null) {
                 val serverUrl = extrasBundle.getString("server_url")
-                val deviceTag = extrasBundle.getString("device_tag") ?: extrasBundle.getString("device_name")
+                val deviceTag = extrasBundle.getString("device_tag")
+                    ?: extrasBundle.getString("device_name")
+                    ?: extrasBundle.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
+                    ?: intent.getStringExtra("android.app.extra.PROVISIONING_DEVICE_TAG")
                 val companyCode = extrasBundle.getString("company_code")
                 val branchId = extrasBundle.getString("branch_id")
                 val branchName = extrasBundle.getString("branch_name")
