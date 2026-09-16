@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260916_sidebar_fix">
+    <link rel="stylesheet" href="style.css?v=20260916_fleet_only">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,8 +178,8 @@
                 <!-- Canvas Search Pill Bar (Matching the pill search in reference image) -->
                 <div class="canvas-search-box">
                     <svg class="search-lens-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="fleetSearchInput" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
-                    <button type="button" id="fleetSearchClearBtn" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
+                    <input type="text" id="fleetSearchInputTop" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
+                    <button type="button" id="fleetSearchClearBtnTop" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
@@ -235,187 +235,7 @@
                     </div>
                 </div>
 
-                <!-- 3-COLUMN EXECUTIVE KPI CARDS GRID (Directly matching the layout & visual elements in reference image) -->
-                <div class="executive-cards-grid">
-                    <!-- COLUMN 1: Large Card (Like 'Energy Used' 4.3k in reference image) -->
-                    <div class="exec-card exec-card-large">
-                        <div class="exec-card-header">
-                            <div class="exec-card-title-group">
-                                <span class="exec-card-icon-badge blue">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                                </span>
-                                <span class="exec-card-title" id="kpiFleetTitle">حالة ونشاط الأجهزة</span>
-                            </div>
-                            <span class="exec-card-dots">•••</span>
-                        </div>
 
-                        <div class="exec-card-kpi-row">
-                            <strong id="kpiFleetCount" class="exec-hero-number">0 نشط</strong>
-                            <span class="exec-trend-badge" id="kpiFleetSub">+100% متصل</span>
-                        </div>
-
-                        <!-- Visual Circular Overlapping Discs (White/Blue/Black palette matching image) -->
-                        <div class="exec-bubbles-cluster">
-                            <div class="exec-bubble bubble-royal-blue" id="bubbleOnlineCard">
-                                <span class="bubble-metric" id="bubbleOnlineVal">0</span>
-                                <span class="bubble-caption">متصل</span>
-                            </div>
-                            <div class="exec-bubble bubble-dark-black" id="bubbleKioskCard">
-                                <span class="bubble-metric" id="bubbleKioskVal" id="kpiKioskCount">0</span>
-                                <span class="bubble-caption" id="kpiKioskTitle">كشك</span>
-                            </div>
-                            <div class="exec-bubble bubble-sky-blue" id="bubbleOfflineCard">
-                                <span class="bubble-metric" id="bubbleOfflineVal">100%</span>
-                                <span class="bubble-caption">أمان</span>
-                            </div>
-                        </div>
-
-                        <!-- Progress Bars List -->
-                        <div class="exec-progress-block">
-                            <div class="exec-prog-row">
-                                <div class="exec-prog-info">
-                                    <span class="prog-pct-label">85%</span>
-                                    <span class="prog-name-label">متصل (Online)</span>
-                                </div>
-                                <div class="exec-prog-track"><div class="exec-prog-fill fill-blue" style="width: 85%;"></div></div>
-                            </div>
-                            <div class="exec-prog-row">
-                                <div class="exec-prog-info">
-                                    <span class="prog-pct-label">45%</span>
-                                    <span class="prog-name-label">وضع الكشك (Kiosk)</span>
-                                </div>
-                                <div class="exec-prog-track"><div class="exec-prog-fill fill-black" style="width: 45%;"></div></div>
-                            </div>
-                            <div class="exec-prog-row">
-                                <div class="exec-prog-info">
-                                    <span class="prog-pct-label">15%</span>
-                                    <span class="prog-name-label">غير متصل (Offline)</span>
-                                </div>
-                                <div class="exec-prog-track"><div class="exec-prog-fill fill-slate" style="width: 15%;"></div></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- COLUMN 2: Middle Stacked Cards (Heart Rate & Activity) -->
-                    <div class="exec-col-stacked">
-                        <!-- CARD 2: Connection Pulse (Like 'Heart Rate' 62 bpm in reference image) -->
-                        <div class="exec-card exec-card-compact">
-                            <div class="exec-card-header">
-                                <div class="exec-card-title-group">
-                                    <span class="exec-card-icon-badge dark">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                    </span>
-                                    <span class="exec-card-title">نبض الاتصال والجاهزية</span>
-                                </div>
-                                <span class="exec-card-dots">•••</span>
-                            </div>
-                            <div class="exec-metric-pair-row">
-                                <div class="exec-bold-metric">
-                                    <span class="big-digit">99.8</span>
-                                    <span class="sub-unit">% متصل</span>
-                                </div>
-                                <div class="exec-aux-stat">
-                                    <span class="aux-label">متوسط الاستجابة</span>
-                                    <strong class="aux-value">78 ms</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- CARD 3: Location / Activity (Like 'Activity' 5.8 km in reference image) -->
-                        <div class="exec-card exec-card-compact">
-                            <div class="exec-card-header">
-                                <div class="exec-card-title-group">
-                                    <span class="exec-card-icon-badge blue">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-                                    </span>
-                                    <span class="exec-card-title">نشاط الرصد والـ GPS</span>
-                                </div>
-                                <span class="exec-card-dots">•••</span>
-                            </div>
-                            <div class="exec-metric-pair-row">
-                                <div class="exec-bold-metric">
-                                    <span class="big-digit" id="kpiGpsStatus">إشارة مؤكدة</span>
-                                </div>
-                                <div class="exec-aux-stat">
-                                    <span class="aux-label">الأقمار الصناعية</span>
-                                    <strong class="aux-value">مباشر 3D</strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- COLUMN 3: Right Stacked Cards (Wellness Index & Dark Sleep Card) -->
-                    <div class="exec-col-stacked">
-                        <!-- CARD 4: Security Compliance (Like 'Wellness Index' 78% in reference image) -->
-                        <div class="exec-card exec-card-compact">
-                            <div class="exec-card-header">
-                                <div class="exec-card-title-group">
-                                    <span class="exec-card-icon-badge blue">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                                    </span>
-                                    <span class="exec-card-title">مؤشر الأمان والامتثال</span>
-                                </div>
-                                <span class="exec-card-dots">•••</span>
-                            </div>
-                            <div class="exec-wellness-row">
-                                <div class="exec-wellness-val-col">
-                                    <span class="exec-trend-badge inline-badge">+10%</span>
-                                    <div class="exec-bold-metric">
-                                        <span class="big-digit" id="kpiSecurityStatus">100</span><span class="sub-unit">%</span>
-                                    </div>
-                                </div>
-                                <!-- Dot Matrix Visualizer (Matching reference image) -->
-                                <div class="exec-dot-matrix" title="مصفوفة الفحص الأمني">
-                                    <span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-slate"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-slate"></span>
-                                    <span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-slate"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span>
-                                    <span class="dot-item d-blue"></span><span class="dot-item d-slate"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-slate"></span><span class="dot-item d-blue"></span>
-                                    <span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span><span class="dot-item d-slate"></span><span class="dot-item d-blue"></span><span class="dot-item d-blue"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- CARD 5: Dark Battery & Activity Card (Directly matching dark 'Sleep Analysis' card in reference image) -->
-                        <div class="exec-card exec-card-dark">
-                            <div class="exec-dark-card-header">
-                                <div class="exec-card-title-group">
-                                    <span class="exec-dark-icon-badge">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                                    </span>
-                                    <span class="exec-dark-card-title">تحليل الطاقة والبطارية</span>
-                                </div>
-                                <span class="exec-dark-pill-dropdown">شهرياً <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-                            </div>
-
-                            <div class="exec-dark-kpi-row">
-                                <div class="dark-kpi-item">
-                                    <div class="dark-kpi-num"><span class="dark-accent-bar bar-white"></span>85%</div>
-                                    <span class="dark-kpi-lbl">كفاءة البطارية</span>
-                                </div>
-                                <div class="dark-kpi-item">
-                                    <div class="dark-kpi-num"><span class="dark-accent-bar bar-blue"></span>14h 25m</div>
-                                    <span class="dark-kpi-lbl">متوسط مدة التشغيل</span>
-                                </div>
-                            </div>
-
-                            <!-- Vertical Rounded Bar Chart (Matching reference image) -->
-                            <div class="exec-dark-bar-chart">
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 52%;"></div><span class="bar-tag">Jun</span></div>
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 64%;"></div><span class="bar-tag">Jul</span></div>
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 48%;"></div><span class="bar-tag">Aug</span></div>
-                                <div class="chart-column active-column">
-                                    <div class="chart-dual-bars">
-                                        <div class="chart-vbar solid-white" style="height: 94%;"></div>
-                                        <div class="chart-vbar solid-blue" style="height: 80%;"></div>
-                                    </div>
-                                    <span class="bar-tag active-tag">Sept ↗</span>
-                                </div>
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 50%;"></div><span class="bar-tag">Oct</span></div>
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 58%;"></div><span class="bar-tag">Nov</span></div>
-                                <div class="chart-column"><div class="chart-vbar striped-bar" style="height: 70%;"></div><span class="bar-tag">Dec</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- FLEET SEARCH & LIVE FILTERS TOOLBAR -->
                 <div class="fleet-toolbar-container">
@@ -1581,7 +1401,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_sidebar_fix"></script>
+    <script src="app.js?v=20260916_fleet_only"></script>
 </body>
 
 </html>

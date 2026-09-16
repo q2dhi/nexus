@@ -579,16 +579,24 @@ function onDeviceRowClicked(event, deviceId) {
 
 function handleFleetSearch(query) {
     currentFleetSearchQuery = (query || '').trim().toLowerCase();
+    const topInput = document.getElementById('fleetSearchInputTop');
+    const tableInput = document.getElementById('fleetSearchInput');
+    if (topInput && topInput.value !== (query || '')) topInput.value = query || '';
+    if (tableInput && tableInput.value !== (query || '')) tableInput.value = query || '';
+
+    const clearBtnTop = document.getElementById('fleetSearchClearBtnTop');
     const clearBtn = document.getElementById('fleetSearchClearBtn');
-    if (clearBtn) {
-        clearBtn.style.display = currentFleetSearchQuery ? 'inline-block' : 'none';
-    }
+    if (clearBtnTop) clearBtnTop.style.display = currentFleetSearchQuery ? 'inline-block' : 'none';
+    if (clearBtn) clearBtn.style.display = currentFleetSearchQuery ? 'inline-block' : 'none';
+
     renderDeviceTable(lastDevicesCache);
 }
 
 function clearFleetSearch() {
-    const input = document.getElementById('fleetSearchInput');
-    if (input) input.value = '';
+    const topInput = document.getElementById('fleetSearchInputTop');
+    const tableInput = document.getElementById('fleetSearchInput');
+    if (topInput) topInput.value = '';
+    if (tableInput) tableInput.value = '';
     handleFleetSearch('');
 }
 
