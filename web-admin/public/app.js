@@ -2072,6 +2072,27 @@ async function sendOpenA11ySettingsCommand() {
     }
 }
 
+function triggerNavKey(key, event) {
+    if (event) {
+        try { event.stopPropagation(); } catch (_) { }
+        const container = document.getElementById('phoneScreenContainer');
+        if (container && event.clientX) {
+            const rect = container.getBoundingClientRect();
+            const xRatio = (event.clientX - rect.left) / rect.width;
+            const yRatio = (event.clientY - rect.top) / rect.height;
+            const ripple = document.getElementById('touchRipple');
+            if (ripple) {
+                ripple.style.left = `${(xRatio * 100)}%`;
+                ripple.style.top = `${(yRatio * 100)}%`;
+                ripple.classList.add('active');
+                setTimeout(() => ripple.classList.remove('active'), 250);
+            }
+        }
+    }
+    sendDeviceKey(key);
+}
+window.triggerNavKey = triggerNavKey;
+
 function handlePhoneScreenClick(event) {
     if (!activeStreamDeviceId) return;
     const container = document.getElementById('phoneScreenContainer');
@@ -2086,6 +2107,21 @@ function handlePhoneScreenClick(event) {
         ripple.style.top = `${(yRatio * 100)}%`;
         ripple.classList.add('active');
         setTimeout(() => ripple.classList.remove('active'), 250);
+    }
+
+    // Android System Navigation Bar Interceptor (bottom 9.5% of the screen)
+    // Directly dispatches standard OS key actions so Back, Home, and Recents work 100% reliably
+    if (yRatio >= 0.905) {
+        if (xRatio < 0.36) {
+            sendDeviceKey('BACK');
+            return;
+        } else if (xRatio > 0.64) {
+            sendDeviceKey('RECENTS');
+            return;
+        } else {
+            sendDeviceKey('HOME');
+            return;
+        }
     }
 
     fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {

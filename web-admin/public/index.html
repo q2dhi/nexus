@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260916_wider_card">
+    <link rel="stylesheet" href="style.css?v=20260916_nav_touch_v2">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1350,6 +1350,13 @@
                             </div>
                             <!-- Touch Ripple Effect Target -->
                             <div id="touchRipple" class="touch-ripple-circle"></div>
+
+                            <!-- Transparent Android Navigation Buttons Interceptor (Back, Home, Recents) -->
+                            <div class="stream-nav-touch-strip" onclick="event.stopPropagation()">
+                                <div class="nav-touch-target nav-target-back" onclick="triggerNavKey('BACK', event)" title="الرجوع (Back)"></div>
+                                <div class="nav-touch-target nav-target-home" onclick="triggerNavKey('HOME', event)" title="الرئيسية (Home)"></div>
+                                <div class="nav-touch-target nav-target-recents" onclick="triggerNavKey('RECENTS', event)" title="التطبيقات المفتوحة (Recents)"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1359,7 +1366,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_utf8_fix"></script>
+    <script src="app.js?v=20260916_nav_touch_v2"></script>
 </body>
 
 </html>

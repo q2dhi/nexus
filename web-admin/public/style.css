@@ -1906,6 +1906,36 @@ body.ltr-mode .dac-btn { text-align: left; }
     padding: 16px;
 }
 
+/* Dedicated Navigation Touch Targets (Mapped over the bottom Android Navigation Bar) */
+.stream-nav-touch-strip {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 9%;
+    display: flex;
+    z-index: 5;
+    pointer-events: auto;
+    direction: ltr; /* Ensure Back is on left, Home center, Recents on right */
+}
+
+.nav-touch-target {
+    flex: 1;
+    height: 100%;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.15s ease;
+    border-radius: 4px;
+}
+
+.nav-touch-target:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-touch-target:active {
+    background: rgba(255, 255, 255, 0.22);
+}
+
 .android-nav-bar {
     display: flex;
     justify-content: space-around;

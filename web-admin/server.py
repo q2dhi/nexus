@@ -2085,11 +2085,19 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     if action == 'tap':
                         x_ratio = float(data.get('xRatio', 0.5))
                         y_ratio = float(data.get('yRatio', 0.5))
-                        px_w = int(data.get('displayWidth', 1440))
-                        px_h = int(data.get('displayHeight', 3120))
-                        target_x = max(0, min(px_w, int(px_w * x_ratio)))
-                        target_y = max(0, min(px_h, int(px_h * y_ratio)))
-                        subprocess.run([adb_path, 'shell', 'input', 'tap', str(target_x), str(target_y)], timeout=2)
+                        if y_ratio >= 0.905:
+                            if x_ratio < 0.36:
+                                subprocess.run([adb_path, 'shell', 'input', 'keyevent', '4'], timeout=2) # BACK
+                            elif x_ratio > 0.64:
+                                subprocess.run([adb_path, 'shell', 'input', 'keyevent', '187'], timeout=2) # RECENTS
+                            else:
+                                subprocess.run([adb_path, 'shell', 'input', 'keyevent', '3'], timeout=2) # HOME
+                        else:
+                            px_w = int(data.get('displayWidth', 1440))
+                            px_h = int(data.get('displayHeight', 3120))
+                            target_x = max(0, min(px_w, int(px_w * x_ratio)))
+                            target_y = max(0, min(px_h, int(px_h * y_ratio)))
+                            subprocess.run([adb_path, 'shell', 'input', 'tap', str(target_x), str(target_y)], timeout=2)
                     elif action == 'swipe':
                         direction = data.get('direction', 'up')
                         if direction == 'up':

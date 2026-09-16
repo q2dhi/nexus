@@ -25,7 +25,14 @@ object RemoteInputExecutor {
                     val xRatio = actionObj.optDouble("xRatio", 0.5).toFloat()
                     val yRatio = actionObj.optDouble("yRatio", 0.5).toFloat()
 
-                    if (accessibilityService != null) {
+                    // If tap falls within the system navigation bar zone (bottom ~9.5%)
+                    if (yRatio >= 0.905f && accessibilityService != null) {
+                        when {
+                            xRatio < 0.36f -> accessibilityService.performGlobalKey("BACK")
+                            xRatio > 0.64f -> accessibilityService.performGlobalKey("RECENTS")
+                            else -> accessibilityService.performGlobalKey("HOME")
+                        }
+                    } else if (accessibilityService != null) {
                         accessibilityService.performTap(xRatio, yRatio)
                     } else {
                         // In-app Kiosk fallback
