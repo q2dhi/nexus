@@ -1345,36 +1345,41 @@
 
             <!-- Two-Column Body: Big Phone Screen on one side, Actions & Controls Beside It -->
             <div class="stream-session-body">
-                <!-- Large Phone Screen Display -->
+                <!-- Large Phone Screen Display (Honeywell Enterprise Device) -->
                 <div class="stream-device-viewport-col">
-                    <div class="phone-bezel">
-                        <div class="phone-speaker-notch"></div>
-                        <div id="phoneScreenContainer" class="phone-display-viewport" onclick="handlePhoneScreenClick(event)">
-                            <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" />
-                            <div id="streamPlaceholder" class="phone-stream-loading">
-                                <div class="loading-spinner"></div>
-                                <p>جاري مزامنة وبث الشاشة الحية...</p>
+                    <div class="honeywell-device-wrapper">
+                        <div class="honeywell-phone-frame">
+                            <!-- Authentic Honeywell Rugged Hardware Chassis -->
+                            <img src="honeywell-device.png" alt="Honeywell Rugged Handheld Computer" class="honeywell-chassis-img" draggable="false" />
+                            
+                            <!-- Interactive Touchscreen Display (Mapped 1:1 to Remote Screen) -->
+                            <div id="phoneScreenContainer" class="phone-display-viewport" onclick="handlePhoneScreenClick(event)">
+                                <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" />
+                                <div id="streamPlaceholder" class="phone-stream-loading">
+                                    <div class="loading-spinner"></div>
+                                    <p>جاري مزامنة وبث الشاشة الحية...</p>
+                                </div>
+                                <!-- Touch Ripple Effect Target -->
+                                <div id="touchRipple" class="touch-ripple-circle"></div>
                             </div>
-                            <!-- Touch Ripple Effect Target -->
-                            <div id="touchRipple" class="touch-ripple-circle"></div>
                         </div>
 
                         <!-- Android Virtual Navigation Bar -->
                         <div class="android-nav-bar">
                             <button class="nav-key" title="رجوع (Back)" onclick="sendDeviceKey('BACK')">
-                                
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
                                 <span>رجوع</span>
                             </button>
                             <button class="nav-key" title="الرئيسية (Home)" onclick="sendDeviceKey('HOME')">
-                                
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="7"/></svg>
                                 <span>الرئيسية</span>
                             </button>
                             <button class="nav-key" title="التطبيقات المفتوحة (Recents)" onclick="sendDeviceKey('RECENTS')">
-                                
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
                                 <span>التطبيقات</span>
                             </button>
-                            <button class="nav-key" title="قفل / طاقة (Power)" onclick="sendDeviceKey('POWER')">
-                                
+                            <button class="nav-key nav-key-power" title="قفل / طاقة (Power)" onclick="sendDeviceKey('POWER')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                                 <span>الطاقة</span>
                             </button>
                         </div>
