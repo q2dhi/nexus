@@ -2179,49 +2179,58 @@ function sendDeviceSwipe(direction) {
 
 function wakeDevice() {
     if (!activeStreamDeviceId) return;
-    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+    const devId = activeStreamDeviceId;
+    fetch('/api/commands', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Tenant-Token': currentTenantToken || ''
-        },
-        body: JSON.stringify({ action: 'wake' })
-    }).then(() => {
-        setTimeout(pollScreenFrame, 150);
-        setTimeout(pollScreenFrame, 400);
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ deviceId: devId, command: 'WAKE_SCREEN' })
     }).catch(() => { });
+    fetch(`/api/devices/${encodeURIComponent(devId)}/touch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ action: 'wake' })
+    }).catch(() => { });
+    showNotification('تم إرسال إشارة إيقاظ الشاشة للهاتف', 'info');
+    setTimeout(pollScreenFrame, 300);
+    setTimeout(pollScreenFrame, 800);
 }
 window.wakeDevice = wakeDevice;
 
 function unlockDevice() {
     if (!activeStreamDeviceId) return;
-    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+    const devId = activeStreamDeviceId;
+    fetch('/api/commands', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Tenant-Token': currentTenantToken || ''
-        },
-        body: JSON.stringify({ action: 'unlock' })
-    }).then(() => {
-        setTimeout(pollScreenFrame, 250);
-        setTimeout(pollScreenFrame, 600);
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ deviceId: devId, command: 'UNLOCK_SCREEN' })
     }).catch(() => { });
+    fetch(`/api/devices/${encodeURIComponent(devId)}/touch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ action: 'unlock' })
+    }).catch(() => { });
+    showNotification('تم إرسال أمر فتح القفل وتخطي شاشة القفل للهاتف', 'info');
+    setTimeout(pollScreenFrame, 400);
+    setTimeout(pollScreenFrame, 1000);
 }
 window.unlockDevice = unlockDevice;
 
 function lockDeviceScreen() {
     if (!activeStreamDeviceId) return;
-    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+    const devId = activeStreamDeviceId;
+    fetch('/api/commands', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Tenant-Token': currentTenantToken || ''
-        },
-        body: JSON.stringify({ action: 'lock' })
-    }).then(() => {
-        setTimeout(pollScreenFrame, 200);
-        setTimeout(pollScreenFrame, 500);
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ deviceId: devId, command: 'LOCK_SCREEN' })
     }).catch(() => { });
+    fetch(`/api/devices/${encodeURIComponent(devId)}/touch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+        body: JSON.stringify({ action: 'lock' })
+    }).catch(() => { });
+    showNotification('تم إرسال أمر قفل الشاشة للهاتف', 'info');
+    setTimeout(pollScreenFrame, 300);
+    setTimeout(pollScreenFrame, 700);
 }
 window.lockDeviceScreen = lockDeviceScreen;
 

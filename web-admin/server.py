@@ -2076,10 +2076,24 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             dev_id = path.split('/')[3]
             action = data.get('action', 'tap')
 
-            # 1. Enqueue action for remote cloud device delivery
+            # 1. Enqueue action for remote cloud device delivery (via screen-frame)
             queue = pending_touch_events.setdefault(dev_id, [])
             if len(queue) < 10:
                 queue.append(data)
+
+            # 1.5 Also mirror high-priority power/screen actions directly into heartbeat command queue
+            if action in ('wake', 'wake_screen'):
+                cmd_q = pending_commands.setdefault(dev_id, [])
+                if not any(c.get('command') == 'WAKE_SCREEN' for c in cmd_q):
+                    cmd_q.append({"command": "WAKE_SCREEN"})
+            elif action in ('unlock', 'unlock_screen'):
+                cmd_q = pending_commands.setdefault(dev_id, [])
+                if not any(c.get('command') == 'UNLOCK_SCREEN' for c in cmd_q):
+                    cmd_q.append({"command": "UNLOCK_SCREEN"})
+            elif action in ('lock', 'lock_screen'):
+                cmd_q = pending_commands.setdefault(dev_id, [])
+                if not any(c.get('command') == 'LOCK_SCREEN' for c in cmd_q):
+                    cmd_q.append({"command": "LOCK_SCREEN"})
 
             # 2. Local ADB fallback (if device is plugged into local computer)
             adb_path = find_adb_executable()
