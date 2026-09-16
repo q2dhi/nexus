@@ -1317,183 +1317,25 @@
     </div>
 
     <!-- LIVE INTERACTIVE REMOTE CONTROL STREAM MODAL -->
-    <div id="screenModal" class="modal" style="display:none;">
+    <!-- Remote Control / Interactive Stream Modal (Only the Honeywell Device) -->
+    <div id="screenModal" class="modal" style="display:none;" onclick="if(event.target===this) closeScreenStream()">
         <div class="modal-card phone-stream-card">
-            <div class="stream-modal-header">
-                <div class="stream-title-group">
-                    <div class="stream-live-pill">
-                        <span class="pulse-indicator"></span>
-                        <span class="live-text">INTERACTIVE SESSION</span>
-                    </div>
-                    <h3 id="screenModalTitle">التحكم المباشر وبث الشاشة</h3>
-                    <small id="screenModalSub">انقر على الشاشة للتفاعل الفوري باللمس • واستخدم لوحة التحكم الجانبية للإجراءات</small>
-                </div>
-                <button class="btn-close" onclick="closeScreenStream()">&times;</button>
-            </div>
-
-            <!-- Dynamic Accessibility Service Advisory Banner -->
-            <div id="streamA11yAlert" style="display:none; background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:10px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; gap:12px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <div>
-                        <div style="font-weight:700; font-size:12px; color:#92400E;">تنبيه: خدمة إمكانية الوصول (Accessibility) غير مفعلة على هذا الهاتف</div>
-                        <div style="font-size:11px; color:#B45309;">تتطلب رؤية حركة التطبيقات الخارجية وتفاعل اللمس تفعيل خدمة Nexus Remote Control على الجهاز لمرة واحدة.</div>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-warning btn-sm" onclick="sendOpenA11ySettingsCommand()" style="font-size:11px; padding:6px 14px; font-weight:700; white-space:nowrap; background:#D97706; color:#FFF; border:none; border-radius:6px; cursor:pointer;">فتح شاشة التفعيل على الهاتف الآن</button>
-            </div>
-
-            <!-- Two-Column Body: Big Phone Screen on one side, Actions & Controls Beside It -->
-            <div class="stream-session-body">
-                <!-- Large Phone Screen Display (Honeywell Enterprise Device) -->
-                <div class="stream-device-viewport-col">
-                    <div class="honeywell-device-wrapper">
-                        <div class="honeywell-phone-frame">
-                            <!-- Authentic Honeywell Rugged Hardware Chassis -->
-                            <img src="honeywell-device.png" alt="Honeywell Rugged Handheld Computer" class="honeywell-chassis-img" draggable="false" />
-                            
-                            <!-- Interactive Touchscreen Display (Mapped 1:1 to Remote Screen) -->
-                            <div id="phoneScreenContainer" class="phone-display-viewport" onclick="handlePhoneScreenClick(event)">
-                                <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" />
-                                <div id="streamPlaceholder" class="phone-stream-loading">
-                                    <div class="loading-spinner"></div>
-                                    <p>جاري مزامنة وبث الشاشة الحية...</p>
-                                </div>
-                                <!-- Touch Ripple Effect Target -->
-                                <div id="touchRipple" class="touch-ripple-circle"></div>
-                            </div>
+            <!-- Sleek Floating Close Button -->
+            <button class="stream-close-float-btn" onclick="closeScreenStream()" title="إغلاق">&times;</button>
+            
+            <div class="honeywell-device-wrapper">
+                <div class="honeywell-phone-frame">
+                    <!-- Authentic Honeywell Rugged Hardware Chassis -->
+                    <img src="honeywell-device.png" alt="Honeywell Rugged Handheld Computer" class="honeywell-chassis-img" draggable="false" />
+                    
+                    <!-- Interactive Touchscreen Display (Mapped 1:1 to Remote Screen) -->
+                    <div id="phoneScreenContainer" class="phone-display-viewport" onclick="handlePhoneScreenClick(event)">
+                        <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" />
+                        <div id="streamPlaceholder" class="phone-stream-loading">
+                            <div class="loading-spinner"></div>
                         </div>
-
-                        <!-- Android Virtual Navigation Bar -->
-                        <div class="android-nav-bar">
-                            <button class="nav-key" title="رجوع (Back)" onclick="sendDeviceKey('BACK')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-                                <span>رجوع</span>
-                            </button>
-                            <button class="nav-key" title="الرئيسية (Home)" onclick="sendDeviceKey('HOME')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="7"/></svg>
-                                <span>الرئيسية</span>
-                            </button>
-                            <button class="nav-key" title="التطبيقات المفتوحة (Recents)" onclick="sendDeviceKey('RECENTS')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
-                                <span>التطبيقات</span>
-                            </button>
-                            <button class="nav-key nav-key-power" title="قفل / طاقة (Power)" onclick="sendDeviceKey('POWER')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-                                <span>الطاقة</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Beside the Screen: Actions & Controls Suite -->
-                <div class="stream-actions-panel-col">
-                    <!-- Session Status & Telemetry -->
-                    <div class="stream-panel-card">
-                        <div class="stream-panel-header">
-                            <span class="stream-panel-title">
-                                
-                                بيانات جلسة البث المباشر
-                            </span>
-                            <span id="streamFps" class="stream-status-badge"><span class="dot online" style="display:inline-block; margin-left:4px;"></span>30 FPS • Ultra-Low Latency</span>
-                        </div>
-                        <div class="stream-device-meta-row">
-                            <div class="meta-item">
-                                <span class="meta-label">الجهاز النشط:</span>
-                                <strong id="streamActiveDeviceName" class="meta-value">-</strong>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">المعرف:</span>
-                                <code id="streamActiveDeviceId" class="meta-code">-</code>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">التحكم:</span>
-                                <span class="meta-badge-touch">تحكم لمسي فوري</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Remote Text & URL Injection -->
-                    <div class="stream-panel-card">
-                        <div class="stream-panel-header">
-                            <span class="stream-panel-title">
-                                
-                                كتابة النصوص والروابط عن بُعد
-                            </span>
-                        </div>
-                        <div class="remote-type-bar">
-                            <input type="text" id="remoteTextInput" class="form-input" placeholder="اكتب نصاً، كلمة مرور، أو رابط موقع لإرساله للهاتف..."
-                                onkeydown="if(event.key==='Enter') sendRemoteTextInput()">
-                            <button class="btn btn-primary btn-sm" onclick="sendRemoteTextInput()" style="white-space:nowrap; padding:8px 16px;">
-                                
-                                <span>إرسال للهاتف</span>
-                            </button>
-                        </div>
-                        <small style="color:#64748B; font-size:11px; margin-top:4px; display:block;">يتم إدخال النص فوراً داخل التطبيق المفتوح أو المتصفح في الجهاز.</small>
-                    </div>
-
-                    <!-- Gestures & Physical Controls -->
-                    <div class="stream-panel-card">
-                        <div class="stream-panel-header">
-                            <span class="stream-panel-title">
-                                
-                                إيماءات التمرير والتحكم بالصوت
-                            </span>
-                        </div>
-                        <div class="stream-buttons-grid">
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="sendDeviceSwipe('down')">
-                                
-                                <span>تمرير لأعلى (Scroll Up)</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="sendDeviceSwipe('up')">
-                                
-                                <span>تمرير لأسفل (Scroll Down)</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="sendDeviceKey('VOLUME_UP')">
-                                
-                                <span>رفع الصوت (+Vol)</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="sendDeviceKey('VOLUME_DOWN')">
-                                
-                                <span>خفض الصوت (-Vol)</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Direct Quick MDM Actions -->
-                    <div class="stream-panel-card">
-                        <div class="stream-panel-header">
-                            <span class="stream-panel-title">
-                                
-                                إجراءات إدارية مباشرة أثناء الجلسة
-                            </span>
-                        </div>
-                        <div class="stream-buttons-grid">
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="streamExecuteLock()">
-                                
-                                <span>قفل الشاشة فوراً</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="streamExecuteKioskToggle()">
-                                
-                                <span id="streamKioskToggleLabel">تبديل وضع الكشك</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="streamExecuteReboot()">
-                                
-                                <span>إعادة تشغيل الهاتف</span>
-                            </button>
-                            <button class="btn btn-secondary stream-ctrl-btn" onclick="streamExecuteSiren()">
-                                
-                                <span>صفارة الإنذار</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Footer / End Session -->
-                    <div class="stream-panel-footer">
-                        <button class="btn btn-danger-soft" onclick="closeScreenStream()" style="padding:8px 24px; font-weight:700;">
-                            
-                            <span>إنهاء جلسة التحكم المباشر</span>
-                        </button>
+                        <!-- Touch Ripple Effect Target -->
+                        <div id="touchRipple" class="touch-ripple-circle"></div>
                     </div>
                 </div>
             </div>
