@@ -171,7 +171,7 @@
                 <div class="pane-header">
                     <div>
                         <h2 id="fleetSectionTitle">الأجهزة المدارة</h2>
-                        <p class="section-desc" id="fleetSectionDesc">مراقبة الحالة والتحكم المباشر بالأسطول.</p>
+                        <p class="section-desc" id="fleetSectionDesc" style="display:none;"></p>
                     </div>
                     <div class="pane-actions">
                         <div class="branch-filter-container" style="display:inline-flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E2E8F0; padding:3px 10px; border-radius:8px;">
@@ -267,8 +267,8 @@
                                 <th style="width: 36px; text-align: center;">
                                     <input type="checkbox" id="selectAllDevicesCheckbox" class="fleet-checkbox" onchange="toggleSelectAllDevices(this.checked)" title="تحديد جميع الأجهزة المعروضة">
                                 </th>
-                                <th id="thColDevice">اسم ومعرّف الجهاز</th>
-                                <th id="thColModel">الموديل والنظام</th>
+                                <th id="thColDevice">اسم الجهاز</th>
+                                <th id="thColModel">الموديل</th>
                                 <th id="thColBattery">البطارية</th>
                                 <th id="thColVitals">الذاكرة والتخزين</th>
                                 <th id="thColIp">عنوان IP</th>
@@ -1366,7 +1366,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_nav_touch_v2"></script>
+    <script src="app.js?v=20260916_clean_fleet"></script>
 </body>
 
 </html>

@@ -44,8 +44,8 @@ const i18n = {
         kpiKiosk: "قفل الكشك",
         kpiGps: "تتبع الأقمار الصناعية",
         kpiSecurity: "درع الأمان الفوري",
-        thDevice: "معرّف ووسم الجهاز",
-        thModel: "الموديل والنظام",
+        thDevice: "اسم الجهاز",
+        thModel: "الموديل",
         thBattery: "البطارية",
         thVitals: "الذاكرة والتخزين",
         thIp: "عنوان الشبكة IP",
@@ -109,8 +109,8 @@ const i18n = {
         kpiKiosk: "Kiosk Confinement",
         kpiGps: "GPS Sentinel",
         kpiSecurity: "Security Shield",
-        thDevice: "Device Name & Identifier",
-        thModel: "Model & OS",
+        thDevice: "Device Name",
+        thModel: "Model",
         thBattery: "Battery",
         thVitals: "RAM & Storage",
         thIp: "IP Address",
@@ -260,12 +260,11 @@ function applyLanguage() {
     const loginFooterNote = document.getElementById('loginFooterNote');
     if (loginFooterNote) loginFooterNote.innerText = t.loginFooterNote;
 
-    // Fleet Section Header & Actions
     const fleetTitle = document.getElementById('fleetSectionTitle');
-    if (fleetTitle) fleetTitle.innerText = isRtl ? 'الأسطول المدار المركزي' : 'Centralized Managed Fleet';
+    if (fleetTitle) fleetTitle.innerText = isRtl ? 'الأجهزة المدارة' : 'Managed Devices';
 
     const fleetDesc = document.getElementById('fleetSectionDesc');
-    if (fleetDesc) fleetDesc.innerText = isRtl ? 'الحالة المباشرة، قياسات الأداء اللحظية، والتحكم الإداري الفوري عن بُعد.' : 'Live telemetry vitals, real-time status, and instantaneous remote administration.';
+    if (fleetDesc) fleetDesc.style.display = 'none';
 
     const btnRefresh = document.getElementById('btnRefreshFleet');
     if (btnRefresh) btnRefresh.innerText = isRtl ? 'تحديث الأسطول' : 'Refresh Fleet';
@@ -858,18 +857,15 @@ function renderDeviceTable(devices) {
                 </td>
                 <td>
                     <div class="device-cell-brand">
-                        <span class="brand-chip brand-chip-${brand}" style="font-size:9px; padding:2px 5px;">${brand.toUpperCase()}</span>
                         <div>
-                            <strong style="color:#0F172A; font-size:13px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong><br>
-                            <small style="color:#64748B; font-family:monospace; font-size:10.5px;">${escapeHtml(d.id)}</small>
+                            <strong style="color:#0F172A; font-size:13.5px;" class="device-name-link">${escapeHtml(d.name || d.id)}</strong>
                             ${d.branchName ? `<div style="margin-top:2px;"><span class="branch-pill-badge" title="الفرع: ${escapeHtml(d.branchName)}">${escapeHtml(d.branchName)}</span></div>` : ''}
                         </div>
                     </div>
                 </td>
                 <td>
                     <div style="line-height:1.3;">
-                        <strong style="color:#1E293B; font-size:12px;">${escapeHtml(d.model || 'Unknown')}</strong><br>
-                        <small style="color:#64748B; font-size:10.5px;">Android ${escapeHtml(d.os || '')}</small>
+                        <strong style="color:#1E293B; font-size:12.5px;">${escapeHtml(d.model || 'Unknown')}</strong>
                     </div>
                 </td>
                 <td>
