@@ -569,8 +569,8 @@ class MdmCloudSyncService : Service() {
                     configStore.branchCode = ""
                 }
 
-                // Only notify/launch MainActivity if subscription became inactive or state changed
-                if (!subscriptionActive || wasActive != subscriptionActive) {
+                // Only notify/launch MainActivity if subscription state changed from active to inactive
+                if (wasActive && !subscriptionActive) {
                     try {
                         val subIntent = Intent(this@MdmCloudSyncService, MainActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)

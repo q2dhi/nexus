@@ -320,14 +320,19 @@ class KioskManager(private val context: Context) {
                             dpm.enableSystemApp(adminComponent, packageName)
                             dpm.setApplicationHidden(adminComponent, "com.google.android.gms", false)
                             dpm.enableSystemApp(adminComponent, "com.google.android.gms")
+                            dpm.setApplicationHidden(adminComponent, "com.google.android.gsf", false)
+                            dpm.enableSystemApp(adminComponent, "com.google.android.gsf")
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                                 dpm.setLocationEnabled(adminComponent, true)
                             }
+                            dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SHARE_LOCATION)
+                            dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CONFIG_LOCATION)
                             for (p in listOf(
                                 android.Manifest.permission.ACCESS_FINE_LOCATION,
                                 android.Manifest.permission.ACCESS_COARSE_LOCATION
                             )) {
                                 dpm.setPermissionGrantState(adminComponent, "com.google.android.gms", p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                                dpm.setPermissionGrantState(adminComponent, packageName, p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
                             }
                         } catch (_: Exception) {}
                     }
@@ -408,7 +413,7 @@ class KioskManager(private val context: Context) {
                     }
                 }
 
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                 context.startActivity(launchIntent)
                 AppLogger.i("KioskManager", "Launched whitelisted app: $packageName")
                 true

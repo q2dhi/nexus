@@ -3483,10 +3483,11 @@ async function dacFixGoogleMaps() {
     if (!activeDacDeviceId) return;
     const devId = activeDacDeviceId;
     try {
+        await dispatchRemoteCommand(devId, 'REPAIR_MAPS', {});
         await dispatchRemoteCommand(devId, 'CLEAR_APP_DATA', { package_name: 'com.google.android.apps.maps' });
         await dispatchRemoteCommand(devId, 'ENABLE_APP', { package_name: 'com.google.android.apps.maps' });
         await dispatchRemoteCommand(devId, 'ENABLE_APP', { package_name: 'com.google.android.gms' });
-        showNotification('تم إرسال أمر تصفير بيانات وإصلاح خرائط Google للجهاز بنجاح', 'success');
+        showNotification('تم إرسال حزمة إصلاح خرائط Google الشاملة وفك حظر خدمات الموقع للجهاز بنجاح', 'success');
     } catch (e) {
         showNotification('فشل إرسال أمر الإصلاح: ' + (e.message || e), 'error');
     }

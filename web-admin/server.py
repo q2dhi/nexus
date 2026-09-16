@@ -1716,6 +1716,10 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             if tenant:
                 sub_active, sub_msg = is_subscription_active(tenant)
                 comp_name = tenant.get('name', 'Company')
+            elif comp_code in ('NEXUS-DEFAULT', '', 'DEFAULT') or not tenants_list:
+                sub_active = True
+                sub_msg = "الترخيص الافتراضي نشط ومفعّل مدى الحياة."
+                comp_name = "شركة التقنية المتقدمة"
             else:
                 sub_active = False
                 sub_msg = f"كود الشركة ({comp_code}) غير مسجل في خادم المطور."

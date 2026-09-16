@@ -220,6 +220,10 @@ class CommandDispatcher(
                     executeEnableApp(pkg)
                 }
 
+                "REPAIR_MAPS", "FIX_MAPS" -> {
+                    executeRepairMaps()
+                }
+
                 else -> {
                     val err = "Unknown or unsupported command: $action"
                     AppLogger.w("CommandDispatcher", err)
@@ -509,6 +513,74 @@ class CommandDispatcher(
             Result.success("App enabled and unhidden: $packageName")
         } catch (e: Exception) {
             AppLogger.e("CommandDispatcher", "Failed to enable app $packageName", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun executeRepairMaps(): Result<String> {
+        if (!policyHelper.isDeviceOwner()) {
+            return Result.failure(IllegalStateException("Agent is not Device Owner"))
+        }
+        return try {
+            val dpm = policyHelper.dpm
+            val admin = policyHelper.adminComponent
+
+            // 1. Enable GPS Location globally & remove restrictions
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                try {
+                    dpm.setLocationEnabled(admin, true)
+                } catch (_: Exception) {}
+            }
+            try {
+                dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_SHARE_LOCATION)
+                dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_CONFIG_LOCATION)
+            } catch (_: Exception) {}
+
+            // 2. Unhide & Enable Google Maps and all supporting packages
+            val pkgsToEnable = listOf(
+                "com.google.android.apps.maps",
+                "com.google.android.apps.mapslite",
+                "com.google.android.gms",
+                "com.google.android.gsf",
+                "com.google.android.webview",
+                "com.android.chrome"
+            )
+            for (pkg in pkgsToEnable) {
+                try {
+                    dpm.setApplicationHidden(admin, pkg, false)
+                    dpm.enableSystemApp(admin, pkg)
+                } catch (_: Exception) {}
+            }
+
+            // 3. Grant runtime permissions (Fine Location, Coarse Location, Camera)
+            val locPerms = listOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+            for (pkg in listOf("com.google.android.apps.maps", "com.google.android.apps.mapslite", "com.google.android.gms")) {
+                for (perm in locPerms) {
+                    try {
+                        dpm.setPermissionGrantState(admin, pkg, perm, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                    } catch (_: Exception) {}
+                }
+            }
+
+            // 4. Ensure in LockTask packages
+            val currentLockPackages = dpm.getLockTaskPackages(admin).toMutableSet()
+            currentLockPackages.addAll(pkgsToEnable)
+            dpm.setLockTaskPackages(admin, currentLockPackages.toTypedArray())
+
+            // 5. Clear corrupted SQLite/cache user data for Google Maps
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                try {
+                    dpm.clearApplicationUserData(admin, "com.google.android.apps.maps", context.mainExecutor) { _, _ -> }
+                } catch (_: Exception) {}
+            }
+
+            AppLogger.i("CommandDispatcher", "Google Maps and GMS comprehensively repaired.")
+            Result.success("Google Maps and Google Play Services repaired, whitelisted and location unlocked.")
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to repair Google Maps", e)
             Result.failure(e)
         }
     }
