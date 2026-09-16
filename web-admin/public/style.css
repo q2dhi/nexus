@@ -2445,21 +2445,911 @@ body.ltr-mode .toast-info { border-right: none; border-left: 4px solid var(--bra
 }
 
 /* ==========================================================================
-   RESPONSIVE UTILITIES
+   EXECUTIVE LUXURY DASHBOARD SYSTEM (White, Blue & Black Aesthetic)
    ========================================================================== */
 
+body {
+    background-color: #0D0F12 !important;
+    background-image: none !important;
+    color: #0F172A;
+    min-height: 100vh;
+}
+
+/* Master Shell Container */
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    max-width: 1720px !important;
+    margin: 0 auto;
+    padding: 14px;
+    gap: 16px;
+    background: #0D0F12;
+    box-sizing: border-box;
+}
+
+body.rtl-mode .app-shell {
+    flex-direction: row;
+}
+
+body.ltr-mode .app-shell {
+    flex-direction: row;
+}
+
+/* --------------------------------------------------------------------------
+   1. SLEEK DARK EXECUTIVE SIDEBAR
+   -------------------------------------------------------------------------- */
+.app-sidebar {
+    width: 270px;
+    min-width: 270px;
+    background: #16171B;
+    border-radius: 28px;
+    padding: 26px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-sizing: border-box;
+}
+
+.sidebar-top-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 6px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-brand-text {
+    font-weight: 800;
+    font-size: 22px;
+    color: #FFFFFF;
+    letter-spacing: -0.02em;
+}
+
+.sidebar-brand-dot {
+    color: #3B82F6;
+}
+
+.sidebar-brand-badge {
+    margin-inline-start: auto;
+    background: rgba(59, 130, 246, 0.18);
+    color: #60A5FA;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.sidebar-nav .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 18px;
+    border-radius: 16px;
+    border: none;
+    background: transparent;
+    color: #94A3B8;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 100%;
+    text-align: start;
+    text-decoration: none;
+}
+
+.sidebar-nav .nav-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    transform: translateX(isRtl ? -2px : 2px);
+}
+
+.sidebar-nav .nav-tab.active {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.sidebar-nav .nav-tab.active .nav-tab-icon {
+    stroke: #0F172A;
+}
+
+.sidebar-tab-badge {
+    margin-inline-start: auto;
+    background: rgba(255, 255, 255, 0.12);
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.sidebar-nav .nav-tab.active .sidebar-tab-badge {
+    background: #2563EB;
+    color: #FFFFFF;
+}
+
+/* Sidebar Bottom Feature Card */
+.sidebar-promo-card {
+    background: linear-gradient(145deg, #1E293B 0%, #0F172A 100%);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 22px;
+    padding: 20px 16px;
+    color: #FFFFFF;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.promo-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.25);
+    color: #60A5FA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.3);
+}
+
+.promo-card-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #FFFFFF;
+}
+
+.promo-card-desc {
+    font-size: 11.5px;
+    color: #94A3B8;
+    line-height: 1.45;
+}
+
+.promo-card-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: none;
+    background: #2563EB;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.promo-card-btn:hover {
+    background: #1D4ED8;
+    transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   2. MAIN LIGHT CONTENT CANVAS
+   -------------------------------------------------------------------------- */
+.app-main-canvas {
+    flex: 1;
+    background: #EEF1F6 !important;
+    border-radius: 28px;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-sizing: border-box;
+}
+
+/* Canvas Top Header */
+.canvas-top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.canvas-profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #FFFFFF;
+    padding: 6px 16px 6px 8px;
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.canvas-profile-pill:hover {
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.canvas-avatar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #FFFFFF;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.canvas-user-details {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.canvas-user-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.canvas-company-name {
+    font-size: 11px;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.canvas-profile-arrow {
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+}
+
+.canvas-search-box {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border-radius: 9999px;
+    padding: 9px 18px;
+    gap: 10px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    flex: 1;
+    max-width: 440px;
+}
+
+.canvas-search-box .search-lens-icon {
+    color: #64748B;
+    flex-shrink: 0;
+}
+
+.canvas-search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    width: 100%;
+    color: #0F172A;
+}
+
+.canvas-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.canvas-date-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFFFFF;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.canvas-period-pill {
+    background: #F1F5F9;
+    color: #0F172A;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+}
+
+/* Canvas Title & Tools Row */
+.canvas-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.canvas-page-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+}
+
+.canvas-page-subtitle {
+    font-size: 14px;
+    color: #64748B;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.canvas-action-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   3. 3-COLUMN EXECUTIVE KPI CARDS GRID (Matching reference image)
+   -------------------------------------------------------------------------- */
+.executive-cards-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.92fr 1.35fr;
+    gap: 18px;
+    margin-bottom: 22px;
+    align-items: stretch;
+}
+
+.exec-card {
+    background: #FFFFFF;
+    border-radius: 24px;
+    padding: 22px;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.exec-card-large {
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.exec-card-compact {
+    padding: 18px 20px;
+    gap: 12px;
+}
+
+.exec-col-stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.exec-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.exec-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.exec-card-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exec-card-icon-badge.blue {
+    background: #EFF6FF;
+    color: #2563EB;
+}
+
+.exec-card-icon-badge.dark {
+    background: #0F172A;
+    color: #FFFFFF;
+}
+
+.exec-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.exec-card-dots {
+    color: #94A3B8;
+    font-size: 16px;
+    cursor: pointer;
+    letter-spacing: 2px;
+}
+
+.exec-card-kpi-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.exec-hero-number {
+    font-size: 34px;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.03em;
+}
+
+.exec-trend-badge {
+    background: #EFF6FF;
+    color: #2563EB;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+
+.exec-trend-badge.inline-badge {
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+/* Visual Overlapping Bubble Discs (White/Blue/Black palette matching image) */
+.exec-bubbles-cluster {
+    position: relative;
+    height: 120px;
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exec-bubble {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.exec-bubble:hover {
+    transform: scale(1.06);
+}
+
+.bubble-royal-blue {
+    width: 90px;
+    height: 90px;
+    background: #2563EB;
+    color: #FFFFFF;
+    left: 8%;
+    top: 6px;
+    z-index: 2;
+}
+
+.bubble-dark-black {
+    width: 82px;
+    height: 82px;
+    background: #0F172A;
+    color: #FFFFFF;
+    right: 10%;
+    top: 14px;
+    z-index: 3;
+}
+
+.bubble-sky-blue {
+    width: 64px;
+    height: 64px;
+    background: #38BDF8;
+    color: #0F172A;
+    bottom: 2px;
+    left: 42%;
+    z-index: 4;
+    box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
+}
+
+.bubble-metric {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.bubble-caption {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+/* Progress Bars List */
+.exec-progress-block {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.exec-prog-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.exec-prog-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.prog-pct-label {
+    color: #0F172A;
+    font-weight: 800;
+}
+
+.prog-name-label {
+    color: #64748B;
+    font-size: 11.5px;
+}
+
+.exec-prog-track {
+    height: 7px;
+    background: #F1F5F9;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.exec-prog-fill {
+    height: 100%;
+    border-radius: 9999px;
+}
+
+.fill-blue { background: #2563EB; }
+.fill-black { background: #0F172A; }
+.fill-slate { background: #94A3B8; }
+
+/* Pair Metrics (Compact Cards) */
+.exec-metric-pair-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.exec-bold-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.big-digit {
+    font-size: 30px;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.02em;
+}
+
+.sub-unit {
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748B;
+}
+
+.exec-aux-stat {
+    text-align: end;
+}
+
+.aux-label {
+    display: block;
+    font-size: 11px;
+    color: #94A3B8;
+    font-weight: 600;
+}
+
+.aux-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Dot Matrix Visualizer (Matching reference image) */
+.exec-wellness-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.exec-dot-matrix {
+    display: grid;
+    grid-template-columns: repeat(7, 8px);
+    gap: 5px;
+}
+
+.dot-item {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dot-item.d-blue { background: #3B82F6; opacity: 0.85; }
+.dot-item.d-slate { background: #CBD5E1; opacity: 0.55; }
+
+/* Dark Energy & Battery Card (Matching dark 'Sleep Analysis' card in reference image) */
+.exec-card-dark {
+    background: #15171C !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35) !important;
+    padding: 20px 22px;
+    gap: 14px;
+}
+
+.exec-dark-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.exec-dark-icon-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exec-dark-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.exec-dark-pill-dropdown {
+    background: rgba(255, 255, 255, 0.1);
+    color: #E2E8F0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.exec-dark-kpi-row {
+    display: flex;
+    gap: 24px;
+}
+
+.dark-kpi-num {
+    font-size: 22px;
+    font-weight: 800;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dark-accent-bar {
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+}
+
+.dark-accent-bar.bar-white { background: #FFFFFF; }
+.dark-accent-bar.bar-blue { background: #3B82F6; }
+
+.dark-kpi-lbl {
+    font-size: 11px;
+    color: #94A3B8;
+    font-weight: 500;
+}
+
+/* Vertical Rounded Bar Chart (Matching reference image) */
+.exec-dark-bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 68px;
+    gap: 6px;
+    padding-top: 8px;
+}
+
+.chart-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+    flex: 1;
+}
+
+.chart-vbar {
+    width: 13px;
+    border-radius: 8px;
+}
+
+.chart-vbar.striped-bar {
+    background: repeating-linear-gradient(45deg, #1E293B, #1E293B 3px, #0F172A 3px, #0F172A 6px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chart-dual-bars {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 100%;
+}
+
+.chart-vbar.solid-white {
+    background: #FFFFFF;
+    width: 9px;
+}
+
+.chart-vbar.solid-blue {
+    background: #3B82F6;
+    width: 9px;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.bar-tag {
+    font-size: 10px;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.active-tag {
+    color: #FFFFFF;
+    font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
+   4. FLEET TOOLBAR & DATA TABLE ELEVATION
+   -------------------------------------------------------------------------- */
+.fleet-toolbar-container {
+    background: #FFFFFF !important;
+    border-radius: 9999px !important;
+    padding: 8px 16px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(226, 232, 240, 0.85) !important;
+    margin-bottom: 16px !important;
+    flex-wrap: wrap;
+}
+
+.table-container {
+    background: #FFFFFF !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+    overflow: hidden;
+}
+
+.fleet-table th {
+    background: #F8FAFC !important;
+    color: #475569 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 14px 18px !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.fleet-table td {
+    padding: 14px 18px !important;
+    border-bottom: 1px solid #F1F5F9 !important;
+    font-size: 13px !important;
+}
+
+.fleet-table tr:hover td {
+    background-color: #F8FAFC !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. RESPONSIVE MEDIA QUERIES
+   -------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+    .executive-cards-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .app-shell {
+        flex-direction: column !important;
+        padding: 8px;
+        gap: 12px;
+    }
+    .app-sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+        border-radius: 22px;
+        padding: 16px;
+    }
+    .sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .sidebar-nav .nav-tab {
+        width: auto;
+        flex: 1;
+        min-width: 140px;
+    }
+    .sidebar-promo-card {
+        display: none;
+    }
+    .app-main-canvas {
+        border-radius: 22px;
+        padding: 20px 16px;
+    }
+}
+
 @media (max-width: 768px) {
-    .app-container {
-        padding: 14px 16px 40px;
+    .executive-cards-grid {
+        grid-template-columns: 1fr;
     }
-    .top-header {
-        padding: 12px 16px;
-    }
-    .fleet-toolbar-container {
+    .canvas-title-row {
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
     }
-    .fleet-search-box {
+    .canvas-search-box {
         max-width: 100%;
+        order: 2;
+        width: 100%;
     }
 }

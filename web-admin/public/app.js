@@ -555,6 +555,18 @@ function updateHeaderMetrics(devices) {
 
     const kpiSec = document.getElementById('kpiSecurityStatus');
     if (kpiSec) kpiSec.innerText = isRtl ? '0 تهديدات' : '0 Threats';
+
+    const sideBadge = document.getElementById('sidebarBadgeDevices');
+    if (sideBadge) sideBadge.innerText = totalCount;
+
+    const bOnline = document.getElementById('bubbleOnlineVal');
+    if (bOnline) bOnline.innerText = onlineCount;
+
+    const bKiosk = document.getElementById('bubbleKioskVal');
+    if (bKiosk) bKiosk.innerText = kioskCount;
+
+    const bOffline = document.getElementById('bubbleOfflineVal');
+    if (bOffline) bOffline.innerText = Math.max(0, totalCount - onlineCount);
 }
 
 function onDeviceRowClicked(event, deviceId) {
