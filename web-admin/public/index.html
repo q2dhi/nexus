@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260916_luminous_white">
+    <link rel="stylesheet" href="style.css?v=20260916_no_vectors">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,85 +102,56 @@
     </div>
 
     <div class="app-container app-shell" id="mainAppContainer">
-        <!-- SLEEK DARK EXECUTIVE SIDEBAR (Matching reference image) -->
+        <!-- SLEEK WHITE ENTERPRISE SIDEBAR -->
         <aside class="app-sidebar" id="appSidebar">
             <div class="sidebar-top-section">
                 <!-- Brand Header -->
                 <div class="sidebar-brand">
-                    <div class="sidebar-brand-icon">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="3" width="8" height="8" rx="2.5" fill="#2563EB" />
-                            <rect x="13" y="3" width="8" height="8" rx="2.5" fill="#0F172A" />
-                            <rect x="3" y="13" width="8" height="8" rx="2.5" fill="#0F172A" opacity="0.35" />
-                            <rect x="13" y="13" width="8" height="8" rx="2.5" fill="#2563EB" opacity="0.85" />
-                        </svg>
-                    </div>
                     <span class="sidebar-brand-text" dir="ltr">Nexus<span class="sidebar-brand-dot">.</span></span>
                     <span class="brand-badge sidebar-brand-badge" id="appBrandBadge">ENTERPRISE</span>
                 </div>
 
-                <!-- Navigation Menu Items (Matching the vertical pill list in reference image) -->
+                <!-- Navigation Menu Items -->
                 <nav class="sidebar-nav">
                     <button class="nav-tab active" data-tab="devices" onclick="showTab('devices', this)">
-                        <svg class="nav-tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                         <span class="nav-tab-label">الأجهزة المدارة</span>
                         <span class="sidebar-tab-badge" id="sidebarBadgeDevices">0</span>
                     </button>
                     <button class="nav-tab" data-tab="whitelist" onclick="showTab('whitelist', this)">
-                        <svg class="nav-tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                         <span class="nav-tab-label">تطبيقات الكشك</span>
                     </button>
                     <button class="nav-tab" data-tab="qr" onclick="showTab('qr', this)">
-                        <svg class="nav-tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14v3h-3"></path><path d="M14 20h7"></path></svg>
                         <span class="nav-tab-label">تجهيز الـ QR السريع</span>
                     </button>
                     <button class="nav-tab" data-tab="ota" onclick="showTab('ota', this)">
-                        <svg class="nav-tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
                         <span class="nav-tab-label">توزيع التطبيقات OTA</span>
                     </button>
                     <button class="nav-tab" id="tabNavBranches" data-tab="branches" onclick="showTab('branches', this)">
-                        <svg class="nav-tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="2"></line><line x1="15" y1="22" x2="15" y2="2"></line><line x1="4" y1="12" x2="20" y2="12"></line></svg>
                         <span class="nav-tab-label">إدارة الفروع</span>
                     </button>
                 </nav>
             </div>
-
-            <!-- Sidebar Bottom Feature Card (Matching the reference image card with White/Blue/Black palette) -->
-            <div class="sidebar-promo-card">
-                <div class="promo-icon-circle">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                </div>
-                <strong class="promo-card-title">Nexus Shield Pro</strong>
-                <p class="promo-card-desc">حماية مركزية مشفرة وسياسات أمان الأسطول مفروضة بنجاح.</p>
-                <button type="button" class="promo-card-btn" onclick="syncFleetTime()" title="مزامنة فورية">
-                    <span>مزامنة الأسطول</span>
-                </button>
-            </div>
         </aside>
 
-        <!-- MAIN LIGHT CONTENT CANVAS (Matching reference image) -->
+        <!-- MAIN LIGHT CONTENT CANVAS -->
         <main class="main-content app-main-canvas">
-            <!-- Canvas Top Header (Profile, Search, Status Pills, Language & Logout) -->
+            <!-- Canvas Top Header -->
             <header class="canvas-top-header">
-                <!-- User / Admin Profile Pill (Matching 'Lucas Bennett' in reference image) -->
+                <!-- User / Admin Profile Pill -->
                 <div class="canvas-profile-pill" title="معلومات الحساب النشط">
                     <div class="canvas-avatar-circle">AD</div>
                     <div class="canvas-user-details">
                         <strong class="canvas-user-name">مسؤول النظام</strong>
                         <span id="currentCompanyNameDisplay" class="canvas-company-name">شركة التقنية المتقدمة</span>
                     </div>
-                    <span class="canvas-profile-arrow">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </span>
                     <span id="headerCompanyBadge" style="display:none;"></span>
                 </div>
 
-                <!-- Canvas Search Pill Bar (Matching the pill search in reference image) -->
+                <!-- Canvas Search Pill Bar -->
                 <div class="canvas-search-box">
-                    <svg class="search-lens-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     <input type="text" id="fleetSearchInputTop" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
                     <button type="button" id="fleetSearchClearBtnTop" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>×</span>
                     </button>
                 </div>
 
@@ -193,7 +164,7 @@
 
                     <div class="canvas-date-badge">
                         <span class="canvas-date-text">16 سبتمبر 2026</span>
-                        <span class="canvas-period-pill">اليوم <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                        <span class="canvas-period-pill">اليوم</span>
                     </div>
 
                     <div class="header-metrics" style="display:none;">
@@ -225,12 +196,10 @@
                             </select>
                         </div>
                         <button class="btn btn-secondary btn-sm" id="btnSyncTimeFleet" onclick="syncFleetTime()" title="مزامنة الوقت والتاريخ تلقائياً لجميع أجهزة الأسطول">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                             <span id="btnSyncTimeLabel">مزامنة الوقت</span>
                         </button>
                         <button class="btn btn-secondary btn-sm" id="btnRefreshFleet" onclick="fetchDevices()" title="تحديث القائمة">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            <span>تحديث</span>
+                            <span>تحديث الأسطول</span>
                         </button>
                     </div>
                 </div>
@@ -1401,7 +1370,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_luminous_white"></script>
+    <script src="app.js?v=20260916_no_vectors"></script>
 </body>
 
 </html>
