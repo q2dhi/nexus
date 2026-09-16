@@ -3172,7 +3172,9 @@ function hideCompanyLoginScreen() {
     const overlay = document.getElementById('companyLoginOverlay');
     const container = document.getElementById('mainAppContainer');
     if (overlay) overlay.style.display = 'none';
-    if (container) container.style.display = 'block';
+    if (container) {
+        container.style.display = 'flex';
+    }
 }
 
 function toggleLoginPasswordVisibility() {
