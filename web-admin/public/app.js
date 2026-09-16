@@ -3060,9 +3060,9 @@ let activeDacDeviceId = null;
 let activeDacBrandOverride = 'auto';
 
 function detectDeviceBrand(d) {
-    if (!d) return 'generic';
+    if (!d) return 'honeywell';
     const text = `${d.model || ''} ${d.name || ''} ${d.id || ''} ${d.manufacturer || ''} ${d.brand || ''}`.toLowerCase();
-    if (text.includes('honeywell') || text.includes('eda') || text.includes('ct40') || text.includes('ct60') || text.includes('ct45') || text.includes('scanpal') || text.includes('dolphin') || text.includes('ck65')) {
+    if (text.includes('honeywell') || text.includes('eda') || text.includes('ct47') || text.includes('ct40') || text.includes('ct60') || text.includes('ct45') || text.includes('ct30') || text.includes('scanpal') || text.includes('dolphin') || text.includes('ck65')) {
         return 'honeywell';
     }
     if (text.includes('samsung') || text.includes('sm-') || text.includes('galaxy') || text.includes('sec_') || text.includes('s24') || text.includes('s23') || text.includes('s22') || text.includes('s21') || text.includes('a54') || text.includes('a34')) {
@@ -3074,7 +3074,7 @@ function detectDeviceBrand(d) {
     if (text.includes('sunmi') || text.includes('pos') || text.includes('v2') || text.includes('t2') || text.includes('p2') || text.includes('pax')) {
         return 'pos';
     }
-    return 'generic';
+    return 'honeywell';
 }
 
 function openDeviceActionCenter(deviceId, forcedBrand = null) {
@@ -3175,18 +3175,13 @@ function renderDacChassis(d) {
 
     if (effectiveBrand === 'honeywell') {
         chassisHtml = `
-            <div class="chassis-honeywell">
-                <div class="hw-scanner-aperture" title="Honeywell Barcode Laser Engine">
-                    <span class="hw-scanner-lens"></span>
-                    <span class="hw-scanner-laser"></span>
-                    <span class="hw-scanner-lens"></span>
+            <div class="dac-honeywell-chassis">
+                <div class="honeywell-phone-frame">
+                    <img src="honeywell-device.png" alt="Honeywell Enterprise Device" class="honeywell-chassis-img" draggable="false" />
+                    <div class="phone-display-viewport dac-preview-viewport">
+                        ${innerScreenHtml}
+                    </div>
                 </div>
-                <div class="hw-side-trigger-left" title="Scan Trigger Key"></div>
-                <div class="hw-side-trigger-right" title="Scan Trigger Key"></div>
-                
-                ${innerScreenHtml}
-
-                <div class="hw-brand-mark">HONEYWELL</div>
             </div>
         `;
     } else if (effectiveBrand === 'samsung') {

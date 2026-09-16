@@ -1337,13 +1337,98 @@ body.ltr-mode .qr-instructions ol {
 }
 
 .device-chassis-container {
-    width: 215px;
+    width: 220px;
+    margin: 0 auto 14px auto;
+    display: flex;
+    justify-content: center;
+}
+
+/* Fallback/classic styling for non-Honeywell simulated brands */
+.chassis-samsung,
+.chassis-zebra,
+.chassis-pos,
+.chassis-generic {
+    width: 100%;
     background: #0F172A;
     border: 3px solid #334155;
     border-radius: 28px;
     padding: 10px;
     box-shadow: var(--shadow-lg);
-    margin-bottom: 14px;
+}
+
+/* Authentic Honeywell Rugged Handheld Frame Showcase */
+.dac-honeywell-chassis {
+    width: 100%;
+    max-width: 215px;
+    position: relative;
+    user-select: none;
+}
+
+.dac-honeywell-chassis .honeywell-phone-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 375 / 797;
+    filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.4));
+}
+
+.dac-honeywell-chassis .honeywell-chassis-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: fill;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+.dac-preview-viewport {
+    position: absolute;
+    top: 14.05%;
+    left: 5.33%;
+    width: 88.00%;
+    height: 77.29%;
+    background: #000000;
+    border-radius: 4px 4px 10px 10px;
+    overflow: hidden;
+    cursor: default;
+    z-index: 2;
+}
+
+.dac-preview-viewport .device-screen-inner {
+    width: 100%;
+    height: 100%;
+    min-height: unset;
+    background: #020617;
+    border-radius: 0;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+
+.dac-preview-viewport .sim-status-bar {
+    font-size: 9px;
+    color: #94A3B8;
+    margin-bottom: 4px;
+}
+
+.dac-preview-viewport .sim-device-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #FFFFFF;
+    max-width: 160px;
+}
+
+.dac-preview-viewport .sim-lock-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+}
+
+.dac-preview-viewport .sim-quick-stream-btn {
+    font-size: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
 }
 
 .device-screen-inner {
