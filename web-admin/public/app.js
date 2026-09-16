@@ -1979,6 +1979,16 @@ function openScreenStream(deviceId, deviceName) {
         })
     }).catch(() => { });
 
+    // Proactively illuminate/wake display if screen is currently sleeping
+    fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Tenant-Token': currentTenantToken || ''
+        },
+        body: JSON.stringify({ action: 'wake' })
+    }).catch(() => { });
+
     if (streamInterval) clearInterval(streamInterval);
     pollScreenFrame();
     streamInterval = setInterval(pollScreenFrame, 250);
@@ -2166,6 +2176,54 @@ function sendDeviceSwipe(direction) {
         setTimeout(pollScreenFrame, 450);
     }).catch(() => { });
 }
+
+function wakeDevice() {
+    if (!activeStreamDeviceId) return;
+    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Tenant-Token': currentTenantToken || ''
+        },
+        body: JSON.stringify({ action: 'wake' })
+    }).then(() => {
+        setTimeout(pollScreenFrame, 150);
+        setTimeout(pollScreenFrame, 400);
+    }).catch(() => { });
+}
+window.wakeDevice = wakeDevice;
+
+function unlockDevice() {
+    if (!activeStreamDeviceId) return;
+    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Tenant-Token': currentTenantToken || ''
+        },
+        body: JSON.stringify({ action: 'unlock' })
+    }).then(() => {
+        setTimeout(pollScreenFrame, 250);
+        setTimeout(pollScreenFrame, 600);
+    }).catch(() => { });
+}
+window.unlockDevice = unlockDevice;
+
+function lockDeviceScreen() {
+    if (!activeStreamDeviceId) return;
+    fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Tenant-Token': currentTenantToken || ''
+        },
+        body: JSON.stringify({ action: 'lock' })
+    }).then(() => {
+        setTimeout(pollScreenFrame, 200);
+        setTimeout(pollScreenFrame, 500);
+    }).catch(() => { });
+}
+window.lockDeviceScreen = lockDeviceScreen;
 
 function sendRemoteTextInput() {
     if (!activeStreamDeviceId) return;

@@ -618,6 +618,9 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra("EXTRA_OPEN_A11Y_SETTINGS", false)) {
             openAccessibilitySettings()
         }
+        if (intent.getBooleanExtra("EXTRA_REMOTE_WAKE", false)) {
+            com.nexus.mdm.agent.remote.DeviceWakeManager.wakeAndUnlock(this)
+        }
         if (intent.hasExtra("EXTRA_TRIGGER_TAMPER")) {
             val reason = intent.getStringExtra("EXTRA_TRIGGER_TAMPER") ?: "Security breach detected"
             antiTamperGuard.triggerTamperAlarm(reason)

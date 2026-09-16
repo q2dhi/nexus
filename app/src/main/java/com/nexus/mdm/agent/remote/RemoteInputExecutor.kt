@@ -20,7 +20,24 @@ object RemoteInputExecutor {
             val action = actionObj.optString("action", "").lowercase()
             val accessibilityService = NexusAccessibilityService.instance
 
+            // Automatically wake up display on remote interaction (unless action is explicitly lock)
+            if (action != "lock" && action != "lock_screen") {
+                DeviceWakeManager.wakeUpScreen(context)
+            }
+
             when (action) {
+                "wake", "wake_screen" -> {
+                    DeviceWakeManager.wakeUpScreen(context)
+                }
+
+                "unlock", "unlock_screen" -> {
+                    DeviceWakeManager.wakeAndUnlock(context)
+                }
+
+                "lock", "lock_screen" -> {
+                    DeviceWakeManager.lockScreen(context)
+                }
+
                 "tap" -> {
                     val xRatio = actionObj.optDouble("xRatio", 0.5).toFloat()
                     val yRatio = actionObj.optDouble("yRatio", 0.5).toFloat()
@@ -52,6 +69,27 @@ object RemoteInputExecutor {
                 "key" -> {
                     val key = actionObj.optString("key", "").uppercase()
                     when (key) {
+                        "POWER" -> {
+                            val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                            if (pm?.isInteractive == true) {
+                                DeviceWakeManager.lockScreen(context)
+                            } else {
+                                DeviceWakeManager.wakeAndUnlock(context)
+                            }
+                        }
+
+                        "WAKE" -> {
+                            DeviceWakeManager.wakeUpScreen(context)
+                        }
+
+                        "UNLOCK" -> {
+                            DeviceWakeManager.wakeAndUnlock(context)
+                        }
+
+                        "LOCK" -> {
+                            DeviceWakeManager.lockScreen(context)
+                        }
+
                         "VOLUME_UP" -> {
                             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                             audioManager?.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)

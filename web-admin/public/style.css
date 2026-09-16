@@ -1806,6 +1806,47 @@ body.ltr-mode .dac-btn { text-align: left; }
     color: #EF4444;
 }
 
+.stream-quick-actions-bar {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid #E2E8F0;
+    padding: 3px 6px;
+    border-radius: 20px;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.stream-action-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.stream-action-icon-btn:hover {
+    background: #F1F5F9;
+    color: #0284C7;
+}
+
+.stream-action-icon-btn:active {
+    transform: scale(0.96);
+}
+
 .stream-modal-header {
     display: flex;
     justify-content: space-between;

@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260916_nav_touch_v2">
+    <link rel="stylesheet" href="style.css?v=20260916_wake_lock">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1336,6 +1336,20 @@
     <div id="screenModal" class="modal" style="display:none;" onclick="if(event.target===this) closeScreenStream()">
         <div class="modal-card phone-stream-card">
             <button class="btn-close stream-card-close-btn" onclick="closeScreenStream()" title="إغلاق">&times;</button>
+            <div class="stream-quick-actions-bar">
+                <button type="button" class="stream-action-icon-btn" onclick="wakeDevice()" title="إيقاظ شاشة الهاتف (Turn Screen ON)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>إيقاظ</span>
+                </button>
+                <button type="button" class="stream-action-icon-btn" onclick="unlockDevice()" title="فتح قفل الهاتف (Dismiss Lock Screen)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                    <span>فتح القفل</span>
+                </button>
+                <button type="button" class="stream-action-icon-btn" onclick="lockDeviceScreen()" title="قفل الشاشة (Lock Screen)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>قفل</span>
+                </button>
+            </div>
             <div class="stream-device-viewport-col">
                 <div class="honeywell-device-wrapper">
                     <div class="honeywell-phone-frame">
@@ -1366,7 +1380,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_clean_fleet"></script>
+    <script src="app.js?v=20260916_wake_lock"></script>
 </body>
 
 </html>

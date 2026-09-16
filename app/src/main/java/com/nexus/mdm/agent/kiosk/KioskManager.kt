@@ -125,24 +125,25 @@ class KioskManager(private val context: Context) {
                 AppLogger.w("KioskManager", "setLockTaskPackages warning: ${e.message}")
             }
 
-            // 2. Configure LockTask features: Keep status bar system info (battery, wifi, clock) and navigation buttons visible, but suppress notifications
+            // 2. Configure LockTask features: Keep status bar system info, navigation buttons, and Lock Screen (Keyguard) visible
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
                     val lockTaskFeatures = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
                                            DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
-                                           DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW
+                                           DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW or
+                                           DevicePolicyManager.LOCK_TASK_FEATURE_KEYGUARD
                     dpm.setLockTaskFeatures(adminComponent, lockTaskFeatures)
                 } catch (e: Exception) {
                     AppLogger.w("KioskManager", "setLockTaskFeatures warning: ${e.message}")
                 }
             }
 
-            // 3. Suppress Keyguard and Status Bar
+            // 3. Keep Keyguard (Lock Screen) enabled so user unlocks device before accessing Kiosk
             try {
-                dpm.setKeyguardDisabled(adminComponent, true)
+                dpm.setKeyguardDisabled(adminComponent, false)
                 dpm.setStatusBarDisabled(adminComponent, true)
             } catch (e: Exception) {
-                AppLogger.w("KioskManager", "Keyguard/StatusBar disable warning: ${e.message}")
+                AppLogger.w("KioskManager", "Keyguard/StatusBar config warning: ${e.message}")
             }
 
             // 4. Ensure DISALLOW_CREATE_WINDOWS is NOT enabled (It crashes dialogs/toasts)

