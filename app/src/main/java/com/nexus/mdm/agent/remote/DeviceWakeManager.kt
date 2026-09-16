@@ -51,6 +51,12 @@ object DeviceWakeManager {
             val a11y = NexusAccessibilityService.instance
             if (a11y != null) {
                 a11y.performSwipe("UP")
+                // In case the screen was asleep and needed ~200ms to power on, dispatch a secondary swipe
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    try {
+                        NexusAccessibilityService.instance?.performSwipe("UP")
+                    } catch (_: Exception) {}
+                }, 350L)
             }
 
             // 2. Request Keyguard dismissal on active Activity if available

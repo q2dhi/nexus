@@ -1965,6 +1965,8 @@ function openScreenStream(deviceId, deviceName) {
     const streamImg = document.getElementById('streamImg');
     if (streamImg) streamImg.style.display = 'none';
 
+    setupPhoneScreenInteractions();
+
     // Dispatch wake / start stream command
     fetch('/api/commands', {
         method: 'POST',
@@ -2099,36 +2101,185 @@ function triggerNavKey(key, event) {
 }
 window.triggerNavKey = triggerNavKey;
 
+function setupPhoneScreenInteractions() {
+    const container = document.getElementById('phoneScreenContainer');
+    if (!container || container.dataset.interactionsReady === 'true') return;
+    container.dataset.interactionsReady = 'true';
+
+    let isDown = false;
+    let startClientX = 0;
+    let startClientY = 0;
+    let startTime = 0;
+    let activePointerId = null;
+
+    const ripple = document.getElementById('touchRipple');
+    const trailSvg = document.getElementById('touchTrailSvg');
+
+    function showRippleAt(clientX, clientY) {
+        if (!ripple) return;
+        const rect = container.getBoundingClientRect();
+        const xPct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+        const yPct = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+        ripple.style.left = `${xPct}%`;
+        ripple.style.top = `${yPct}%`;
+        ripple.classList.add('active');
+    }
+
+    function hideRipple() {
+        if (ripple) ripple.classList.remove('active');
+    }
+
+    function renderDragLine(sX, sY, curX, curY) {
+        if (!trailSvg) return;
+        trailSvg.innerHTML = `
+            <defs>
+                <linearGradient id="dragTrailGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.4"/>
+                </linearGradient>
+            </defs>
+            <line x1="${sX}" y1="${sY}" x2="${curX}" y2="${curY}" stroke="url(#dragTrailGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6,4"/>
+            <circle cx="${curX}" cy="${curY}" r="7" fill="#38bdf8" stroke="#ffffff" stroke-width="2.5" />
+        `;
+    }
+
+    function clearDragLine() {
+        if (trailSvg) trailSvg.innerHTML = '';
+    }
+
+    container.addEventListener('pointerdown', (e) => {
+        if (!activeStreamDeviceId) return;
+        // Don't intercept dedicated navigation strip targets
+        if (e.target.closest('.stream-nav-touch-strip')) return;
+
+        e.preventDefault();
+        isDown = true;
+        activePointerId = e.pointerId;
+        try { container.setPointerCapture(e.pointerId); } catch (_) {}
+        container.classList.add('is-dragging');
+
+        startClientX = e.clientX;
+        startClientY = e.clientY;
+        startTime = Date.now();
+
+        showRippleAt(startClientX, startClientY);
+    });
+
+    container.addEventListener('pointermove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const rect = container.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+        const sX = startClientX - rect.left;
+        const sY = startClientY - rect.top;
+
+        const dist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
+        if (dist > 6) {
+            renderDragLine(sX, sY, curX, curY);
+            showRippleAt(e.clientX, e.clientY);
+        }
+    });
+
+    function onPointerEnd(e) {
+        if (!isDown) return;
+        isDown = false;
+        container.classList.remove('is-dragging');
+        clearDragLine();
+        setTimeout(hideRipple, 200);
+
+        if (activePointerId !== null) {
+            try { container.releasePointerCapture(activePointerId); } catch (_) {}
+            activePointerId = null;
+        }
+
+        if (!activeStreamDeviceId) return;
+        const rect = container.getBoundingClientRect();
+        const endClientX = e.clientX;
+        const endClientY = e.clientY;
+
+        const dx = endClientX - startClientX;
+        const dy = endClientY - startClientY;
+        const dist = Math.hypot(dx, dy);
+
+        const startXRatio = Math.max(0, Math.min(1, (startClientX - rect.left) / rect.width));
+        const startYRatio = Math.max(0, Math.min(1, (startClientY - rect.top) / rect.height));
+        const endXRatio = Math.max(0, Math.min(1, (endClientX - rect.left) / rect.width));
+        const endYRatio = Math.max(0, Math.min(1, (endClientY - rect.top) / rect.height));
+        const duration = Math.min(500, Math.max(120, Date.now() - startTime));
+
+        if (dist < 10) {
+            // Precision TAP
+            // Android System Navigation Bar Interceptor (bottom 9.5% of the screen)
+            if (startYRatio >= 0.905) {
+                if (startXRatio < 0.36) {
+                    sendDeviceKey('BACK');
+                    return;
+                } else if (startXRatio > 0.64) {
+                    sendDeviceKey('RECENTS');
+                    return;
+                } else {
+                    sendDeviceKey('HOME');
+                    return;
+                }
+            }
+
+            fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Token': currentTenantToken || ''
+                },
+                body: JSON.stringify({
+                    action: 'tap',
+                    xRatio: startXRatio,
+                    yRatio: startYRatio
+                })
+            }).then(() => {
+                setTimeout(pollScreenFrame, 150);
+                setTimeout(pollScreenFrame, 350);
+            }).catch(() => { });
+        } else {
+            // SWIPE / DRAG (Unlocking lock screen, scrolling, swiping notifications)
+            const primaryDirection = Math.abs(dy) >= Math.abs(dx)
+                ? (dy < 0 ? 'up' : 'down')
+                : (dx < 0 ? 'left' : 'right');
+
+            fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Token': currentTenantToken || ''
+                },
+                body: JSON.stringify({
+                    action: 'swipe',
+                    direction: primaryDirection,
+                    startXRatio,
+                    startYRatio,
+                    endXRatio,
+                    endYRatio,
+                    duration
+                })
+            }).then(() => {
+                setTimeout(pollScreenFrame, 180);
+                setTimeout(pollScreenFrame, 380);
+                setTimeout(pollScreenFrame, 750);
+            }).catch(() => { });
+        }
+    }
+
+    container.addEventListener('pointerup', onPointerEnd);
+    container.addEventListener('pointercancel', onPointerEnd);
+}
+
+// Fallback compatibility
 function handlePhoneScreenClick(event) {
     if (!activeStreamDeviceId) return;
     const container = document.getElementById('phoneScreenContainer');
+    if (!container) return;
     const rect = container.getBoundingClientRect();
     const xRatio = (event.clientX - rect.left) / rect.width;
     const yRatio = (event.clientY - rect.top) / rect.height;
-
-    // Show ripple
-    const ripple = document.getElementById('touchRipple');
-    if (ripple) {
-        ripple.style.left = `${(xRatio * 100)}%`;
-        ripple.style.top = `${(yRatio * 100)}%`;
-        ripple.classList.add('active');
-        setTimeout(() => ripple.classList.remove('active'), 250);
-    }
-
-    // Android System Navigation Bar Interceptor (bottom 9.5% of the screen)
-    // Directly dispatches standard OS key actions so Back, Home, and Recents work 100% reliably
-    if (yRatio >= 0.905) {
-        if (xRatio < 0.36) {
-            sendDeviceKey('BACK');
-            return;
-        } else if (xRatio > 0.64) {
-            sendDeviceKey('RECENTS');
-            return;
-        } else {
-            sendDeviceKey('HOME');
-            return;
-        }
-    }
 
     fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
         method: 'POST',
@@ -2141,11 +2292,10 @@ function handlePhoneScreenClick(event) {
             xRatio: Math.max(0, Math.min(1, xRatio)),
             yRatio: Math.max(0, Math.min(1, yRatio))
         })
-    }).then(() => {
-        setTimeout(pollScreenFrame, 150);
-        setTimeout(pollScreenFrame, 350);
     }).catch(() => { });
 }
+window.handlePhoneScreenClick = handlePhoneScreenClick;
+window.setupPhoneScreenInteractions = setupPhoneScreenInteractions;
 
 function sendDeviceKey(key) {
     if (!activeStreamDeviceId) return;
@@ -2207,11 +2357,20 @@ function unlockDevice() {
     fetch(`/api/devices/${encodeURIComponent(devId)}/touch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
-        body: JSON.stringify({ action: 'unlock' })
+        body: JSON.stringify({
+            action: 'swipe',
+            direction: 'up',
+            startXRatio: 0.5,
+            startYRatio: 0.88,
+            endXRatio: 0.5,
+            endYRatio: 0.18,
+            duration: 250
+        })
     }).catch(() => { });
     showNotification('تم إرسال أمر فتح القفل وتخطي شاشة القفل للهاتف', 'info');
-    setTimeout(pollScreenFrame, 400);
-    setTimeout(pollScreenFrame, 1000);
+    setTimeout(pollScreenFrame, 300);
+    setTimeout(pollScreenFrame, 700);
+    setTimeout(pollScreenFrame, 1200);
 }
 window.unlockDevice = unlockDevice;
 

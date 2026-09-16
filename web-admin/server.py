@@ -2116,16 +2116,26 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                             target_x = max(0, min(px_w, int(px_w * x_ratio)))
                             target_y = max(0, min(px_h, int(px_h * y_ratio)))
                             subprocess.run([adb_path, 'shell', 'input', 'tap', str(target_x), str(target_y)], timeout=2)
-                    elif action == 'swipe':
-                        direction = data.get('direction', 'up')
-                        if direction == 'up':
-                            subprocess.run([adb_path, 'shell', 'input', 'swipe', '720', '2100', '720', '800', '250'], timeout=2)
-                        elif direction == 'down':
-                            subprocess.run([adb_path, 'shell', 'input', 'swipe', '720', '800', '720', '2100', '250'], timeout=2)
-                        elif direction == 'left':
-                            subprocess.run([adb_path, 'shell', 'input', 'swipe', '1200', '1500', '200', '1500', '250'], timeout=2)
-                        elif direction == 'right':
-                            subprocess.run([adb_path, 'shell', 'input', 'swipe', '200', '1500', '1200', '1500', '250'], timeout=2)
+                    elif action in ('swipe', 'drag'):
+                        px_w = int(data.get('displayWidth', 1080))
+                        px_h = int(data.get('displayHeight', 2340))
+                        dur = int(data.get('duration', 250))
+                        if 'startXRatio' in data and 'endXRatio' in data:
+                            s_x = max(0, min(px_w, int(px_w * float(data['startXRatio']))))
+                            s_y = max(0, min(px_h, int(px_h * float(data['startYRatio']))))
+                            e_x = max(0, min(px_w, int(px_w * float(data['endXRatio']))))
+                            e_y = max(0, min(px_h, int(px_h * float(data['endYRatio']))))
+                            subprocess.run([adb_path, 'shell', 'input', 'swipe', str(s_x), str(s_y), str(e_x), str(e_y), str(dur)], timeout=2)
+                        else:
+                            direction = data.get('direction', 'up')
+                            if direction == 'up':
+                                subprocess.run([adb_path, 'shell', 'input', 'swipe', str(int(px_w * 0.5)), str(int(px_h * 0.88)), str(int(px_w * 0.5)), str(int(px_h * 0.18)), str(dur)], timeout=2)
+                            elif direction == 'down':
+                                subprocess.run([adb_path, 'shell', 'input', 'swipe', str(int(px_w * 0.5)), str(int(px_h * 0.18)), str(int(px_w * 0.5)), str(int(px_h * 0.85)), str(dur)], timeout=2)
+                            elif direction == 'left':
+                                subprocess.run([adb_path, 'shell', 'input', 'swipe', str(int(px_w * 0.85)), str(int(px_h * 0.5)), str(int(px_w * 0.15)), str(int(px_h * 0.5)), str(dur)], timeout=2)
+                            elif direction == 'right':
+                                subprocess.run([adb_path, 'shell', 'input', 'swipe', str(int(px_w * 0.15)), str(int(px_h * 0.5)), str(int(px_w * 0.85)), str(int(px_h * 0.5)), str(dur)], timeout=2)
                     elif action == 'key':
                         key_name = data.get('key', 'BACK')
                         key_map = {

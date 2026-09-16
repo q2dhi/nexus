@@ -57,10 +57,21 @@ object RemoteInputExecutor {
                     }
                 }
 
-                "swipe" -> {
-                    val direction = actionObj.optString("direction", "up")
+                "swipe", "drag" -> {
+                    val startXRatio = actionObj.optDouble("startXRatio", -1.0).toFloat()
+                    val startYRatio = actionObj.optDouble("startYRatio", -1.0).toFloat()
+                    val endXRatio = actionObj.optDouble("endXRatio", -1.0).toFloat()
+                    val endYRatio = actionObj.optDouble("endYRatio", -1.0).toFloat()
+                    val durationMs = actionObj.optLong("duration", 250L)
+
                     if (accessibilityService != null) {
-                        accessibilityService.performSwipe(direction)
+                        if (startXRatio in 0.0f..1.0f && startYRatio in 0.0f..1.0f &&
+                            endXRatio in 0.0f..1.0f && endYRatio in 0.0f..1.0f) {
+                            accessibilityService.performGesture(startXRatio, startYRatio, endXRatio, endYRatio, durationMs)
+                        } else {
+                            val direction = actionObj.optString("direction", "up")
+                            accessibilityService.performSwipe(direction)
+                        }
                     } else {
                         AppLogger.w("RemoteInput", "Swipe requested but AccessibilityService is not enabled.")
                     }

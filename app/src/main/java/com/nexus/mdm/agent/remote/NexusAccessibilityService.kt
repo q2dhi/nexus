@@ -154,6 +154,39 @@ class NexusAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Injects a precision gesture path between two arbitrary normalized coordinates (0.0 to 1.0).
+     */
+    fun performGesture(
+        startXRatio: Float,
+        startYRatio: Float,
+        endXRatio: Float,
+        endYRatio: Float,
+        durationMs: Long = 250L
+    ): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+
+        val metrics = resources.displayMetrics
+        val w = metrics.widthPixels.toFloat()
+        val h = metrics.heightPixels.toFloat()
+
+        val pxStartX = (startXRatio * w).coerceIn(0f, w)
+        val pxStartY = (startYRatio * h).coerceIn(0f, h)
+        val pxEndX = (endXRatio * w).coerceIn(0f, w)
+        val pxEndY = (endYRatio * h).coerceIn(0f, h)
+
+        val path = Path().apply {
+            moveTo(pxStartX, pxStartY)
+            lineTo(pxEndX, pxEndY)
+        }
+        val safeDuration = durationMs.coerceIn(80L, 1000L)
+        val stroke = GestureDescription.StrokeDescription(path, 0L, safeDuration)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        AppLogger.i("AccessibilityService", "Dispatching cloud precision gesture ($pxStartX, $pxStartY -> $pxEndX, $pxEndY) in ${safeDuration}ms")
+        return dispatchGesture(gesture, null, null)
+    }
+
+    /**
      * Injects a directional swipe gesture across the screen.
      */
     fun performSwipe(direction: String): Boolean {
@@ -163,12 +196,13 @@ class NexusAccessibilityService : AccessibilityService() {
         val w = metrics.widthPixels.toFloat()
         val h = metrics.heightPixels.toFloat()
 
+        // For UP swipe, start at bottom (88% height) to ensure lock screen unlocks cleanly past notifications
         val (startX, startY, endX, endY) = when (direction.lowercase()) {
-            "up" -> arrayOf(w * 0.5f, h * 0.75f, w * 0.5f, h * 0.25f)
-            "down" -> arrayOf(w * 0.5f, h * 0.25f, w * 0.5f, h * 0.75f)
+            "up" -> arrayOf(w * 0.5f, h * 0.88f, w * 0.5f, h * 0.18f)
+            "down" -> arrayOf(w * 0.5f, h * 0.18f, w * 0.5f, h * 0.85f)
             "left" -> arrayOf(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)
             "right" -> arrayOf(w * 0.15f, h * 0.5f, w * 0.85f, h * 0.5f)
-            else -> arrayOf(w * 0.5f, h * 0.75f, w * 0.5f, h * 0.25f)
+            else -> arrayOf(w * 0.5f, h * 0.88f, w * 0.5f, h * 0.18f)
         }
 
         val path = Path().apply {

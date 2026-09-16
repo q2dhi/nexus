@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nexus Enterprise MDM Web Admin</title>
-    <link rel="stylesheet" href="style.css?v=20260916_wake_lock">
+    <link rel="stylesheet" href="style.css?v=20260916_drag_unlock">
     <link rel="stylesheet" href="leaflet.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1357,13 +1357,15 @@
                         <img src="honeywell-device.png" alt="Honeywell Rugged Handheld Computer" class="honeywell-chassis-img" draggable="false" />
                         
                         <!-- Interactive Touchscreen Display (Mapped 1:1 to Remote Screen) -->
-                        <div id="phoneScreenContainer" class="phone-display-viewport" onclick="handlePhoneScreenClick(event)">
-                            <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" />
+                        <div id="phoneScreenContainer" class="phone-display-viewport">
+                            <img id="streamImg" src="" alt="Live Device Screen" class="phone-live-img" draggable="false" />
                             <div id="streamPlaceholder" class="phone-stream-loading">
                                 <div class="loading-spinner"></div>
                             </div>
                             <!-- Touch Ripple Effect Target -->
                             <div id="touchRipple" class="touch-ripple-circle"></div>
+                            <!-- SVG Drag & Swipe Visualizer -->
+                            <svg id="touchTrailSvg" class="touch-drag-trail-svg"></svg>
 
                             <!-- Transparent Android Navigation Buttons Interceptor (Back, Home, Recents) -->
                             <div class="stream-nav-touch-strip" onclick="event.stopPropagation()">
@@ -1380,7 +1382,7 @@
 
     <script src="leaflet.js"></script>
     <script src="qrcode.min.js?v=20260916_utf8_fix"></script>
-    <script src="app.js?v=20260916_wake_lock"></script>
+    <script src="app.js?v=20260916_drag_unlock"></script>
 </body>
 
 </html>
