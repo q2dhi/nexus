@@ -27,11 +27,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fitsSystemWindows="false"
-            android:background="@color/nexus_royal_blue"
+            android:background="@drawable/bg_neomorph_header"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
             android:paddingTop="36dp"
-            android:paddingBottom="20dp">
+            android:paddingBottom="24dp">
 
             <!-- Top Row: Logo, "nexus.", and Admin Lock Button -->
             <LinearLayout
@@ -53,7 +53,8 @@
                         android:id="@+id/ivKioskLogo"
                         android:layout_width="34dp"
                         android:layout_height="34dp"
-                        android:background="@color/nexus_royal_blue_dark"
+                        android:background="@drawable/bg_neomorph_pill"
+                        android:backgroundTint="@color/nexus_royal_blue_dark"
                         android:padding="6dp"
                         android:src="@drawable/ic_nexus_logo"
                         android:contentDescription="Nexus Logo" />
@@ -85,9 +86,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:background="#2563EB"
-                        android:paddingHorizontal="6dp"
-                        android:paddingVertical="2dp"
+                        android:background="@drawable/bg_neomorph_pill"
+                        android:backgroundTint="#2563EB"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
                         android:text="KIOSK"
                         android:textColor="#DBEAFE"
                         android:textSize="10sp"
@@ -103,10 +105,13 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <!-- Large Crisp Time Display -->
+                <!-- Large Crisp Time Display in Neomorphic Sunken Pill -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_neomorph_header_pill"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="6dp"
                     android:gravity="bottom"
                     android:orientation="horizontal">
 
@@ -116,7 +121,7 @@
                         android:layout_height="wrap_content"
                         android:text="12:00"
                         android:textColor="#FFFFFF"
-                        android:textSize="32sp"
+                        android:textSize="30sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -124,7 +129,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="3dp"
                         android:text="PM"
                         android:textColor="#BFDBFE"
                         android:textSize="12sp"
@@ -184,16 +189,16 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <!-- Dynamic Accessibility Activation Banner -->
+            <!-- Dynamic Accessibility Activation Banner (Neomorphic Raised Card) -->
             <LinearLayout
                 android:id="@+id/cardA11yNotice"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@drawable/bg_card"
-                android:padding="12dp"
-                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_neomorph_card_subtle"
+                android:padding="14dp"
+                android:layout_marginBottom="14dp"
                 android:visibility="gone">
 
                 <ImageView
@@ -229,14 +234,13 @@
                 <Button
                     android:id="@+id/btnActivateA11y"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_pill"
-                    android:backgroundTint="#2563EB"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_neomorph_button_primary"
                     android:text="تفعيل الآن"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:textStyle="bold"
-                    android:paddingHorizontal="12dp" />
+                    android:paddingHorizontal="14dp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -263,9 +267,9 @@
         <LinearLayout
             android:id="@+id/layoutKioskBottomBar"
             android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:background="#FFFFFF"
-            android:elevation="8dp"
+            android:layout_height="62dp"
+            android:background="@drawable/bg_neomorph_nav_bar"
+            android:elevation="12dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp">
@@ -406,8 +410,8 @@
             <Button
                 android:id="@+id/btnEnterKioskMode"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:backgroundTint="@color/nexus_blue"
+                android:layout_height="42dp"
+                android:background="@drawable/bg_neomorph_button_primary"
                 android:paddingHorizontal="16dp"
                 android:text="Launch Kiosk"
                 android:textAllCaps="false"
@@ -419,7 +423,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/nexus_divider" />
+            android:background="@color/neomorph_border_bevel" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -430,7 +434,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <!-- Status Pills Section -->
                 <LinearLayout
@@ -443,7 +447,7 @@
                         android:id="@+id/tvDeviceOwnerBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_pill"
+                        android:background="@drawable/bg_neomorph_pill"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="6dp"
                         android:text="Device Owner: Active"
@@ -456,7 +460,7 @@
                         android:id="@+id/tvHomeLauncherBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_pill"
+                        android:background="@drawable/bg_neomorph_pill"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="6dp"
                         android:text="Home App: Set as Default"
@@ -469,7 +473,7 @@
                         android:id="@+id/tvCloudStatusBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_pill"
+                        android:background="@drawable/bg_neomorph_pill"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="6dp"
                         android:text="Cloud: Ready"
@@ -482,20 +486,20 @@
                 <Button
                     android:id="@+id/btnSetDefaultHome"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/nexus_surface_subtle"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_neomorph_button"
                     android:text="Set Nexus as Default Home App (Permanent Lock)"
                     android:textAllCaps="false"
                     android:textColor="@color/nexus_text_primary"
                     android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="12dp" />
 
                 <!-- Dedicated Button to Activate Device Admin for Remote Lock -->
                 <Button
                     android:id="@+id/btnActivateAdmin"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/nexus_surface_subtle"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_neomorph_button"
                     android:text="Activate Device Admin (Required for Remote Screen Lock)"
                     android:textAllCaps="false"
                     android:textColor="@color/nexus_blue"
@@ -506,15 +510,17 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_neomorph_card"
                     android:orientation="vertical"
-                    android:layout_marginBottom="28dp">
+                    android:padding="18dp"
+                    android:layout_marginBottom="24dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
+                        android:layout_marginBottom="10dp">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -541,9 +547,9 @@
                         <Button
                             android:id="@+id/btnSaveWhitelist"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:backgroundTint="@color/nexus_accent"
-                            android:paddingHorizontal="12dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_neomorph_button_primary"
+                            android:paddingHorizontal="14dp"
                             android:text="Save Selection"
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"
@@ -554,21 +560,19 @@
                         android:id="@+id/rvWhitelistSelector"
                         android:layout_width="match_parent"
                         android:layout_height="220dp"
+                        android:background="@drawable/bg_neomorph_inset"
+                        android:padding="6dp"
                         android:nestedScrollingEnabled="true" />
                 </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/nexus_divider"
-                    android:layout_marginBottom="24dp" />
 
                 <!-- SECTION 2: WEB ADMIN CLOUD CONNECTION -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_neomorph_card"
                     android:orientation="vertical"
-                    android:layout_marginBottom="28dp">
+                    android:padding="18dp"
+                    android:layout_marginBottom="24dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -625,7 +629,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Company Code (e.g., 1212)"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                        android:layout_marginBottom="14dp">
+                        android:layout_marginBottom="16dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etCompanyCode"
@@ -639,26 +643,22 @@
                     <Button
                         android:id="@+id/btnConnectServer"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:backgroundTint="@color/nexus_surface_subtle"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_neomorph_button_primary"
                         android:text="Save &amp; Sync with Web Admin"
                         android:textAllCaps="false"
-                        android:textColor="@color/nexus_text_primary"
+                        android:textColor="#FFFFFF"
                         android:textStyle="bold" />
                 </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/nexus_divider"
-                    android:layout_marginBottom="24dp" />
 
                 <!-- SECTION 3: SYSTEM SECURITY CONTROLS -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_neomorph_card"
                     android:orientation="vertical"
-                    android:layout_marginBottom="28dp">
+                    android:padding="18dp"
+                    android:layout_marginBottom="24dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -781,11 +781,12 @@
                     <Button
                         android:id="@+id/btnChangePassword"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:backgroundTint="@color/nexus_surface_subtle"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_neomorph_button"
                         android:text="Change Admin Maintenance Password"
                         android:textAllCaps="false"
                         android:textColor="@color/nexus_text_primary"
+                        android:textStyle="bold"
                         android:layout_marginTop="8dp" />
                 </LinearLayout>
 
@@ -796,9 +797,9 @@
         <LinearLayout
             android:id="@+id/layoutAdminBottomBar"
             android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:background="#FFFFFF"
-            android:elevation="8dp"
+            android:layout_height="62dp"
+            android:background="@drawable/bg_neomorph_nav_bar"
+            android:elevation="12dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp">
@@ -870,17 +871,17 @@
         android:id="@+id/layoutLoadingScreen"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="@color/neomorph_surface"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="32dp"
         android:visibility="gone">
 
-        <!-- Approved Emblem (Royal Blue Solid Square with White Layers) -->
+        <!-- Approved Emblem (Royal Blue 3D Extruded Neomorphic Square with White Layers) -->
         <FrameLayout
             android:layout_width="96dp"
             android:layout_height="96dp"
-            android:background="@color/nexus_royal_blue"
+            android:background="@drawable/bg_neomorph_button_primary"
             android:padding="22dp">
 
             <ImageView

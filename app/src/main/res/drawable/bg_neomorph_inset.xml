@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Inset Top-Left Shadow -->
+    <!-- 1. Top-Left Inset Shadow (Darker shade simulating depth) -->
     <item
         android:top="0dp"
         android:left="0dp"
@@ -12,7 +12,7 @@
         </shape>
     </item>
 
-    <!-- Inset Bottom-Right Light Glow -->
+    <!-- 2. Bottom-Right Inset Highlight (White reflection at bottom) -->
     <item
         android:top="2dp"
         android:left="2dp"
@@ -24,7 +24,7 @@
         </shape>
     </item>
 
-    <!-- Recessed Terminal Body -->
+    <!-- 3. Sunken Inner Cavity Surface -->
     <item
         android:top="1.5dp"
         android:left="1.5dp"
@@ -32,7 +32,10 @@
         android:bottom="1.5dp">
         <shape android:shape="rectangle">
             <corners android:radius="13dp" />
-            <solid android:color="@color/nexus_terminal_bg" />
+            <gradient
+                android:angle="135"
+                android:startColor="#DFE6F1"
+                android:endColor="#EBF0F7" />
         </shape>
     </item>
 </layer-list>

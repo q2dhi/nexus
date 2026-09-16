@@ -1,9 +1,50 @@
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#E2E8F0">
-    <item android:id="@android:id/mask">
-        <shape android:shape="rectangle">
-            <corners android:radius="8dp" />
-            <solid android:color="#FFFFFF" />
-        </shape>
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed / Selected: Sunken Neomorphic Pocket -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <item
+                android:top="0dp"
+                android:left="0dp"
+                android:right="1.5dp"
+                android:bottom="1.5dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="14dp" />
+                    <solid android:color="@color/neomorph_inset_dark" />
+                </shape>
+            </item>
+            <item
+                android:top="1.5dp"
+                android:left="1.5dp"
+                android:right="0dp"
+                android:bottom="0dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="14dp" />
+                    <solid android:color="@color/neomorph_inset_light" />
+                </shape>
+            </item>
+            <item
+                android:top="1dp"
+                android:left="1dp"
+                android:right="1dp"
+                android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="14dp" />
+                    <solid android:color="@color/nexus_surface_subtle" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
-</ripple>
+
+    <!-- Normal: Clear Surface with Ripple Feedback -->
+    <item>
+        <ripple android:color="#CBD5E1">
+            <item android:id="@android:id/mask">
+                <shape android:shape="rectangle">
+                    <corners android:radius="14dp" />
+                    <solid android:color="#FFFFFF" />
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

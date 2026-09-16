@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Top-Left Light Highlight -->
+    <item
+        android:top="0dp"
+        android:left="0dp"
+        android:right="0dp"
+        android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="24dp"
+                android:topRightRadius="24dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <solid android:color="@color/neomorph_shadow_light" />
+        </shape>
+    </item>
+
+    <!-- Main Floating Bar Surface with Top Bevel -->
+    <item
+        android:top="1.5dp"
+        android:left="0dp"
+        android:right="0dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="23dp"
+                android:topRightRadius="23dp"
+                android:bottomLeftRadius="0dp"
+                android:bottomRightRadius="0dp" />
+            <gradient
+                android:angle="90"
+                android:startColor="@color/neomorph_surface"
+                android:endColor="@color/neomorph_surface_highlight" />
+            <stroke
+                android:width="0.5dp"
+                android:color="@color/neomorph_border_bevel" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,18 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Ultra-Minimalist Light Palette -->
-    <color name="nexus_bg_light">#FFFFFF</color>
-    <color name="nexus_surface_light">#F8F9FA</color>
-    <color name="nexus_surface_subtle">#F1F3F5</color>
-    <color name="nexus_border_light">#E9ECEF</color>
-    <color name="nexus_divider">#E5E7EB</color>
+    <!-- Neomorphic Core Surfaces (Soft Matte Canvas) -->
+    <color name="nexus_bg_light">#E8EEF5</color>
+    <color name="nexus_surface_light">#E8EEF5</color>
+    <color name="nexus_surface_subtle">#DFE6F0</color>
+    <color name="nexus_border_light">#D3DDEB</color>
+    <color name="nexus_divider">#CBD5E1</color>
 
-    <!-- Typography -->
+    <!-- Neomorphism Dual Shadow & Light Tokens -->
+    <color name="neomorph_surface">#E8EEF5</color>
+    <color name="neomorph_surface_highlight">#F4F8FD</color>
+    <color name="neomorph_shadow_light">#FFFFFF</color>
+    <color name="neomorph_shadow_dark">#C4D0E0</color>
+    <color name="neomorph_shadow_darker">#B5C3D6</color>
+    <color name="neomorph_inset_dark">#BAC7D8</color>
+    <color name="neomorph_inset_light">#FFFFFF</color>
+    <color name="neomorph_border_bevel">#DCE5F1</color>
+
+    <!-- Typography (Preserved Crisp Dark Tones) -->
     <color name="nexus_text_primary">#0F172A</color>
     <color name="nexus_text_secondary">#475569</color>
     <color name="nexus_text_muted">#94A3B8</color>
 
-    <!-- Refined Accents -->
+    <!-- Preserved Brand Accents -->
     <color name="nexus_accent">#0F172A</color>
     <color name="nexus_royal_blue">#1E40AF</color>
     <color name="nexus_royal_blue_dark">#1D4ED8</color>
@@ -21,15 +31,20 @@
     <color name="nexus_amber">#D97706</color>
     <color name="nexus_red">#DC2626</color>
 
+    <!-- Royal Blue Neomorphic Accents -->
+    <color name="neomorph_blue_surface">#1E40AF</color>
+    <color name="neomorph_blue_highlight">#3B82F6</color>
+    <color name="neomorph_blue_shadow">#172554</color>
+
     <!-- Legacy / Compatibility Tokens -->
-    <color name="nexus_bg_dark">#FFFFFF</color>
-    <color name="nexus_surface">#F8F9FA</color>
-    <color name="nexus_surface_variant">#F1F3F5</color>
-    <color name="nexus_border">#E9ECEF</color>
+    <color name="nexus_bg_dark">#0F172A</color>
+    <color name="nexus_surface">#E8EEF5</color>
+    <color name="nexus_surface_variant">#DFE6F0</color>
+    <color name="nexus_border">#D3DDEB</color>
     <color name="nexus_cyan">#2563EB</color>
     <color name="nexus_teal">#16A34A</color>
     <color name="nexus_purple">#6366F1</color>
-    <color name="nexus_terminal_bg">#F8F9FA</color>
+    <color name="nexus_terminal_bg">#E2E9F2</color>
     <color name="nexus_terminal_text">#0F172A</color>
     <color name="nexus_terminal_cursor">#2563EB</color>
 </resources>

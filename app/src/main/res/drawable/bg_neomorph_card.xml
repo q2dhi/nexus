@@ -1,32 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 1. Bottom-Right Dark Shadow Extrusion -->
     <item
-        android:top="2dp"
-        android:left="2dp"
+        android:top="3dp"
+        android:left="3dp"
         android:right="0dp"
         android:bottom="0dp">
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
+            <corners android:radius="18dp" />
             <solid android:color="@color/neomorph_shadow_dark" />
         </shape>
     </item>
+
+    <!-- 2. Top-Left Pure White Light Reflection -->
     <item
         android:top="0dp"
         android:left="0dp"
-        android:right="2dp"
-        android:bottom="2dp">
+        android:right="3dp"
+        android:bottom="3dp">
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
+            <corners android:radius="18dp" />
             <solid android:color="@color/neomorph_shadow_light" />
         </shape>
     </item>
+
+    <!-- 3. Raised Neomorphic Surface Body -->
     <item
-        android:top="1dp"
-        android:left="1dp"
-        android:right="1dp"
-        android:bottom="1dp">
+        android:top="2dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:bottom="2dp">
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
+            <corners android:radius="18dp" />
             <gradient
                 android:angle="135"
                 android:startColor="@color/neomorph_surface_highlight"

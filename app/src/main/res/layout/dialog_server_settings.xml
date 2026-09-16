@@ -2,9 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/nexus_bg_light"
+    android:background="@drawable/bg_neomorph_dialog"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="26dp">
 
     <TextView
         android:layout_width="wrap_content"
@@ -60,7 +60,7 @@
         android:layout_height="wrap_content"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:hint="اسم / وسم الجهاز (Device Name)"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="22dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etDialogDeviceTag"
@@ -81,8 +81,9 @@
         <Button
             android:id="@+id/btnCancelServerSettings"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/nexus_surface_subtle"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_neomorph_button"
+            android:paddingHorizontal="16dp"
             android:text="إلغاء"
             android:textAllCaps="false"
             android:textColor="@color/nexus_text_secondary"
@@ -91,12 +92,12 @@
         <Button
             android:id="@+id/btnSaveServerSettings"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/nexus_blue"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_neomorph_button_primary"
+            android:paddingHorizontal="18dp"
             android:text="حفظ ومزامنة فورية"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
     </LinearLayout>
-
 </LinearLayout>

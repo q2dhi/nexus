@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Pressed state: Sunken / Inset -->
+    <!-- PRESSED / SUNKEN STATE -->
     <item android:state_pressed="true">
         <layer-list>
             <item
@@ -11,6 +11,16 @@
                 <shape android:shape="rectangle">
                     <corners android:radius="14dp" />
                     <solid android:color="@color/neomorph_inset_dark" />
+                </shape>
+            </item>
+            <item
+                android:top="2dp"
+                android:left="2dp"
+                android:right="0dp"
+                android:bottom="0dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="14dp" />
+                    <solid android:color="@color/neomorph_inset_light" />
                 </shape>
             </item>
             <item
@@ -26,12 +36,13 @@
         </layer-list>
     </item>
 
-    <!-- Normal state: Soft Extruded Tile -->
+    <!-- DEFAULT / EXTRUDED 3D STATE -->
     <item>
         <layer-list>
+            <!-- Bottom-Right Dark Shadow -->
             <item
-                android:top="2dp"
-                android:left="2dp"
+                android:top="3dp"
+                android:left="3dp"
                 android:right="0dp"
                 android:bottom="0dp">
                 <shape android:shape="rectangle">
@@ -39,21 +50,23 @@
                     <solid android:color="@color/neomorph_shadow_dark" />
                 </shape>
             </item>
+            <!-- Top-Left White Highlight -->
             <item
                 android:top="0dp"
                 android:left="0dp"
-                android:right="2dp"
-                android:bottom="2dp">
+                android:right="3dp"
+                android:bottom="3dp">
                 <shape android:shape="rectangle">
                     <corners android:radius="14dp" />
                     <solid android:color="@color/neomorph_shadow_light" />
                 </shape>
             </item>
+            <!-- Raised Surface -->
             <item
-                android:top="1dp"
-                android:left="1dp"
-                android:right="1dp"
-                android:bottom="1dp">
+                android:top="2dp"
+                android:left="2dp"
+                android:right="2dp"
+                android:bottom="2dp">
                 <shape android:shape="rectangle">
                     <corners android:radius="14dp" />
                     <gradient

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom-Right Dark Shadow -->
     <item
         android:top="2dp"
         android:left="2dp"
@@ -10,6 +11,8 @@
             <solid android:color="@color/neomorph_shadow_dark" />
         </shape>
     </item>
+
+    <!-- Top-Left Light Glow -->
     <item
         android:top="0dp"
         android:left="0dp"
@@ -20,6 +23,8 @@
             <solid android:color="@color/neomorph_shadow_light" />
         </shape>
     </item>
+
+    <!-- Pill Surface -->
     <item
         android:top="1dp"
         android:left="1dp"

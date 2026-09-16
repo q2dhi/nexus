@@ -2,16 +2,20 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_flat_item"
+    android:background="@drawable/bg_neomorph_app_tile"
+    android:clickable="true"
+    android:focusable="true"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:layout_margin="6dp">
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="18dp"
+    android:layout_margin="7dp">
 
+    <!-- App Icon Surface Container with Subtle Inset / Elevated Halo -->
     <ImageView
         android:id="@+id/ivAppIcon"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
         android:contentDescription="App Icon"
         android:src="@drawable/ic_kiosk" />
 
@@ -19,12 +23,13 @@
         android:id="@+id/tvAppName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
         android:text="Sample App"
         android:textColor="@color/nexus_text_primary"
         android:textSize="13sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:letterSpacing="-0.01" />
 </LinearLayout>

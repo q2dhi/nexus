@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/nexus_bg_light"
+    android:background="@drawable/bg_neomorph_dialog"
     android:orientation="vertical"
     android:padding="24dp">
 
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="NEXUS"
-            android:textColor="@color/nexus_blue"
+            android:textColor="@color/nexus_royal_blue"
             android:textSize="12sp"
             android:textStyle="bold"
             android:letterSpacing="0.05" />
@@ -47,7 +47,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_flat_item"
-        android:backgroundTint="#0F172A"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -58,7 +57,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Exit to Android OS"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/nexus_text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -66,7 +65,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Disengage dedicated LockTask and restore system launcher"
-            android:textColor="#94A3B8"
+            android:textColor="@color/nexus_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
     </LinearLayout>
@@ -77,7 +76,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_flat_item"
-        android:backgroundTint="#1E293B"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -88,7 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Administrator Console"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/nexus_royal_blue"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -96,7 +94,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Server configuration, tenant assignment, and peripheral policies"
-            android:textColor="#CBD5E1"
+            android:textColor="@color/nexus_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
     </LinearLayout>
@@ -107,7 +105,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_flat_item"
-        android:backgroundTint="#F8FAFC"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -137,7 +134,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_flat_item"
-        android:backgroundTint="#FEE2E2"
         android:orientation="vertical"
         android:padding="16dp"
         android:clickable="true"
@@ -165,11 +161,12 @@
     <Button
         android:id="@+id/btnSecurityCancel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:backgroundTint="@color/nexus_surface_subtle"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_neomorph_button"
         android:text="Cancel"
         android:textAllCaps="false"
         android:textColor="@color/nexus_text_secondary"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

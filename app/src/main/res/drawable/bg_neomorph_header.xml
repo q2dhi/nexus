@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom Drop Shadow of the Header -->
+    <item
+        android:top="0dp"
+        android:left="0dp"
+        android:right="0dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:bottomLeftRadius="26dp"
+                android:bottomRightRadius="26dp" />
+            <solid android:color="#0F172A" />
+        </shape>
+    </item>
+
+    <!-- Main Royal Blue Surface with Subtle Top-Edge Highlight -->
+    <item
+        android:top="0dp"
+        android:left="0dp"
+        android:right="0dp"
+        android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:bottomLeftRadius="24dp"
+                android:bottomRightRadius="24dp" />
+            <gradient
+                android:angle="135"
+                android:startColor="#2563EB"
+                android:endColor="@color/nexus_royal_blue" />
+            <stroke
+                android:width="0.5dp"
+                android:color="#60A5FA" />
+        </shape>
+    </item>
+</layer-list>

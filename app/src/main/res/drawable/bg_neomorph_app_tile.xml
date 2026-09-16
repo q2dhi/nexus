@@ -1,61 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Pressed state: Sunken / Inset -->
+    <!-- PRESSED / SUNKEN STATE: Button pressed into the surface -->
     <item android:state_pressed="true">
         <layer-list>
+            <!-- Inset Top-Left Shadow -->
             <item
                 android:top="0dp"
                 android:left="0dp"
                 android:right="2dp"
                 android:bottom="2dp">
                 <shape android:shape="rectangle">
-                    <corners android:radius="14dp" />
+                    <corners android:radius="20dp" />
                     <solid android:color="@color/neomorph_inset_dark" />
                 </shape>
             </item>
-            <item
-                android:top="1dp"
-                android:left="1dp"
-                android:right="1dp"
-                android:bottom="1dp">
-                <shape android:shape="rectangle">
-                    <corners android:radius="14dp" />
-                    <solid android:color="@color/nexus_surface_subtle" />
-                </shape>
-            </item>
-        </layer-list>
-    </item>
-
-    <!-- Normal state: Soft Extruded Tile -->
-    <item>
-        <layer-list>
+            <!-- Inset Bottom-Right Light Glow -->
             <item
                 android:top="2dp"
                 android:left="2dp"
                 android:right="0dp"
                 android:bottom="0dp">
                 <shape android:shape="rectangle">
-                    <corners android:radius="14dp" />
-                    <solid android:color="@color/neomorph_shadow_dark" />
+                    <corners android:radius="20dp" />
+                    <solid android:color="@color/neomorph_inset_light" />
                 </shape>
             </item>
+            <!-- Sunken Surface -->
             <item
-                android:top="0dp"
-                android:left="0dp"
+                android:top="2dp"
+                android:left="2dp"
                 android:right="2dp"
                 android:bottom="2dp">
                 <shape android:shape="rectangle">
-                    <corners android:radius="14dp" />
+                    <corners android:radius="20dp" />
+                    <gradient
+                        android:angle="135"
+                        android:startColor="@color/nexus_surface_subtle"
+                        android:endColor="@color/neomorph_surface" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- DEFAULT / EXTRUDED 3D STATE -->
+    <item>
+        <layer-list>
+            <!-- Bottom-Right Dark Shadow Extrusion -->
+            <item
+                android:top="4dp"
+                android:left="4dp"
+                android:right="0dp"
+                android:bottom="0dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp" />
+                    <solid android:color="@color/neomorph_shadow_dark" />
+                </shape>
+            </item>
+            <!-- Top-Left White Light Reflection -->
+            <item
+                android:top="0dp"
+                android:left="0dp"
+                android:right="4dp"
+                android:bottom="4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp" />
                     <solid android:color="@color/neomorph_shadow_light" />
                 </shape>
             </item>
+            <!-- Raised Surface -->
             <item
-                android:top="1dp"
-                android:left="1dp"
-                android:right="1dp"
-                android:bottom="1dp">
+                android:top="2dp"
+                android:left="2dp"
+                android:right="2dp"
+                android:bottom="2dp">
                 <shape android:shape="rectangle">
-                    <corners android:radius="14dp" />
+                    <corners android:radius="20dp" />
                     <gradient
                         android:angle="135"
                         android:startColor="@color/neomorph_surface_highlight"

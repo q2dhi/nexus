@@ -1,9 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/nexus_surface" />
-    <corners android:radius="14dp" />
-    <stroke
-        android:width="1dp"
-        android:color="@color/nexus_border" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom-Right Soft Dark Shadow -->
+    <item
+        android:top="3dp"
+        android:left="3dp"
+        android:right="0dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <solid android:color="@color/neomorph_shadow_dark" />
+        </shape>
+    </item>
+
+    <!-- Top-Left White Highlight -->
+    <item
+        android:top="0dp"
+        android:left="0dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <solid android:color="@color/neomorph_shadow_light" />
+        </shape>
+    </item>
+
+    <!-- Neomorphic Card Surface -->
+    <item
+        android:top="2dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="135"
+                android:startColor="@color/neomorph_surface_highlight"
+                android:endColor="@color/neomorph_surface" />
+            <stroke
+                android:width="0.5dp"
+                android:color="@color/neomorph_border_bevel" />
+        </shape>
+    </item>
+</layer-list>
