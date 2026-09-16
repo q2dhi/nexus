@@ -2449,7 +2449,7 @@ body.ltr-mode .toast-info { border-right: none; border-left: 4px solid var(--bra
    ========================================================================== */
 
 body {
-    background-color: #0D0F12 !important;
+    background-color: #F8FAFC !important;
     background-image: none !important;
     color: #0F172A;
     min-height: 100vh;
@@ -2465,9 +2465,9 @@ body {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 14px 16px !important;
-    gap: 16px !important;
-    background: #0D0F12 !important;
+    padding: 16px 20px !important;
+    gap: 20px !important;
+    background: #F8FAFC !important;
     box-sizing: border-box !important;
     align-items: stretch;
 }
@@ -2483,25 +2483,25 @@ body.ltr-mode .app-shell {
 }
 
 /* --------------------------------------------------------------------------
-   1. SLEEK DARK EXECUTIVE SIDEBAR
+   1. LUMINOUS EXECUTIVE SIDEBAR (White, Blue & Black)
    -------------------------------------------------------------------------- */
 .app-sidebar {
     width: 270px;
     min-width: 270px;
     max-width: 270px;
-    height: calc(100vh - 28px);
+    height: calc(100vh - 32px);
     position: sticky;
-    top: 14px;
-    background: #16171B;
-    border-radius: 28px;
+    top: 16px;
+    background: #FFFFFF !important;
+    border-radius: 24px;
     padding: 24px 16px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     gap: 16px;
     flex-shrink: 0;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    border: 1px solid #E2E8F0 !important;
     box-sizing: border-box;
     z-index: 100;
     overflow-y: auto;
@@ -2518,7 +2518,7 @@ body.ltr-mode .app-shell {
     align-items: center;
     gap: 10px;
     padding: 0 4px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid #F1F5F9;
 }
 
 .sidebar-brand-icon {
@@ -2531,19 +2531,19 @@ body.ltr-mode .app-shell {
 .sidebar-brand-text {
     font-weight: 800;
     font-size: 22px;
-    color: #FFFFFF;
+    color: #0F172A !important;
     letter-spacing: -0.02em;
 }
 
 .sidebar-brand-dot {
-    color: #3B82F6;
+    color: #2563EB;
 }
 
 .sidebar-brand-badge {
     margin-inline-start: auto;
-    background: rgba(59, 130, 246, 0.18);
-    color: #60A5FA;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
     font-size: 10px;
     font-weight: 800;
     padding: 2px 8px;
@@ -2566,19 +2566,19 @@ body.ltr-mode .app-shell {
     border-radius: 16px;
     border: none;
     background: transparent;
-    color: #94A3B8;
+    color: #475569;
     font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     width: 100%;
     text-align: start;
     text-decoration: none;
 }
 
 .sidebar-nav .nav-tab:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
+    background: #F1F5F9;
+    color: #0F172A;
 }
 
 body.rtl-mode .sidebar-nav .nav-tab:hover {
@@ -2590,20 +2590,20 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
 }
 
 .sidebar-nav .nav-tab.active {
-    background: #FFFFFF !important;
-    color: #0F172A !important;
+    background: #2563EB !important;
+    color: #FFFFFF !important;
     font-weight: 700;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 .sidebar-nav .nav-tab.active .nav-tab-icon {
-    stroke: #0F172A;
+    stroke: #FFFFFF !important;
 }
 
 .sidebar-tab-badge {
     margin-inline-start: auto;
-    background: rgba(255, 255, 255, 0.12);
-    color: #94A3B8;
+    background: #F1F5F9;
+    color: #475569;
     font-size: 11px;
     font-weight: 700;
     padding: 2px 8px;
@@ -2613,23 +2613,23 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
 }
 
 .sidebar-nav .nav-tab.active .sidebar-tab-badge {
-    background: #2563EB;
-    color: #FFFFFF;
+    background: #FFFFFF;
+    color: #2563EB;
 }
 
 /* Sidebar Bottom Feature Card */
 .sidebar-promo-card {
-    background: linear-gradient(145deg, #1E293B 0%, #0F172A 100%);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    border-radius: 22px;
+    background: #F0F7FF !important;
+    border: 1px solid #BFDBFE !important;
+    border-radius: 20px;
     padding: 18px 14px;
-    color: #FFFFFF;
+    color: #0F172A !important;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
     margin-top: auto;
 }
 
@@ -2637,24 +2637,23 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(37, 99, 235, 0.25);
-    color: #60A5FA;
+    background: #DBEAFE;
+    color: #2563EB;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    box-shadow: 0 0 14px rgba(37, 99, 235, 0.3);
+    border: 1px solid #BFDBFE;
 }
 
 .promo-card-title {
     font-size: 15px;
     font-weight: 800;
-    color: #FFFFFF;
+    color: #0F172A;
 }
 
 .promo-card-desc {
     font-size: 11.5px;
-    color: #94A3B8;
+    color: #64748B;
     line-height: 1.45;
 }
 
@@ -2669,7 +2668,7 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
 }
 
 .promo-card-btn:hover {
@@ -2678,19 +2677,20 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
 }
 
 /* --------------------------------------------------------------------------
-   2. MAIN LIGHT CONTENT CANVAS
+   2. MAIN BRIGHT LUXURY CONTENT CANVAS
    -------------------------------------------------------------------------- */
 .app-main-canvas {
-    flex: 1;
-    background: #EEF1F6 !important;
-    border-radius: 28px;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: calc(100vh - 32px);
+    background: #FFFFFF !important;
+    border-radius: 24px;
     padding: 28px 32px;
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    min-width: 0;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 20px;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    border: 1px solid #E2E8F0 !important;
     box-sizing: border-box;
 }
 
