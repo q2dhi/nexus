@@ -3381,3 +3381,887 @@ body.ltr-mode .sidebar-nav .nav-tab:hover {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   PRINT STAGING SHEET (A4 Hardcopy for Branch IT Setup)
+   ========================================================================== */
+.branch-staging-sheet {
+    background: #FFFFFF;
+    border: 2px dashed #CBD5E1;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 15mm;
+    }
+
+    body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Hide everything in the page by default */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* Show only the active staging sheet */
+    #modalBranchQr,
+    #modalBranchQr .modal-card,
+    #branchQrPrintArea,
+    #branchQrPrintArea * {
+        visibility: visible !important;
+    }
+
+    #modalBranchQr {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #FFFFFF !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        z-index: 99999 !important;
+    }
+
+    #modalBranchQr .modal-card {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        animation: none !important;
+        background: #FFFFFF !important;
+    }
+
+    #modalBranchQr .modal-header-flex,
+    #modalBranchQr .modal-card > div:nth-child(2),
+    #modalBranchQr .modal-actions,
+    .btn-close {
+        display: none !important;
+    }
+
+    #branchQrPrintArea {
+        border: 2px solid #0F172A !important;
+        border-radius: 12px !important;
+        padding: 28px !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 680px !important;
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+    }
+
+    #branchModalQrCanvas canvas,
+    #branchModalQrCanvas img {
+        width: 260px !important;
+        height: 260px !important;
+        display: block !important;
+        margin: 0 auto !important;
+    }
+}
+
+/* ==========================================================================
+   SOTI MOBICONTROL AUTHENTIC DESIGN SYSTEM
+   Theme: Classic SOTI Enterprise (Navy #004b87, Teal #00828a, Slate #EBF1F5)
+   ========================================================================== */
+
+/* Full-width SOTI Shell wrapper */
+.soti-app-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #F4F6F9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1E293B;
+}
+
+/* SOTI Top Header Bar (Classic Navy Blue) */
+.soti-top-bar {
+    height: 48px;
+    background: #004B87;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    color: #FFFFFF;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.soti-top-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.soti-menu-toggle {
+    background: none;
+    border: none;
+    color: #FFFFFF;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.soti-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.soti-brand-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #FFFFFF;
+    text-transform: uppercase;
+}
+
+.soti-brand-title .soti-divider {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 300;
+}
+
+.soti-brand-title .soti-module-name {
+    font-weight: 400;
+    color: #FFFFFF;
+    text-transform: capitalize;
+}
+
+.soti-top-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.soti-alert-bell {
+    background: none;
+    border: none;
+    color: #FFFFFF;
+    font-size: 17px;
+    cursor: pointer;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.soti-badge-counter {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    background: #E11D48;
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 1px 5px;
+    border: 1.5px solid #004B87;
+}
+
+.soti-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+    position: relative;
+}
+
+.soti-user-profile:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.soti-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #00828A;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.soti-user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFFFFF;
+}
+
+/* SOTI Sub-Toolbar */
+.soti-subnav-toolbar {
+    height: 44px;
+    background: #E8EEF3;
+    border-bottom: 1px solid #D1DCE5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    gap: 12px;
+}
+
+.soti-subnav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.soti-icon-btn-square {
+    width: 30px;
+    height: 30px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.soti-icon-btn-square:hover {
+    background: #F8FAFC;
+    border-color: #94A3B8;
+}
+
+.soti-filter-chip-blue {
+    background: #0078D4;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.soti-filter-chip-blue .chip-close {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.soti-filter-chip-blue .chip-close:hover {
+    opacity: 1;
+}
+
+.soti-device-search-input {
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12.5px;
+    background: #FFFFFF;
+    color: #1E293B;
+    width: 220px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+}
+
+.soti-device-search-input:focus {
+    width: 280px;
+    border-color: #0078D4;
+    outline: none;
+}
+
+.soti-subnav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.soti-btn-teal-search {
+    background: #00828A;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.soti-btn-teal-search:hover {
+    background: #006D74;
+}
+
+.soti-btn-teal-charts {
+    background: #00828A;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 16px;
+    height: 30px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s ease;
+}
+
+.soti-btn-teal-charts:hover {
+    background: #006D74;
+}
+
+.soti-btn-teal-charts.active {
+    background: #00565B;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* SOTI Layout Structure */
+.soti-main-body {
+    display: flex;
+    flex: 1;
+    min-height: calc(100vh - 92px);
+    overflow: hidden;
+}
+
+/* Left Sidebar (DEVICE GROUPS) */
+.soti-groups-sidebar {
+    width: 250px;
+    min-width: 250px;
+    background: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 10px;
+    overflow-y: auto;
+}
+
+.soti-groups-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.soti-group-search-box {
+    margin-bottom: 10px;
+}
+
+.soti-group-search-input {
+    width: 100%;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    background: #F8FAFC;
+    color: #1E293B;
+}
+
+.soti-group-search-input:focus {
+    background: #FFFFFF;
+    border-color: #0078D4;
+    outline: none;
+}
+
+.soti-groups-tree {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.soti-group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: 2px;
+    user-select: none;
+}
+
+.soti-group-item:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
+
+.soti-group-item.active {
+    background: #E0F2FE;
+    color: #0369A1;
+    font-weight: 600;
+}
+
+.soti-group-item-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.soti-group-item-chevron {
+    font-size: 10px;
+    color: #94A3B8;
+    transition: transform 0.15s ease;
+}
+
+.soti-group-item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0284C7;
+    display: inline-block;
+}
+
+.soti-sidebar-footer {
+    padding-top: 12px;
+    border-top: 1px solid #E2E8F0;
+    margin-top: auto;
+}
+
+.soti-btn-new-group {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #00828A;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 4px;
+    text-transform: uppercase;
+}
+
+.soti-btn-new-group:hover {
+    color: #00565B;
+}
+
+.soti-btn-new-group .plus-circle {
+    width: 20px;
+    height: 20px;
+    background: #00828A;
+    color: #FFFFFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* SOTI Main Workspace (Right) */
+.soti-workspace {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* SOTI Analytics Charts Row */
+.soti-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    transition: all 0.3s ease;
+}
+
+.soti-charts-grid.collapsed {
+    display: none !important;
+}
+
+.soti-chart-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.soti-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.soti-chart-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.soti-chart-gear {
+    color: #94A3B8;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.soti-chart-gear:hover {
+    color: #475569;
+}
+
+.soti-chart-content {
+    height: 140px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+/* SOTI Devices Table Section */
+.soti-table-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    overflow: hidden;
+}
+
+.soti-table-top-bar {
+    padding: 10px 16px;
+    background: #FAFAFA;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.soti-table-top-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.soti-devices-count-text {
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.soti-pagination-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.soti-page-btn {
+    width: 22px;
+    height: 22px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+    color: #475569;
+}
+
+.soti-page-btn:hover {
+    background: #F1F5F9;
+}
+
+.soti-refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    padding: 2px 4px;
+}
+
+.soti-refresh-btn:hover {
+    color: #0284C7;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.soti-table-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.soti-columns-select {
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11.5px;
+    background: #FFFFFF;
+    color: #334155;
+    cursor: pointer;
+}
+
+.soti-export-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #64748B;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.soti-export-btn:hover {
+    color: #0F172A;
+}
+
+/* SOTI Fleet Table */
+.soti-fleet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.soti-fleet-table thead th {
+    background: #F8FAFC;
+    color: #475569;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 9px 12px;
+    text-align: left;
+    border-bottom: 1px solid #E2E8F0;
+    white-space: nowrap;
+}
+
+.soti-fleet-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #F1F5F9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.soti-fleet-table tbody tr:hover {
+    background: #F8FAFC;
+}
+
+.soti-row-actions-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #64748B;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.soti-row-actions-btn:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+/* ==========================================================================
+   SMARTPHONE DEVICE GLYPH (Blue Screen Online / Black Screen Offline)
+   ========================================================================== */
+.soti-device-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.soti-device-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.soti-device-body {
+    width: 19px;
+    height: 31px;
+    background: #252B33;
+    border: 1.5px solid #14181E;
+    border-radius: 4px;
+    position: relative;
+    padding: 2.5px 1.5px 1.5px 1.5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.soti-device-speaker {
+    width: 5px;
+    height: 1.5px;
+    background: #64748B;
+    border-radius: 1px;
+    margin-bottom: 1.5px;
+}
+
+.soti-device-screen {
+    width: 14px;
+    height: 22px;
+    border-radius: 1.5px;
+    transition: all 0.2s ease;
+}
+
+/* BLUE SCREEN WHEN ONLINE */
+.soti-device-screen.screen-blue {
+    background: #0284C7;
+    background: linear-gradient(180deg, #0284C7 0%, #0369A1 100%);
+    box-shadow: 0 0 6px rgba(2, 132, 199, 0.85);
+}
+
+/* BLACK SCREEN WHEN OFFLINE */
+.soti-device-screen.screen-black {
+    background: #0A0D12;
+    border: 1px solid #1F2937;
+}
+
+.soti-device-name-link {
+    color: #0078D4;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12.5px;
+}
+
+.soti-device-name-link:hover {
+    text-decoration: underline;
+    color: #005A9E;
+}
+
+.soti-os-icon {
+    font-size: 13px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* SOTI Progress Bars (Battery & Memory) */
+.soti-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 140px;
+}
+
+.soti-progress-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.soti-progress-bar-fill {
+    height: 100%;
+    background: #00828A;
+    border-radius: 3px;
+}
+
+.soti-progress-text {
+    font-size: 11px;
+    color: #475569;
+    min-width: 32px;
+}
+
+/* SOTI Module Navigation Off-Canvas Drawer */
+.soti-nav-drawer {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    width: 270px;
+    height: calc(100vh - 48px);
+    background: #003B71;
+    z-index: 1050;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 16px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0;
+}
+
+.soti-nav-drawer.open {
+    transform: translateX(0);
+}
+
+.soti-nav-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: #E2E8F0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
+.soti-nav-drawer-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+}
+
+.soti-nav-drawer-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+    border-left-color: #00A3AF;
+    font-weight: 700;
+}
+
+.soti-drawer-backdrop {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1040;
+    display: none;
+}
+
+.soti-drawer-backdrop.open {
+    display: block;
+}

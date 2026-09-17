@@ -105,12 +105,22 @@ class PolicyManagerHelper(private val context: Context) {
                 AppLogger.w("PolicyManager", "Failed setting setLocationEnabled: ${e.message}")
             }
 
-            // 6. Ensure Google Maps and Play Services are unhidden and enabled as system apps
+            // 6. Ensure Google Maps, Play Services, and Hardware Scanner engines are enabled as system apps
             try {
-                dpm.enableSystemApp(adminComponent, "com.google.android.apps.maps")
-                dpm.setApplicationHidden(adminComponent, "com.google.android.apps.maps", false)
-                dpm.enableSystemApp(adminComponent, "com.google.android.gms")
-                dpm.setApplicationHidden(adminComponent, "com.google.android.gms", false)
+                val essentialSystemPkgs = listOf(
+                    "com.google.android.apps.maps",
+                    "com.google.android.gms",
+                    "com.honeywell.decode",
+                    "com.intermec.datacollectionservice",
+                    "com.honeywell.tools.cameratool",
+                    "com.symbol.datawedge"
+                )
+                for (pkg in essentialSystemPkgs) {
+                    try {
+                        dpm.enableSystemApp(adminComponent, pkg)
+                        dpm.setApplicationHidden(adminComponent, pkg, false)
+                    } catch (_: Exception) {}
+                }
             } catch (_: Exception) {}
 
             // 7. Automatically set Nexus as Persistent Default Home Launcher (No system chooser dialog!)

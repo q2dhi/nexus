@@ -101,176 +101,247 @@
         </div>
     </div>
 
-    <div class="app-container app-shell" id="mainAppContainer">
-        <!-- SLEEK WHITE ENTERPRISE SIDEBAR -->
-        <aside class="app-sidebar" id="appSidebar">
-            <div class="sidebar-top-section">
-                <!-- Brand Header -->
-                <div class="sidebar-brand">
-                    <span class="sidebar-brand-text" dir="ltr">Nexus<span class="sidebar-brand-dot">.</span></span>
-                    <span class="brand-badge sidebar-brand-badge" id="appBrandBadge">ENTERPRISE</span>
+    <div class="soti-app-wrapper" id="mainAppContainer">
+        <!-- ==================== SOTI MOBICONTROL TOP BAR ==================== -->
+        <header class="soti-top-bar">
+            <div class="soti-top-left">
+                <button type="button" class="soti-menu-toggle" onclick="toggleSotiDrawer()" title="Navigation Modules Menu">
+                    <span>☰</span>
+                </button>
+                <div class="soti-brand-title">
+                    <span>SOTI MOBICONTROL</span>
+                    <span class="soti-divider">|</span>
+                    <span class="soti-module-name" id="sotiCurrentModuleName">Devices</span>
                 </div>
+            </div>
+            <div class="soti-top-right">
+                <button type="button" class="soti-alert-bell" title="System Alerts" onclick="showToast('No new critical system alerts.', 'info')">
+                    <span>🔔</span>
+                    <span class="soti-badge-counter">1</span>
+                </button>
+                <div class="soti-user-profile" onclick="toggleSotiUserMenu()">
+                    <div class="soti-user-avatar" id="sotiUserAvatar">SS</div>
+                    <span class="soti-user-name" id="sotiUserName">Scott S</span>
+                    <span style="font-size:10px; color:#FFFFFF; margin-left:4px;">▾</span>
+                </div>
+                <button id="btnLangToggle" class="btn-lang-toggle" onclick="toggleLanguage()" title="Language / اللغة" style="background:rgba(255,255,255,0.15); color:#fff; border:none; border-radius:4px; padding:4px 9px; font-size:11px; cursor:pointer; font-weight:600;">
+                    <span id="langLabel">English</span>
+                </button>
+                <button id="btnCompanyLogout" class="btn-company-logout" onclick="handleCompanyLogout()" title="تسجيل الخروج" style="background:rgba(255,255,255,0.15); color:#fff; border:none; border-radius:4px; padding:4px 9px; font-size:11px; cursor:pointer; font-weight:600;">
+                    <span id="logoutBtnLabel">خروج</span>
+                </button>
+            </div>
+        </header>
 
-                <!-- Navigation Menu Items -->
-                <nav class="sidebar-nav">
-                    <button class="nav-tab active" data-tab="devices" onclick="showTab('devices', this)">
-                        <span class="nav-tab-label">الأجهزة المدارة</span>
-                        <span class="sidebar-tab-badge" id="sidebarBadgeDevices">0</span>
-                    </button>
-                    <button class="nav-tab" data-tab="whitelist" onclick="showTab('whitelist', this)">
-                        <span class="nav-tab-label">تطبيقات الكشك</span>
-                    </button>
-                    <button class="nav-tab" data-tab="qr" onclick="showTab('qr', this)">
-                        <span class="nav-tab-label">تجهيز الـ QR السريع</span>
-                    </button>
-                    <button class="nav-tab" data-tab="ota" onclick="showTab('ota', this)">
-                        <span class="nav-tab-label">توزيع التطبيقات OTA</span>
-                    </button>
-                    <button class="nav-tab" id="tabNavBranches" data-tab="branches" onclick="showTab('branches', this)">
-                        <span class="nav-tab-label">إدارة الفروع</span>
-                    </button>
-                </nav>
+        <!-- ==================== SOTI SUB-TOOLBAR ==================== -->
+        <div class="soti-subnav-toolbar">
+            <div class="soti-subnav-left">
+                <button type="button" class="soti-icon-btn-square" title="Settings" onclick="openDeviceGroupSettings()">
+                    <span>⚙</span>
+                </button>
+                <div class="soti-filter-chip-blue" id="sotiActiveFilterPill" onclick="resetDeviceGroupFilter()">
+                    <span>🖥️ <span id="sotiActiveGroupName">All Devices</span></span>
+                    <span class="chip-close">✕</span>
+                </div>
+                <input type="text" id="sotiDeviceSearchInput" class="soti-device-search-input" placeholder="+ Search for Devices" oninput="handleSotiDeviceSearch(this.value)" autocomplete="off">
+            </div>
+            <div class="soti-subnav-right">
+                <button type="button" class="soti-btn-teal-search" onclick="focusDeviceSearch()" title="Search">
+                    <span>🔍</span>
+                </button>
+                <button type="button" class="soti-btn-teal-charts active" id="btnToggleCharts" onclick="toggleSotiCharts()">
+                    <span>📊 CHARTS</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== SOTI NAVIGATION DRAWER ==================== -->
+        <div id="sotiDrawerBackdrop" class="soti-drawer-backdrop" onclick="toggleSotiDrawer(false)"></div>
+        <aside id="sotiNavDrawer" class="soti-nav-drawer">
+            <div style="padding: 0 20px 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 8px;">
+                <div style="font-size: 11px; font-weight: 700; color: #93C5FD; text-transform: uppercase; letter-spacing: 0.5px;">Navigation Modules</div>
+                <div style="font-size: 14px; font-weight: 700; color: #FFFFFF;" id="drawerTenantTitle">SOTI Enterprise</div>
+            </div>
+            <div class="soti-nav-drawer-item active nav-tab" data-tab="devices" onclick="showTab('devices', this); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">📱</span>
+                <span>Devices (إدارة الأجهزة)</span>
+            </div>
+            <div class="soti-nav-drawer-item nav-tab" data-tab="whitelist" onclick="showTab('whitelist', this); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">🔒</span>
+                <span>Kiosk & Apps Whitelist (تطبيقات الكشك)</span>
+            </div>
+            <div class="soti-nav-drawer-item nav-tab" data-tab="qr" onclick="showTab('qr', this); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">🖨️</span>
+                <span>Zero-Touch QR Provisioning (التجهيز الميداني)</span>
+            </div>
+            <div class="soti-nav-drawer-item nav-tab" data-tab="ota" onclick="showTab('ota', this); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">📦</span>
+                <span>OTA Updates (توزيع التطبيقات الهوائية)</span>
+            </div>
+            <div class="soti-nav-drawer-item nav-tab" id="tabNavBranches" data-tab="branches" onclick="showTab('branches', this); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">🏢</span>
+                <span>Branches & Multi-Tenant (إدارة الفروع)</span>
+            </div>
+            <div class="soti-nav-drawer-item" onclick="window.open('/developer.html', '_blank'); toggleSotiDrawer(false);">
+                <span style="font-size: 16px;">⚙️</span>
+                <span>Developer Portal (بوابة المطورين)</span>
+            </div>
+            <div style="margin-top:auto; padding:12px 20px; border-top:1px solid rgba(255,255,255,0.15);">
+                <div class="soti-nav-drawer-item" onclick="handleCompanyLogout()" style="padding:8px 0; color:#FDA4AF;">
+                    <span style="font-size: 16px;">🚪</span>
+                    <span>Sign Out (تسجيل الخروج)</span>
+                </div>
             </div>
         </aside>
 
-        <!-- MAIN LIGHT CONTENT CANVAS -->
-        <main class="main-content app-main-canvas">
-            <!-- Canvas Top Header -->
-            <header class="canvas-top-header">
-                <!-- User / Admin Profile Pill -->
-                <div class="canvas-profile-pill" title="معلومات الحساب النشط">
-                    <div class="canvas-avatar-circle">AD</div>
-                    <div class="canvas-user-details">
-                        <strong class="canvas-user-name">مسؤول النظام</strong>
-                        <span id="currentCompanyNameDisplay" class="canvas-company-name">شركة التقنية المتقدمة</span>
-                    </div>
-                    <span id="headerCompanyBadge" style="display:none;"></span>
-                </div>
+        <!-- Hidden compat elements for legacy scripts -->
+        <span id="currentCompanyNameDisplay" style="display:none;">SOTI Enterprise</span>
+        <span id="headerCompanyBadge" style="display:none;"></span>
+        <input type="hidden" id="fleetSearchInputTop">
+        <span id="sidebarBadgeDevices" style="display:none;">0</span>
+        <select id="selectFleetBranchFilter" style="display:none;"><option value="ALL">ALL</option></select>
+        <span id="fleetShowingCount" style="display:none;">0</span>
 
-                <!-- Canvas Search Pill Bar -->
-                <div class="canvas-search-box">
-                    <input type="text" id="fleetSearchInputTop" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
-                    <button type="button" id="fleetSearchClearBtnTop" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
-                        <span>×</span>
-                    </button>
-                </div>
-
-                <!-- Canvas Header Right Controls -->
-                <div class="canvas-header-actions">
-                    <span class="live-pulse-badge" title="مزامنة حية">
-                        <span class="pulse-indicator"></span>
-                        <span id="autoSyncBadge">مزامنة حية 3ث</span>
-                    </span>
-
-                    <div class="canvas-date-badge">
-                        <span class="canvas-date-text">16 سبتمبر 2026</span>
-                        <span class="canvas-period-pill">اليوم</span>
-                    </div>
-
-                    <div class="header-metrics" style="display:none;">
-                        <span id="metricOnline">0 أجهزة متصلة</span>
-                        <span id="metricKiosk">0 في وضع الكشك</span>
-                    </div>
-
-                    <button id="btnLangToggle" class="btn-lang-toggle" onclick="toggleLanguage()" title="تبديل اللغة / Switch Language">
-                        <span id="langLabel">English</span>
-                    </button>
-                    <button id="btnCompanyLogout" class="btn-company-logout" onclick="handleCompanyLogout()" title="تسجيل الخروج">
-                        <span id="logoutBtnLabel">تسجيل الخروج</span>
-                    </button>
-                </div>
-            </header>
-
-            <section id="tab-devices" class="tab-pane active">
-                <!-- Fleet Header Title Row -->
-                <div class="canvas-title-row">
-                    <div>
-                        <h1 id="fleetSectionTitle" class="canvas-page-title">نظرة عامة على الأسطول</h1>
-                        <p class="canvas-page-subtitle" id="fleetSectionDesc">إدارة ومراقبة جميع أجهزة الأسطول والسياسات المركزية في الوقت الفعلي</p>
-                    </div>
-                    <div class="canvas-action-tools">
-                        <div class="branch-filter-container">
-                            <label for="selectFleetBranchFilter">الفرع:</label>
-                            <select id="selectFleetBranchFilter" class="form-input" onchange="onFleetBranchFilterChange()">
-                                <option value="ALL">جميع الأجهزة (كافة الفروع)</option>
-                            </select>
+        <!-- MAIN SOTI WORKSPACE & TAB PANES -->
+        <main style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+            <!-- TAB 1: SOTI MOBICONTROL DEVICES (ACTIVE FLEET VIEW) -->
+            <section id="tab-devices" class="tab-pane active" style="padding:0; margin:0; flex:1; display:flex;">
+                <div class="soti-main-body" style="width:100%;">
+                    <!-- Left Column: DEVICE GROUPS Sidebar -->
+                    <aside class="soti-groups-sidebar">
+                        <div class="soti-groups-header">
+                            <span>DEVICE GROUPS</span>
+                            <span class="soti-help-icon" title="Device groups and hierarchy" style="cursor:pointer; color:#94A3B8; font-size:13px;" onclick="showToast('Hierarchical Device Groups and Branch Organization', 'info')">❓</span>
                         </div>
-                        <button class="btn btn-secondary btn-sm" id="btnSyncTimeFleet" onclick="syncFleetTime()" title="مزامنة الوقت والتاريخ تلقائياً لجميع أجهزة الأسطول">
-                            <span id="btnSyncTimeLabel">مزامنة الوقت</span>
-                        </button>
-                        <button class="btn btn-secondary btn-sm" id="btnRefreshFleet" onclick="fetchDevices()" title="تحديث القائمة">
-                            <span>تحديث الأسطول</span>
-                        </button>
+                        <div class="soti-group-search-box">
+                            <input type="text" id="sotiGroupSearch" class="soti-group-search-input" placeholder="Search for Device Group" oninput="filterDeviceGroups(this.value)">
+                        </div>
+                        <div class="soti-groups-tree" id="sotiGroupsTree">
+                            <div class="soti-group-item active" id="sotiGroupAll" onclick="selectDeviceGroup('ALL')">
+                                <div class="soti-group-item-label">
+                                    <span>🖥️</span>
+                                    <span>View All Devices</span>
+                                </div>
+                                <span style="color:#64748B; font-size:14px;">⋮</span>
+                            </div>
+                            <!-- Dynamic Branch / Company Hierarchy -->
+                            <div id="sotiDynamicGroupsList"></div>
+                        </div>
+                        <div class="soti-sidebar-footer">
+                            <button type="button" class="soti-btn-new-group" onclick="openAddBranchModal()">
+                                <span class="plus-circle">+</span>
+                                <span>NEW GROUP</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <!-- Right Column: SOTI Main Workspace -->
+                    <div class="soti-workspace">
+                        <!-- TOP 3 CHARTS CARDS (Toggleable via CHARTS button) -->
+                        <div class="soti-charts-grid" id="sotiChartsRow">
+                            <!-- Card 1: AGENT CHECK-IN TIME -->
+                            <div class="soti-chart-card">
+                                <div class="soti-chart-header">
+                                    <span class="soti-chart-title">AGENT CHECK-IN TIME</span>
+                                    <span class="soti-chart-gear" title="Configure Chart">⚙</span>
+                                </div>
+                                <div class="soti-chart-content" id="sotiChartCheckin">
+                                    <!-- Populated dynamically with SVG Bar Chart -->
+                                </div>
+                            </div>
+
+                            <!-- Card 2: MANUFACTURER MODEL -->
+                            <div class="soti-chart-card">
+                                <div class="soti-chart-header">
+                                    <span class="soti-chart-title">MANUFACTURER MODEL</span>
+                                    <span class="soti-chart-gear" title="Configure Chart">⚙</span>
+                                </div>
+                                <div class="soti-chart-content" id="sotiChartManufacturer">
+                                    <!-- Populated dynamically with SVG Donut Chart -->
+                                </div>
+                            </div>
+
+                            <!-- Card 3: DEVICE FAMILY OS VERSION -->
+                            <div class="soti-chart-card">
+                                <div class="soti-chart-header">
+                                    <span class="soti-chart-title">DEVICE FAMILY OS VERSION</span>
+                                    <span class="soti-chart-gear" title="Configure Chart">⚙</span>
+                                </div>
+                                <div class="soti-chart-content" id="sotiChartOs">
+                                    <!-- Populated dynamically with SVG Bar Chart -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SOTI Table Section -->
+                        <div class="soti-table-card">
+                            <div class="soti-table-top-bar">
+                                <div class="soti-table-top-left">
+                                    <span class="soti-devices-count-text">
+                                        DEVICES (<span id="sotiShowingRange">1 - 50</span> of <span id="sotiTotalCount">0</span>)
+                                    </span>
+                                    <select id="sotiPerPageSelect" class="soti-columns-select" onchange="changeSotiPerPage(this.value)">
+                                        <option value="25">25 Per Page</option>
+                                        <option value="50" selected>50 Per Page</option>
+                                        <option value="100">100 Per Page</option>
+                                    </select>
+                                    <div class="soti-pagination-wrap">
+                                        <button type="button" class="soti-page-btn" onclick="prevSotiPage()" title="Previous Page">←</button>
+                                        <span style="font-size:11.5px; color:#475569;" id="sotiPageIndicator">1 of 1</span>
+                                        <button type="button" class="soti-page-btn" onclick="nextSotiPage()" title="Next Page">→</button>
+                                    </div>
+                                    <button type="button" class="soti-refresh-btn" onclick="fetchDevices()" title="Refresh Devices">
+                                        <span>⟳</span>
+                                    </button>
+                                </div>
+                                <div class="soti-table-top-right">
+                                    <select class="soti-columns-select" id="sotiColumnsView">
+                                        <option value="default">Columns View: Default</option>
+                                        <option value="hardware">Hardware Vitals</option>
+                                        <option value="network">Network & Location</option>
+                                    </select>
+                                    <button type="button" class="soti-export-btn" onclick="exportFleetCsv()" title="Export Devices List">
+                                        <span>⎘</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style="overflow-x:auto;">
+                                <table class="soti-fleet-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 32px; text-align: center;">
+                                                <input type="checkbox" id="selectAllDevicesCheckbox" onchange="toggleSelectAllDevices(this.checked)" title="Select All">
+                                            </th>
+                                            <th style="width: 24px; text-align: center;"></th>
+                                            <th style="width: 24px; text-align: center;"></th>
+                                            <th>DEVICE NAME</th>
+                                            <th>MANUFACTURER</th>
+                                            <th>MODEL</th>
+                                            <th>OS VERSION</th>
+                                            <th>BATTERY PERCENTAGE</th>
+                                            <th>AVAILABLE MEMORY</th>
+                                            <th>PHONE NUMBER</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deviceTableBody">
+                                        <tr>
+                                            <td colspan="10" style="text-align:center; padding:40px; color:#64748B;">جاري فحص اتصال الأجهزة...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-
-
-                <!-- FLEET SEARCH & LIVE FILTERS TOOLBAR -->
-                <div class="fleet-toolbar-container">
-                    <div class="fleet-search-box">
-                        
-                        <input type="text" id="fleetSearchInput" placeholder="بحث سريع بالاسم، المعرّف، الموديل، أو الفرع..." oninput="handleFleetSearch(this.value)" autocomplete="off">
-                        <button type="button" id="fleetSearchClearBtn" class="search-clear-btn" onclick="clearFleetSearch()" title="مسح البحث" style="display:none;">
-                            
-                        </button>
-                    </div>
-                    
-                    <div class="fleet-filters-pills" id="fleetFilterPills">
-                        <button type="button" class="filter-pill active" data-filter="all" onclick="setFleetFilter('all')">
-                            <span id="pillAllText">الكل</span>
-                            <span class="pill-count" id="countPillAll">0</span>
-                        </button>
-                        <button type="button" class="filter-pill" data-filter="online" onclick="setFleetFilter('online')">
-                            <span class="status-indicator online"></span>
-                            <span id="pillOnlineText">متصل</span>
-                            <span class="pill-count" id="countPillOnline">0</span>
-                        </button>
-                        <button type="button" class="filter-pill" data-filter="offline" onclick="setFleetFilter('offline')">
-                            <span class="status-indicator offline"></span>
-                            <span id="pillOfflineText">غير متصل</span>
-                            <span class="pill-count" id="countPillOffline">0</span>
-                        </button>
-                        <button type="button" class="filter-pill" data-filter="kiosk" onclick="setFleetFilter('kiosk')">
-                            
-                            <span id="pillKioskText">مقيد</span>
-                            <span class="pill-count" id="countPillKiosk">0</span>
-                        </button>
-                        <button type="button" class="filter-pill" data-filter="low_battery" onclick="setFleetFilter('low_battery')">
-                            
-                            <span id="pillBatteryText">بطارية منخفضة</span>
-                            <span class="pill-count" id="countPillBattery">0</span>
-                        </button>
-                    </div>
-
-                    <div class="fleet-toolbar-stats">
-                        <span class="fleet-showing-label" id="fleetShowingCount">عرض 0 جهاز</span>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <table class="fleet-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 36px; text-align: center;">
-                                    <input type="checkbox" id="selectAllDevicesCheckbox" class="fleet-checkbox" onchange="toggleSelectAllDevices(this.checked)" title="تحديد جميع الأجهزة المعروضة">
-                                </th>
-                                <th id="thColDevice">اسم الجهاز</th>
-                                <th id="thColModel">الموديل</th>
-                                <th id="thColBattery">البطارية</th>
-                                <th id="thColVitals">الذاكرة والتخزين</th>
-                                <th id="thColIp">عنوان IP</th>
-                                <th id="thColKiosk">وضع الكشك</th>
-                                <th id="thColStatus">حالة الاتصال</th>
-                                <th id="thColActions">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="deviceTableBody">
-                            <tr>
-                                <td colspan="9" class="empty-state">جاري فحص اتصال الأجهزة...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Hidden filter pills for JS compatibility -->
+                <div style="display:none;" id="fleetFilterPills">
+                    <button data-filter="all" id="countPillAll">0</button>
+                    <button data-filter="online" id="countPillOnline">0</button>
+                    <button data-filter="offline" id="countPillOffline">0</button>
+                    <button data-filter="kiosk" id="countPillKiosk">0</button>
+                    <button data-filter="low_battery" id="countPillBattery">0</button>
                 </div>
 
                 <!-- FLOATING BULK ACTIONS DOCK -->
@@ -282,31 +353,25 @@
                         </div>
                         <div class="bulk-dock-actions">
                             <button type="button" class="bulk-btn bulk-btn-lock" onclick="executeBulkCommand('LOCK_NOW', 'قفل فوري')">
-                                
                                 <span>قفل فوري</span>
                             </button>
                             <button type="button" class="bulk-btn bulk-btn-kiosk" onclick="executeBulkCommand('SET_KIOSK_MODE', 'فرض وضع الكشك', { enabled: true })">
-                                
                                 <span>فرض الكشك</span>
                             </button>
                             <button type="button" class="bulk-btn bulk-btn-unkiosk" onclick="executeBulkCommand('SET_KIOSK_MODE', 'إنهاء وضع الكشك', { enabled: false })">
-                                
                                 <span>إنهاء الكشك</span>
                             </button>
                             <button type="button" class="bulk-btn bulk-btn-reboot" onclick="executeBulkCommand('REBOOT', 'إعادة التشغيل')">
-                                
                                 <span>إعادة التشغيل</span>
                             </button>
                             <button type="button" class="bulk-btn bulk-btn-delete" onclick="executeBulkDelete()" title="حذف الأجهزة المحددة من الأسطول">
-                                
                                 <span>حذف الأجهزة</span>
                             </button>
                             <button type="button" class="bulk-btn-close" onclick="deselectAllDevices()" title="إلغاء التحديد">
-                                
+                                <span>×</span>
                             </button>
                         </div>
                     </div>
-                </div>
             </section>
 
             <!-- TAB 2: KIOSK APP WHITELIST -->
@@ -562,6 +627,16 @@
                                 value="186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8">
                         </div>
 
+                        <div class="form-group" style="margin-bottom: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 12px; border-radius: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 700; color: #0F172A; margin: 0;">
+                                <input type="checkbox" id="qrCleanDeviceMode" onchange="generateQrCode()" checked style="width: 17px; height: 17px; accent-color: #2563EB;">
+                                <span>وضع الجهاز النظيف (Clean Device)</span>
+                            </label>
+                            <small style="color: #64748B; font-size: 11px; display: block; margin-top: 4px; margin-right: 25px;">
+                                تعطيل كافة تطبيقات غوغل والنظام الترفيهية الزائدة (يوتيوب، المتجر، إلخ) وحصر الجهاز على تطبيقات العمل المصرح بها فقط.
+                            </small>
+                        </div>
+
                         <div style="display: flex; gap: 12px;">
                             <div class="form-group" style="flex: 1;">
                                 <label for="qrWifiSsid">Wi-Fi SSID <small style="color:#94A3B8;">Optional</small></label>
@@ -573,8 +648,9 @@
                             </div>
                         </div>
 
-                        <div style="display: flex; gap: 10px; margin-top: 12px;">
+                        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
                             <button class="btn btn-primary" onclick="generateQrCode()">توليد رمز QR</button>
+                            <button class="btn btn-secondary" onclick="printMainTabQrSheet()">🖨️ طباعة ورقة التجهيز A4</button>
                             <button class="btn btn-secondary" onclick="copyQrJson()">نسخ كود JSON</button>
                         </div>
                     </div>
@@ -878,6 +954,98 @@
                     <strong>صلاحية الإدارة العامة:</strong> يمكنك بث شاشة أي جهاز في الفرع والتحكم باللمس عن بُعد، قفله، أو تبديل وضع الكشك مباشرة.
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="closeBranchDevicesModal()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BRANCH QR CODE & PRINT STAGING SHEET MODAL -->
+    <div id="modalBranchQr" class="modal" style="display:none;">
+        <div class="modal-card" style="max-width:760px; width:95%; max-height:92vh; overflow-y:auto;">
+            <div class="modal-header-flex" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:22px;">🖨️</span>
+                        <h3 style="margin:0; font-size:18px; font-weight:700; color:#0F172A;" id="branchQrModalTitle">باركود التجهيز الميداني للفرع</h3>
+                    </div>
+                    <p style="margin:4px 0 0 0; font-size:12.5px; color:#64748B;">ورقة إعداد وتشغيل أجهزة الفرع (Android Enterprise Staging Sheet) جاهزة للطباعة المباشرة.</p>
+                </div>
+                <button class="btn-close" onclick="closeBranchQrModal()">&times;</button>
+            </div>
+
+            <!-- Configuration Options for this branch QR -->
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                    <div>
+                        <strong style="color:#0F172A; font-size:14px;" id="branchQrModalBranchName">-</strong>
+                        <span id="branchQrModalBranchCode" style="margin-right:6px; background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; font-family:monospace; font-size:12px; padding:2px 6px; border-radius:4px; font-weight:700;">-</span>
+                    </div>
+                    <span id="branchQrModalCompanyCode" style="color:#64748B; font-size:12px; font-family:monospace;">-</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+                    <div>
+                        <label style="font-size:11.5px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">شبكة الواي فاي للفرع (اختياري)</label>
+                        <input type="text" id="branchModalWifiSsid" class="form-input" style="font-size:12.5px; padding:6px 10px;" placeholder="اسم الشبكة Wi-Fi SSID" oninput="updateBranchModalQr()">
+                    </div>
+                    <div>
+                        <label style="font-size:11.5px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">كلمة مرور الواي فاي (اختياري)</label>
+                        <input type="password" id="branchModalWifiPassword" class="form-input" style="font-size:12.5px; padding:6px 10px;" placeholder="كلمة المرور" oninput="updateBranchModalQr()">
+                    </div>
+                </div>
+
+                <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="branchModalCleanMode" checked onchange="updateBranchModalQr()" style="width:16px; height:16px; accent-color:#2563EB;">
+                    <label for="branchModalCleanMode" style="font-size:12.5px; font-weight:600; color:#0F172A; margin:0; cursor:pointer;">
+                        وضع الجهاز النظيف (تعطيل كافة تطبيقات غوغل والنظام الترفيهية الزائدة وحصر الجهاز على Nexus MDM)
+                    </label>
+                </div>
+            </div>
+
+            <!-- THE PRINTABLE STAGING SHEET (A4 Printable Area) -->
+            <div id="branchQrPrintArea" class="branch-staging-sheet" style="background:#FFFFFF; border:2px dashed #CBD5E1; border-radius:12px; padding:24px; text-align:center;">
+                <div class="staging-sheet-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0F172A; padding-bottom:12px; margin-bottom:20px;">
+                    <div style="text-align:right;">
+                        <h2 style="margin:0; font-size:20px; font-weight:800; color:#0F172A; letter-spacing:0.5px;">NEXUS ENTERPRISE MDM</h2>
+                        <div style="font-size:12px; color:#64748B; font-weight:600;">بطاقة التجهيز الذاتي الميداني للأجهزة (Device Staging Sheet)</div>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-size:15px; font-weight:700; color:#1E40AF;" id="sheetBranchName">الفرع</div>
+                        <div style="font-size:12px; color:#475569; font-family:monospace;" id="sheetBranchCode">كود: -</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:center; align-items:center; margin:16px 0;">
+                    <div id="branchModalQrCanvas" style="background:#FFFFFF; padding:14px; border:1px solid #E2E8F0; border-radius:8px; display:inline-block; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);"></div>
+                </div>
+
+                <div style="margin-top:12px; font-size:12px; color:#64748B; font-family:monospace;" id="sheetWifiInfo">
+                    اتصال الواي فاي: يدوي من شاشة التجهيز
+                </div>
+
+                <div style="margin-top:20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:14px; text-align:right;">
+                    <div style="font-weight:700; color:#0F172A; font-size:13px; margin-bottom:8px;">إرشادات موظف الـ IT لإعداد وتشغيل الجهاز فوراً:</div>
+                    <ol style="margin:0; padding-right:20px; font-size:12px; color:#334155; line-height:1.8;">
+                        <li>شغّل الجهاز الجديد أو المفرمت (عند شاشة الترحيب <strong>Welcome / بدء الاستخدام</strong>).</li>
+                        <li>انقر <strong>6 نقرات متتالية</strong> في أي مكان فارغ على شاشة الترحيب لتشغيل قارئ باركود Android Enterprise.</li>
+                        <li>وجّه كاميرا الجهاز نحو هذا الباركود المطبوع.</li>
+                        <li>سيتصل الهاتف بالشبكة ويقوم بتنزيل تطبيق <strong>Nexus MDM</strong> ويتحول لجهاز عمل تابع لـ <strong><span id="sheetInstructionsBranchName">هذا الفرع</span></strong> بصمت ودون لمس أي لابتوب!</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:20px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary" onclick="printBranchQrSheet()" style="display:inline-flex; align-items:center; gap:6px;">
+                        <span>🖨️ طباعة ورقة الفرع A4</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="downloadBranchQrImage()" style="display:inline-flex; align-items:center; gap:6px;">
+                        <span>📥 تحميل كصورة PNG</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="copyBranchQrJson()" style="display:inline-flex; align-items:center; gap:6px;">
+                        <span>📋 نسخ JSON</span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="closeBranchQrModal()">إغلاق</button>
             </div>
         </div>
     </div>
