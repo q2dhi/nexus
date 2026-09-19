@@ -7,6 +7,10 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import com.nexus.mdm.agent.util.AppLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Nexus MDM Agent Application entrypoint.
@@ -33,7 +37,7 @@ class NexusApp : Application() {
         setupNotificationChannels()
         setupUncaughtExceptionHandler()
 
-        // Track resumed activity for instantaneous PixelCopy / DecorView fallback in screen streaming
+        // Track resumed activity for screen streaming
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: android.app.Activity) {
                 currentResumedActivity = activity
@@ -50,31 +54,33 @@ class NexusApp : Application() {
             override fun onActivityDestroyed(activity: android.app.Activity) {}
         })
 
-        // Auto-grant all enterprise and runtime permissions — ONLY if Device Owner is active.
-        // Before provisioning completes, the app is not yet Device Owner, so DPM calls
-        // like setPermissionPolicy() throw SecurityException on many OEM devices.
-        try {
-            val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(this)
-            if (policyHelper.isDeviceOwner()) {
-                policyHelper.grantAllEnterprisePermissions(this)
-                // Start location tracking only after Device Owner is confirmed and permissions are granted
-                try {
-                    com.nexus.mdm.agent.location.LocationTracker.getInstance(this).startTracking()
-                } catch (locEx: Exception) {
-                    AppLogger.w("NexusApp", "LocationTracker deferred start warning: ${locEx.message}")
+        // CRITICAL FIX: Run heavy enterprise setup & shell execution on background thread.
+        // Calling grantAllEnterprisePermissions() on the Main Thread causes an immediate ANR
+        // due to synchronous Runtime.exec().waitFor() calls (sh and su commands).
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+            try {
+                val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(this@NexusApp)
+                if (policyHelper.isDeviceOwner()) {
+                    AppLogger.i("NexusApp", "Device Owner detected — granting permissions in background...")
+                    policyHelper.grantAllEnterprisePermissions(this@NexusApp)
+                    
+                    try {
+                        com.nexus.mdm.agent.location.LocationTracker.getInstance(this@NexusApp).startTracking()
+                    } catch (locEx: Exception) {
+                        AppLogger.w("NexusApp", "LocationTracker deferred start warning: ${locEx.message}")
+                    }
+                } else {
+                    AppLogger.i("NexusApp", "Device Owner not yet active — deferring setup")
                 }
-            } else {
-                AppLogger.i("NexusApp", "Device Owner not yet active — deferring permission grants and location tracking")
+            } catch (e: Exception) {
+                AppLogger.w("NexusApp", "Background setup error: ${e.message}")
             }
-        } catch (e: Exception) {
-            AppLogger.w("NexusApp", "Initial setup warning: ${e.message}")
         }
     }
 
     private fun setupNotificationChannels() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Persistent Service Channel (Low priority to minimize user distraction on dedicated devices)
         val serviceChannel = NotificationChannel(
             CHANNEL_ID_PERSISTENT,
             getString(R.string.notification_channel_name),
@@ -84,7 +90,6 @@ class NexusApp : Application() {
             setShowBadge(false)
         }
 
-        // Security Alerts Channel (High priority for critical policy violations)
         val alertChannel = NotificationChannel(
             CHANNEL_ID_ALERTS,
             "Nexus Policy Alerts",
