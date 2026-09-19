@@ -1465,7 +1465,11 @@ class MainActivity : AppCompatActivity() {
         try {
             isLaunchingWhitelistedApp = true
             if (policyHelper.isDeviceOwner()) {
-                policyHelper.ensureAccessibilityServiceActive(this)
+                if (policyHelper.ensureAccessibilityServiceActive(this)) {
+                    Toast.makeText(this, "تم تفعيل خدمة التحكم عن بعد تلقائياً بنجاح! ✅", Toast.LENGTH_SHORT).show()
+                    refreshBadges()
+                    return
+                }
                 val current = policyHelper.dpm.getLockTaskPackages(policyHelper.adminComponent).toMutableSet()
                 if (!current.contains("com.android.settings")) {
                     current.add("com.android.settings")
@@ -1476,11 +1480,17 @@ class MainActivity : AppCompatActivity() {
             if (am?.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE) {
                 try { stopLockTask() } catch (_: Exception) {}
             }
+            val serviceComponent = "${packageName}/${com.nexus.mdm.agent.remote.NexusAccessibilityService::class.java.name}"
             val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra(":settings:fragment_args_key", serviceComponent)
+                val bundle = android.os.Bundle().apply {
+                    putString(":settings:fragment_args_key", serviceComponent)
+                }
+                putExtra(":settings:show_fragment_args", bundle)
             }
             startActivity(intent)
-            Toast.makeText(this, "يرجى اختيار Nexus MDM وتفعيل الخدمة للتحكم عن بعد وبث الشاشة.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "يرجى تفعيل JIB MobiControl Remote Control للتحكم عن بعد وبث الشاشة.", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -1715,6 +1725,48 @@ class MainActivity : AppCompatActivity() {
                 com.nexus.mdm.agent.util.AppLogger.i("MainActivity", "Direct in-app tap injected at ($pxX, $pxY)")
             } catch (e: Exception) {
                 com.nexus.mdm.agent.util.AppLogger.w("MainActivity", "Error injecting in-app tap: ${e.message}")
+            }
+        }
+    }
+
+    fun dispatchWindowSwipe(startXRatio: Float, startYRatio: Float, endXRatio: Float, endYRatio: Float, durationMs: Long = 250L) {
+        runOnUiThread {
+            try {
+                val decor = window?.decorView ?: return@runOnUiThread
+                val w = decor.width.toFloat()
+                val h = decor.height.toFloat()
+                if (w <= 0f || h <= 0f) return@runOnUiThread
+
+                val startX = (startXRatio * w).coerceIn(0f, w)
+                val startY = (startYRatio * h).coerceIn(0f, h)
+                val endX = (endXRatio * w).coerceIn(0f, w)
+                val endY = (endYRatio * h).coerceIn(0f, h)
+
+                val now = android.os.SystemClock.uptimeMillis()
+                val down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, startX, startY, 0)
+                decor.dispatchTouchEvent(down)
+                down.recycle()
+
+                val steps = 10
+                val stepTime = (durationMs / steps).coerceAtLeast(10L)
+                for (i in 1..steps) {
+                    val progress = i.toFloat() / steps
+                    val currentX = startX + (endX - startX) * progress
+                    val currentY = startY + (endY - startY) * progress
+                    val moveTime = now + (i * stepTime)
+                    val move = MotionEvent.obtain(now, moveTime, MotionEvent.ACTION_MOVE, currentX, currentY, 0)
+                    decor.dispatchTouchEvent(move)
+                    move.recycle()
+                }
+
+                val upTime = now + durationMs
+                val up = MotionEvent.obtain(now, upTime, MotionEvent.ACTION_UP, endX, endY, 0)
+                decor.dispatchTouchEvent(up)
+                up.recycle()
+
+                AppLogger.i("MainActivity", "Direct in-app swipe injected: ($startX, $startY) -> ($endX, $endY)")
+            } catch (e: Exception) {
+                AppLogger.w("MainActivity", "Error injecting in-app swipe: ${e.message}")
             }
         }
     }

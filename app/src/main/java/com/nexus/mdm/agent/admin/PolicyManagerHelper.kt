@@ -256,40 +256,93 @@ class PolicyManagerHelper(private val context: Context) {
 
     /**
      * Automatically permits and prepares NexusAccessibilityService via Device Owner privileges.
-     * Ensures system-wide remote touch, navigation, and screen streaming across all third-party apps.
+     * Tries multiple privileged vectors: DPM permission grant, Settings.Secure write,
+     * shell execution, and Honeywell OEMConfig / Enterprise Provisioner integration.
      */
     fun ensureAccessibilityServiceActive(context: Context): Boolean {
         if (!isDeviceOwner()) return false
         return try {
-            // Unrestrict accessibility services so Nexus can be toggled by user or system
-            dpm.setPermittedAccessibilityServices(adminComponent, null)
+            // 1. Unrestrict permitted accessibility services under DPM
+            try {
+                dpm.setPermittedAccessibilityServices(adminComponent, null)
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting permitted accessibility services: ${e.message}")
+            }
 
-            // If WRITE_SECURE_SETTINGS is present (e.g., granted via ADB or system image), auto-activate directly
-            val expectedService = "${context.packageName}/${com.nexus.mdm.agent.remote.NexusAccessibilityService::class.java.canonicalName}"
-            val currentEnabled = android.provider.Settings.Secure.getString(
-                context.contentResolver,
-                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            ) ?: ""
+            // 2. Attempt to grant WRITE_SECURE_SETTINGS via DPM (supported on enterprise / OEM firmwares)
+            try {
+                dpm.setPermissionGrantState(
+                    adminComponent,
+                    context.packageName,
+                    "android.permission.WRITE_SECURE_SETTINGS",
+                    DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+                )
+            } catch (_: Exception) {}
 
-            if (!currentEnabled.contains(expectedService)) {
+            val serviceClass = com.nexus.mdm.agent.remote.NexusAccessibilityService::class.java.name
+            val expectedService = "${context.packageName}/$serviceClass"
+
+            // 3. Direct Settings.Secure write (succeeds if WRITE_SECURE_SETTINGS is held)
+            try {
+                val current = android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+                ) ?: ""
+                val updated = if (current.isEmpty()) expectedService else if (!current.contains(expectedService)) "$current:$expectedService" else current
+                android.provider.Settings.Secure.putString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    updated
+                )
+                android.provider.Settings.Secure.putString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED,
+                    "1"
+                )
+                AppLogger.securityAudit("A11Y_POLICY", "Auto-enabled Accessibility Service via Settings.Secure: $updated")
+            } catch (se: SecurityException) {
+                AppLogger.d("PolicyManager", "Direct Settings.Secure write restricted: ${se.message}")
+            }
+
+            // 4. Shell / su invocation attempt (works on rooted, userdebug, or system shell privileged builds)
+            try {
+                val cmd = "settings put secure enabled_accessibility_services $expectedService && settings put secure accessibility_enabled 1"
+                Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd)).waitFor()
+            } catch (_: Exception) {}
+            try {
+                val cmd = "settings put secure enabled_accessibility_services $expectedService && settings put secure accessibility_enabled 1"
+                Runtime.getRuntime().exec(arrayOf("su", "-c", cmd)).waitFor()
+            } catch (_: Exception) {}
+
+            // 5. Honeywell Hardware OEM Auto-Activation
+            if (android.os.Build.MANUFACTURER.contains("Honeywell", ignoreCase = true)) {
                 try {
-                    val updated = if (currentEnabled.isEmpty()) expectedService else "$currentEnabled:$expectedService"
-                    android.provider.Settings.Secure.putString(
-                        context.contentResolver,
-                        android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-                        updated
-                    )
-                    android.provider.Settings.Secure.putString(
-                        context.contentResolver,
-                        android.provider.Settings.Secure.ACCESSIBILITY_ENABLED,
-                        "1"
-                    )
-                    AppLogger.securityAudit("A11Y_POLICY", "Auto-enabled Nexus Accessibility Service for remote control: $updated")
-                } catch (se: SecurityException) {
-                    AppLogger.i("PolicyManager", "Direct secure settings write restricted by Android OS. Service is permitted via DPM; user toggle in Settings activates it.")
+                    // Send Honeywell Enterprise settings broadcast
+                    val hIntent = Intent("com.honeywell.action.SET_ACCESSIBILITY_SERVICE").apply {
+                        putExtra("package", context.packageName)
+                        putExtra("service", serviceClass)
+                        putExtra("enable", true)
+                    }
+                    context.sendBroadcast(hIntent)
+
+                    // Honeywell OEMConfig / UEMConnect push if installed
+                    for (pkg in listOf("com.honeywell.oemconfig", "com.honeywell.uemconnect")) {
+                        try {
+                            context.packageManager.getPackageInfo(pkg, 0)
+                            val bundle = android.os.Bundle().apply {
+                                putString("AccessibilityServices", expectedService)
+                                putBoolean("AccessibilityEnabled", true)
+                            }
+                            dpm.setApplicationRestrictions(adminComponent, pkg, bundle)
+                            AppLogger.i("PolicyManager", "Pushed Honeywell OEMConfig accessibility bundle to $pkg")
+                        } catch (_: Exception) {}
+                    }
+                } catch (he: Exception) {
+                    AppLogger.w("PolicyManager", "Honeywell OEM auto-activation error: ${he.message}")
                 }
             }
-            true
+
+            com.nexus.mdm.agent.remote.NexusAccessibilityService.isServiceActive()
         } catch (e: Exception) {
             AppLogger.w("PolicyManager", "Could not configure accessibility service: ${e.message}")
             false

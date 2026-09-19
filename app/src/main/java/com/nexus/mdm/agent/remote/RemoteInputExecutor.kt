@@ -52,8 +52,20 @@ object RemoteInputExecutor {
                     } else if (accessibilityService != null) {
                         accessibilityService.performTap(xRatio, yRatio)
                     } else {
-                        // In-app Kiosk fallback
-                        MainActivity.instance?.dispatchWindowTap(xRatio, yRatio)
+                        // 1. Try shell injection via system / sh
+                        val dm = context.resources.displayMetrics
+                        val pxX = (xRatio * dm.widthPixels).toInt()
+                        val pxY = (yRatio * dm.heightPixels).toInt()
+                        var shellDone = false
+                        try {
+                            val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", "input tap $pxX $pxY"))
+                            if (proc.waitFor() == 0) shellDone = true
+                        } catch (_: Exception) {}
+
+                        // 2. In-app Kiosk fallback
+                        if (!shellDone) {
+                            MainActivity.instance?.dispatchWindowTap(xRatio, yRatio)
+                        }
                     }
                 }
 
@@ -73,7 +85,22 @@ object RemoteInputExecutor {
                             accessibilityService.performSwipe(direction)
                         }
                     } else {
-                        AppLogger.w("RemoteInput", "Swipe requested but AccessibilityService is not enabled.")
+                        // Shell fallback
+                        val dm = context.resources.displayMetrics
+                        val sX = if (startXRatio >= 0) (startXRatio * dm.widthPixels).toInt() else dm.widthPixels / 2
+                        val sY = if (startYRatio >= 0) (startYRatio * dm.heightPixels).toInt() else (dm.heightPixels * 0.8f).toInt()
+                        val eX = if (endXRatio >= 0) (endXRatio * dm.widthPixels).toInt() else dm.widthPixels / 2
+                        val eY = if (endYRatio >= 0) (endYRatio * dm.heightPixels).toInt() else (dm.heightPixels * 0.2f).toInt()
+                        var shellDone = false
+                        try {
+                            val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", "input swipe $sX $sY $eX $eY $durationMs"))
+                            if (proc.waitFor() == 0) shellDone = true
+                        } catch (_: Exception) {}
+
+                        // In-app Kiosk fallback
+                        if (!shellDone && startXRatio >= 0 && startYRatio >= 0 && endXRatio >= 0 && endYRatio >= 0) {
+                            MainActivity.instance?.dispatchWindowSwipe(startXRatio, startYRatio, endXRatio, endYRatio, durationMs)
+                        }
                     }
                 }
 
@@ -116,8 +143,30 @@ object RemoteInputExecutor {
                         else -> {
                             if (accessibilityService != null) {
                                 accessibilityService.performGlobalKey(key)
-                            } else if (key == "BACK") {
-                                MainActivity.instance?.onBackPressedDispatcher?.onBackPressed()
+                            } else {
+                                val keyCode = when (key) {
+                                    "HOME" -> 3
+                                    "BACK" -> 4
+                                    "RECENTS", "APP_SWITCH" -> 187
+                                    "ENTER" -> 66
+                                    "TAB" -> 61
+                                    "ESCAPE" -> 111
+                                    else -> 0
+                                }
+                                var shellKey = false
+                                if (keyCode > 0) {
+                                    try {
+                                        val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", "input keyevent $keyCode"))
+                                        if (proc.waitFor() == 0) shellKey = true
+                                    } catch (_: Exception) {}
+                                }
+                                if (!shellKey) {
+                                    if (key == "BACK") {
+                                        MainActivity.instance?.onBackPressedDispatcher?.onBackPressed()
+                                    } else if (key == "HOME") {
+                                        MainActivity.instance?.handleKioskStateChange(true)
+                                    }
+                                }
                             }
                         }
                     }
@@ -127,8 +176,11 @@ object RemoteInputExecutor {
                     val text = actionObj.optString("text", "")
                     if (accessibilityService != null) {
                         accessibilityService.performTextInput(text)
-                    } else {
-                        AppLogger.w("RemoteInput", "Text input requested but AccessibilityService is not enabled.")
+                    } else if (text.isNotEmpty()) {
+                        try {
+                            val escaped = text.replace("\"", "\\\"").replace(" ", "%s")
+                            Runtime.getRuntime().exec(arrayOf("sh", "-c", "input text \"$escaped\""))
+                        } catch (_: Exception) {}
                     }
                 }
 

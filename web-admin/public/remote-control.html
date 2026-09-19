@@ -648,6 +648,7 @@
         <!-- Dropdown Menu (Screenshot 5.53.21 PM) -->
         <div id="rcDropdownMenu" class="rc-dropdown-menu">
             <div class="rc-dropdown-item" onclick="handleRcAction('WAKE_UNLOCK')">Wake & Unlock Screen</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('OPEN_A11Y_SETTINGS')">⚡ تفعيل التحكم عن بعد (Accessibility)</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('SEND_SCRIPT')">Send Script</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_ON')">Turn Kiosk Mode ON</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_OFF')">Turn Kiosk Mode OFF (Exit Kiosk)</div>
@@ -655,6 +656,17 @@
             <div class="rc-dropdown-item" onclick="handleRcAction('ADMIN_MODE')">Enter Administrator Mode</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('USER_MODE')">Enter User Mode</div>
         </div>
+    </div>
+
+    <!-- Accessibility Warning & Quick-Activation Banner -->
+    <div id="rcA11yAlertBanner" style="display:none; background:#FFFBEB; border-bottom:1px solid #FDE68A; padding:8px 16px; font-size:12px; color:#92400E; align-items:center; justify-content:space-between; z-index:100;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span>⚠️</span>
+            <span><strong>خدمة التحكم عن بعد غير مفعّلة:</strong> يلزم تفعيل خدمة JIB MobiControl في إمكانية الوصول للتحكم الكامل بالشاشة في جميع التطبيقات.</span>
+        </div>
+        <button type="button" onclick="handleRcAction('OPEN_A11Y_SETTINGS')" style="background:#D97706; color:#FFF; border:none; border-radius:4px; padding:5px 14px; font-size:11px; font-weight:600; cursor:pointer;">
+            فتح صفحة التفعيل على الجهاز الآن ⚡
+        </button>
     </div>
 
     <!-- Main Workspace -->
@@ -889,10 +901,29 @@
                     if (chatEl) chatEl.innerText = currentDevice.name || currentDevice.id;
 
                     applyModelChassis(currentDevice.model);
+
+                    const a11yBanner = document.getElementById('rcA11yAlertBanner');
+                    if (a11yBanner) {
+                        a11yBanner.style.display = (currentDevice.isAccessibilityActive === false) ? 'flex' : 'none';
+                    }
                 }
             } catch (err) {
                 console.error('Failed to load device info:', err);
             }
+
+            // Periodic status check for accessibility state
+            setInterval(async () => {
+                try {
+                    const r = await fetch('/api/devices');
+                    const devs = await r.json();
+                    const d = devs.find(x => x.id === deviceId);
+                    if (d) {
+                        currentDevice = d;
+                        const b = document.getElementById('rcA11yAlertBanner');
+                        if (b) b.style.display = (d.isAccessibilityActive === false) ? 'flex' : 'none';
+                    }
+                } catch (_) {}
+            }, 6000);
 
             // Start live screen frame polling
             refreshScreenFrame();
@@ -1135,6 +1166,9 @@
                     body: JSON.stringify({ action: 'unlock' })
                 }).catch(() => {});
                 showRcToast('تم إرسال أمر فتح القفل وتنشيط الشاشة');
+            } else if (actionType === 'OPEN_A11Y_SETTINGS') {
+                await postCommand('OPEN_ACCESSIBILITY_SETTINGS', {});
+                showRcToast('تم إرسال أمر فتح صفحة التفعيل على شاشة الجهاز ⚡');
             } else if (actionType === 'SEND_SCRIPT') {
                 const script = prompt('Enter command or script to execute on device:', 'getprop ro.build.version.release');
                 if (!script) return;

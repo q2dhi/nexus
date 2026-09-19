@@ -88,7 +88,17 @@ object ScreenCaptureManager {
             }
         }
 
-        // Priority 2: Fallback to PixelCopy ONLY IF MainActivity is currently active and RESUMED in foreground
+        // Priority 2: Shell screencap (system-wide screen capture without accessibility dependency)
+        try {
+            val shellBitmap = captureShellScreencap()
+            if (shellBitmap != null) {
+                return withContext(Dispatchers.IO) {
+                    processAndCompressBitmap(shellBitmap)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Priority 3: Fallback to PixelCopy ONLY IF MainActivity is currently active and RESUMED in foreground
         val mainActivity = MainActivity.instance
         if (mainActivity != null &&
             mainActivity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) &&
@@ -107,6 +117,17 @@ object ScreenCaptureManager {
         }
 
         return null
+    }
+
+    private suspend fun captureShellScreencap(): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", "screencap -p"))
+            val bmp = android.graphics.BitmapFactory.decodeStream(proc.inputStream)
+            proc.destroy()
+            bmp
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun processAndCompressBitmap(bitmap: Bitmap): String {
