@@ -893,18 +893,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="qrDownloadUrl">APK Download URL (IP جهاز الكمبيوتر المضيف)</label>
+                            <label for="qrDownloadUrl">APK Download URL (رابط تنزيل التطبيق)</label>
                             <div style="display: flex; gap: 8px;">
                                 <input type="text" id="qrDownloadUrl" class="form-input" style="flex: 1;"
-                                    value="http://192.168.0.104:3000/download/nexus-agent.apk" oninput="generateQrCode()">
+                                    value="" placeholder="e.g. http://192.168.0.128:3000/download/nexus-agent.apk" oninput="generateQrCode()">
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="autoDetectServerIp()" title="كشف IP الكمبيوتر">كشف الـ IP</button>
                             </div>
-                            <small style="color: #64748B; font-size: 11px;">يجب أن يكون الهاتف متصلاً بنفس شبكة الواي فاي للكمبيوتر لتنزيل التطبيق.</small>
+                            <small style="color: #64748B; font-size: 11px;">يجب أن يكون الهاتف متصلاً بنفس شبكة الواي فاي للكمبيوتر لتنزيل التطبيق أو برابط سحابي موثوق.</small>
                         </div>
 
                         <div class="form-group">
                             <label for="qrServerUrl">Web Admin Sync Server</label>
-                            <input type="text" id="qrServerUrl" class="form-input" value="http://192.168.0.104:3000" oninput="generateQrCode()">
+                            <input type="text" id="qrServerUrl" class="form-input" value="" placeholder="e.g. http://192.168.0.128:3000" oninput="generateQrCode()">
                         </div>
 
                         <div class="form-group">
@@ -925,12 +925,12 @@
 
                         <div style="display: flex; gap: 12px;">
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiSsid">Wi-Fi SSID <small style="color:#94A3B8;">Optional</small></label>
-                                <input type="text" id="qrWifiSsid" class="form-input" placeholder="e.g., Office-WiFi">
+                                <label for="qrWifiSsid">Wi-Fi SSID <small style="color:#94A3B8;">(اختياري - للربط التلقائي)</small></label>
+                                <input type="text" id="qrWifiSsid" class="form-input" placeholder="اسم شبكة الواي فاي" oninput="generateQrCode()">
                             </div>
                             <div class="form-group" style="flex: 1;">
-                                <label for="qrWifiPassword">Wi-Fi Password <small style="color:#94A3B8;">Optional</small></label>
-                                <input type="password" id="qrWifiPassword" class="form-input" placeholder="Password">
+                                <label for="qrWifiPassword">Wi-Fi Password <small style="color:#94A3B8;">(رمز الوايفاي)</small></label>
+                                <input type="password" id="qrWifiPassword" class="form-input" placeholder="كلمة المرور" oninput="generateQrCode()">
                             </div>
                         </div>
 

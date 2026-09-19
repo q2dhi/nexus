@@ -2226,21 +2226,32 @@ async function autoDetectServerIp() {
         const cfg = await res.json();
         if (cfg) {
             lastQrConfig = cfg;
+            const origin = window.location.origin;
+            const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+            const targetDownload = isLocal 
+                ? (cfg.lanDownloadUrl || (cfg.localIp ? `http://${cfg.localIp}:${cfg.port || 3000}/download/nexus-agent.apk` : `${origin}/download/nexus-agent.apk`))
+                : (cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`);
+            const targetServer = isLocal 
+                ? (cfg.lanServerUrl || (cfg.localIp ? `http://${cfg.localIp}:${cfg.port || 3000}` : origin))
+                : (cfg.defaultServerUrl || origin);
+
             const dlInput = document.getElementById('qrDownloadUrl');
             const srvInput = document.getElementById('qrServerUrl');
             const chkInput = document.getElementById('qrApkChecksum');
-            if (dlInput) dlInput.value = cfg.lanDownloadUrl || cfg.defaultDownloadUrl;
-            if (srvInput) srvInput.value = cfg.lanServerUrl || cfg.defaultServerUrl;
-            if (chkInput && cfg.signatureChecksum) chkInput.value = cfg.signatureChecksum;
+            if (dlInput) dlInput.value = targetDownload;
+            if (srvInput) srvInput.value = targetServer;
+            if (chkInput && (cfg.signatureChecksum || cfg.apkChecksum)) {
+                chkInput.value = cfg.signatureChecksum || cfg.apkChecksum;
+            }
             generateQrCode();
             if (typeof showToast === 'function') {
-                showToast(`تم كشف IP الخادم: ${cfg.localIp}`, 'success');
+                showToast(`تم تحديث العنوان: ${targetServer}`, 'success');
             }
         }
     } catch (e) {
         console.error('Failed to auto detect server IP', e);
         if (typeof showToast === 'function') {
-            showToast('تعذر كشف IP الخادم تلقائياً', 'error');
+            showToast('تعذر كشف عنوان الخادم تلقائياً', 'error');
         }
     }
 }
@@ -2257,13 +2268,20 @@ async function initQrTab() {
             const chkInput = document.getElementById('qrApkChecksum');
 
             const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-            const targetDownload = (isLocal && cfg.lanDownloadUrl) ? cfg.lanDownloadUrl : (cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`);
-            const targetServer = (isLocal && cfg.lanServerUrl) ? cfg.lanServerUrl : (cfg.defaultServerUrl || origin);
+            const targetDownload = isLocal 
+                ? (cfg.lanDownloadUrl || (cfg.localIp ? `http://${cfg.localIp}:${cfg.port || 3000}/download/nexus-agent.apk` : `${origin}/download/nexus-agent.apk`))
+                : (cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`);
+            const targetServer = isLocal 
+                ? (cfg.lanServerUrl || (cfg.localIp ? `http://${cfg.localIp}:${cfg.port || 3000}` : origin))
+                : (cfg.defaultServerUrl || origin);
 
-            if (dlInput && (!dlInput.value || dlInput.value.includes('192.168.0.101') || dlInput.value.includes('localhost') || dlInput.value.includes('127.0.0.1'))) {
+            // Overwrite if value is empty, contains dead/hardcoded legacy IPs, localhost, or if on cloud HTTPS and value is plain HTTP
+            const needsUpdate = (val) => !val || val.includes('192.168.0.101') || val.includes('192.168.0.104') || val.includes('localhost') || val.includes('127.0.0.1') || (!isLocal && !val.startsWith('https://'));
+
+            if (dlInput && needsUpdate(dlInput.value)) {
                 dlInput.value = targetDownload;
             }
-            if (srvInput && (!srvInput.value || srvInput.value.includes('192.168.0.101') || srvInput.value.includes('localhost') || srvInput.value.includes('127.0.0.1'))) {
+            if (srvInput && needsUpdate(srvInput.value)) {
                 srvInput.value = targetServer;
             }
             if (chkInput && (cfg.signatureChecksum || cfg.apkChecksum)) {
@@ -2304,14 +2322,23 @@ function generateQrCode() {
     const wifiSsidInput = document.getElementById('qrWifiSsid');
     const wifiPasswordInput = document.getElementById('qrWifiPassword');
 
-    let downloadUrl = (dlInput ? dlInput.value.trim() : '') || (lastQrConfig?.lanDownloadUrl || `${window.location.origin}/download/nexus-agent.apk`);
-    let serverUrl = (srvInput ? srvInput.value.trim() : '') || (lastQrConfig?.lanServerUrl || window.location.origin);
+    const origin = window.location.origin;
+    const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+    const fallbackDl = isLocal 
+        ? (lastQrConfig?.lanDownloadUrl || (lastQrConfig?.localIp ? `http://${lastQrConfig.localIp}:${lastQrConfig?.port || 3000}/download/nexus-agent.apk` : `${origin}/download/nexus-agent.apk`))
+        : (lastQrConfig?.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`);
+    const fallbackSrv = isLocal
+        ? (lastQrConfig?.lanServerUrl || (lastQrConfig?.localIp ? `http://${lastQrConfig.localIp}:${lastQrConfig?.port || 3000}` : origin))
+        : (lastQrConfig?.defaultServerUrl || origin);
+
+    let downloadUrl = (dlInput ? dlInput.value.trim() : '') || fallbackDl;
+    let serverUrl = (srvInput ? srvInput.value.trim() : '') || fallbackSrv;
     const checksum = (chkInput ? chkInput.value.trim() : '') || (lastQrConfig?.signatureChecksum || 'T28h9GQowaWLuSM9v9Rmn8Cqn2o50SYyaDPUcUBtHk4');
     const wifiSsid = wifiSsidInput ? wifiSsidInput.value.trim() : '';
     const wifiPassword = wifiPasswordInput ? wifiPasswordInput.value.trim() : '';
 
     // Safety check: Android devices cannot connect to "localhost" or "127.0.0.1" on the host PC
-    if (lastQrConfig?.localIp) {
+    if (lastQrConfig?.localIp && lastQrConfig.localIp !== '127.0.0.1') {
         if (downloadUrl.includes('localhost') || downloadUrl.includes('127.0.0.1')) {
             downloadUrl = downloadUrl.replace('localhost', lastQrConfig.localIp).replace('127.0.0.1', lastQrConfig.localIp);
             if (dlInput) dlInput.value = downloadUrl;
@@ -2361,6 +2388,9 @@ function generateQrCode() {
     const cleanModeEl = document.getElementById('qrCleanDeviceMode');
     const leaveAllSystemApps = cleanModeEl ? !cleanModeEl.checked : true;
 
+    // Standard Android Enterprise QR code enrollment schema
+    // Google AE specification requires PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM.
+    // PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM is deliberately omitted to prevent failures on APK rebuilds.
     const payload = {
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.nexus.mdm.agent",
@@ -2370,10 +2400,6 @@ function generateQrCode() {
         "android.app.extra.PROVISIONING_DEVICE_TAG": deviceTag,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
-
-    if (lastQrConfig?.packageChecksum) {
-        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
-    }
 
     if (wifiSsid) {
         payload["android.app.extra.PROVISIONING_WIFI_SSID"] = wifiSsid;
@@ -4184,10 +4210,6 @@ function updateBranchModalQr() {
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
 
-    if (lastQrConfig?.packageChecksum) {
-        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
-    }
-
     if (wifiSsid) {
         payload["android.app.extra.PROVISIONING_WIFI_SSID"] = wifiSsid;
         payload["android.app.extra.PROVISIONING_WIFI_SECURITY_TYPE"] = wifiPassword ? "WPA" : "NONE";
@@ -4858,9 +4880,6 @@ function getBranchProvisioningPayload(branch) {
             "enrollment_token": token
         }
     };
-    if (lastQrConfig?.packageChecksum) {
-        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
-    }
     if (b.wifiSsid) {
         payload["android.app.extra.PROVISIONING_WIFI_SSID"] = b.wifiSsid;
         if (b.wifiPassword) {

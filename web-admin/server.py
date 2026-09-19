@@ -537,9 +537,18 @@ def get_local_ip():
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return ip
+        if ip and not ip.startswith("127."):
+            return ip
     except Exception:
-        return "127.0.0.1"
+        pass
+    try:
+        hostname = socket.gethostname()
+        for ip in socket.gethostbyname_ex(hostname)[2]:
+            if not ip.startswith('127.'):
+                return ip
+    except Exception:
+        pass
+    return "192.168.0.128"
 
 class NexusAdminHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -1014,19 +1023,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         if path == '/api/qr-config':
             apk_path = resolve_agent_apk()
             sig_checksum = get_apk_signature_checksum(apk_path)
-            pkg_checksum = get_apk_file_checksum(apk_path)
-
-            local_ip = "192.168.0.104"
-            all_ips = []
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.connect(("8.8.8.8", 80))
-                local_ip = s.getsockname()[0]
-                s.close()
-                all_ips.append(local_ip)
-            except Exception:
-                pass
-
+            local_ip = get_local_ip()
+            all_ips = [local_ip] if local_ip != "127.0.0.1" else []
             try:
                 hostname = socket.gethostname()
                 for ip in socket.gethostbyname_ex(hostname)[2]:
@@ -1091,7 +1089,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 "port": PORT,
                 "apkChecksum": sig_checksum,
                 "signatureChecksum": sig_checksum,
-                "packageChecksum": pkg_checksum,
+                "packageChecksum": "",
                 "packageName": "com.nexus.mdm.agent",
                 "componentName": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
                 "defaultDownloadUrl": download_url if active_ip != 'localhost' else lan_download_url,
@@ -1112,11 +1110,13 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/vnd.android.package-archive')
                 self.send_header('Content-Length', str(os.path.getsize(apk_path)))
                 self.send_header('Content-Disposition', 'attachment; filename="nexus-agent.apk"')
+                self.send_header('Accept-Ranges', 'bytes')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 try:
                     with open(apk_path, 'rb') as f:
-                        self.wfile.write(f.read())
+                        shutil.copyfileobj(f, self.wfile, length=64*1024)
                 except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, OSError):
                     pass
                 return
