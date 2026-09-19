@@ -81,17 +81,13 @@
             android:lockTaskMode="if_whitelisted"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
-            <!-- Standard App Launcher Filter -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
 
-            <!-- Enterprise Kiosk Dedicated Home Launcher Filter -->
+            <!-- Merged Launcher & Persistent Home Filter -->
             <intent-filter priority="1000">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <intent-filter>
@@ -166,7 +162,6 @@
                 <action android:name="com.nexus.mdm.agent.ACTION_TRIGGER_SYNC" />
             </intent-filter>
         </receiver>
-
 
         <!-- Enterprise Background MDM Cloud Sync Foreground Service -->
         <service

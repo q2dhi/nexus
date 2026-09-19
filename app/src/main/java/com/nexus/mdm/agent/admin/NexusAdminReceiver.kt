@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.PersistableBundle
 import android.os.UserHandle
 import com.nexus.mdm.agent.remote.MdmCloudSyncService
-import com.nexus.mdm.agent.ui.MainActivity
 import com.nexus.mdm.agent.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,11 +19,6 @@ import kotlinx.coroutines.launch
  * Nexus Enterprise Device Administration Receiver.
  * Receives broadcast actions from the Android system for Device Owner provisioning,
  * policy lifecycle changes, and lock task mode transitions.
- *
- * CRITICAL FIX: Uses goAsync() + coroutine for heavy I/O work in onProfileProvisioningComplete()
- * to prevent ANR. BroadcastReceivers have a 10-second execution limit; the previous code
- * performed disk I/O (EncryptedSharedPreferences), crypto (MasterKey), and network I/O
- * (performSyncNow) directly on the main thread.
  */
 class NexusAdminReceiver : DeviceAdminReceiver() {
 
@@ -41,7 +35,7 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             "Device Owner provisioning completed successfully via Android Enterprise."
         )
 
-        // Use goAsync() to extend the BroadcastReceiver lifetime beyond the default 10s ANR limit
+        // Use goAsync() to extend BroadcastReceiver lifetime beyond default ANR limit
         val pendingResult = goAsync()
 
         // Perform all heavy work on a background dispatcher
@@ -65,7 +59,7 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
         val policyHelper = PolicyManagerHelper(context)
         val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
 
-        // Read QR Provisioning Admin Extras Bundle (Device Name, Company Code, Server URL)
+        // Read QR Provisioning Admin Extras Bundle
         try {
             val extrasBundle = try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -95,16 +89,7 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             AppLogger.e("AdminReceiver", "Error reading QR provisioning admin extras bundle", e)
         }
 
-        // 1. Enforce baseline security posture
-        try {
-            policyHelper.applyBaselineSecurityPolicies()
-            configStore.isKioskEnabled = true
-            policyHelper.setAsDefaultHomeLauncher()
-        } catch (e: Exception) {
-            AppLogger.e("AdminReceiver", "Error applying baseline policies", e)
-        }
-
-        // 2. Set default lock task packages to include Nexus MDM
+        // 1. Whitelist LockTask packages FIRST before setting Kiosk or Launcher
         try {
             policyHelper.dpm.setLockTaskPackages(
                 policyHelper.adminComponent,
@@ -115,6 +100,15 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             AppLogger.e("AdminReceiver", "Failed to whitelist default LockTask packages", e)
         }
 
+        // 2. Enforce baseline security posture and assign persistent Home Launcher
+        try {
+            policyHelper.applyBaselineSecurityPolicies()
+            configStore.isKioskEnabled = true
+            policyHelper.setAsDefaultHomeLauncher()
+        } catch (e: Exception) {
+            AppLogger.e("AdminReceiver", "Error applying baseline policies", e)
+        }
+
         // 3. Start Cloud Sync Service & send initial registration heartbeat
         try {
             MdmCloudSyncService.start(context)
@@ -123,10 +117,7 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             MdmCloudSyncService.performSyncNow(context)
         } catch (_: Exception) {}
 
-        // 4. Launch Kiosk Home surface using a safe mechanism
-        if (configStore.isKioskEnabled) {
-            launchMainActivitySafely(context, configStore)
-        }
+        AppLogger.i("AdminReceiver", "Post-provisioning setup completed successfully.")
     }
 
     private fun applyPersistableBundleExtras(
@@ -185,30 +176,6 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             configStore.branchName = branchName ?: ""
             configStore.branchCode = branchCode ?: ""
             AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
-        }
-    }
-
-    /**
-     * Safely launches MainActivity from a background context.
-     * On Android 10+ (API 29+), launching Activities from background is restricted.
-     * Device Owner apps generally have this exemption, but we guard against failures.
-     */
-    private fun launchMainActivitySafely(
-        context: Context,
-        configStore: com.nexus.mdm.agent.config.SecureConfigStore
-    ) {
-        try {
-            val launchIntent = Intent(context, MainActivity::class.java).apply {
-                action = Intent.ACTION_MAIN
-                addCategory(Intent.CATEGORY_HOME)
-                addCategory(Intent.CATEGORY_DEFAULT)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
-                putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
-            }
-            context.startActivity(launchIntent)
-        } catch (e: Exception) {
-            AppLogger.w("AdminReceiver", "Could not start MainActivity directly: ${e.message}")
         }
     }
 

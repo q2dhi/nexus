@@ -95,17 +95,10 @@ class ProvisioningActivity : Activity() {
         hasProcessedIntent = true
         AppLogger.i("ProvisioningActivity", "Processing Admin Policy Compliance...")
 
-        // CRITICAL: Signal RESULT_OK to Setup Wizard FIRST so the "Getting ready for work setup..."
-        // screen completes immediately. Without this, the Setup Wizard ANRs after ~10s and kills provisioning.
-        setResult(Activity.RESULT_OK)
-
-        // Extract provisioning extras synchronously (fast string reads — no I/O)
+        // 1. Extract provisioning extras synchronously (fast string reads)
         val extras = extractProvisioningExtras()
 
-        // Finish the Activity immediately so Setup Wizard can proceed
-        finish()
-
-        // Defer ALL heavy work to a background coroutine
+        // 2. Defer ALL heavy work to a background coroutine
         val appContext = applicationContext
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
@@ -114,11 +107,15 @@ class ProvisioningActivity : Activity() {
                 AppLogger.e("ProvisioningActivity", "Post-provisioning background work failed: ${e.message}", e)
             }
         }
+
+        // 3. CRITICAL: Return RESULT_OK and finish immediately so Setup Wizard completes
+        // and transfers the foreground to the newly assigned Home Activity without ANR
+        setResult(Activity.RESULT_OK)
+        finish()
     }
 
     /**
-     * Extracts provisioning extras from the intent bundle. This is a fast operation
-     * that only reads in-memory Parcelable data — safe for Main Thread.
+     * Extracts provisioning extras from the intent bundle.
      */
     private fun extractProvisioningExtras(): ProvisioningExtras {
         var serverUrl: String? = null
@@ -191,10 +188,8 @@ class ProvisioningActivity : Activity() {
 
     /**
      * Applies all post-provisioning policies on a background thread.
-     * This runs AFTER Setup Wizard has already received RESULT_OK.
      */
     private fun applyPostProvisioningPolicies(context: android.content.Context, extras: ProvisioningExtras) {
-        // 1. Persist provisioning extras to encrypted config store
         try {
             val configStore = SecureConfigStore(context)
             if (!extras.serverUrl.isNullOrBlank()) configStore.serverUrl = extras.serverUrl
@@ -207,10 +202,21 @@ class ProvisioningActivity : Activity() {
                 configStore.branchCode = extras.branchCode ?: ""
             }
 
-            // 2. Enable Kiosk and apply baseline security policies
             configStore.isKioskEnabled = true
             val policyHelper = PolicyManagerHelper(context)
+
+            // Whitelist LockTask packages FIRST
+            try {
+                policyHelper.dpm.setLockTaskPackages(
+                    policyHelper.adminComponent,
+                    arrayOf(context.packageName)
+                )
+            } catch (_: Exception) {}
+
+            // Apply baseline security policies
             policyHelper.applyBaselineSecurityPolicies()
+
+            // Establish persistent preferred home launcher
             policyHelper.setAsDefaultHomeLauncher()
 
             AppLogger.i("ProvisioningActivity", "Post-provisioning policies applied successfully")
@@ -218,15 +224,12 @@ class ProvisioningActivity : Activity() {
             AppLogger.e("ProvisioningActivity", "Error applying post-provisioning policies: ${e.message}", e)
         }
 
-        // 3. Start Cloud Sync Service
+        // Start Cloud Sync Service
         try {
             MdmCloudSyncService.start(context)
         } catch (_: Exception) {}
     }
 
-    /**
-     * Data class holding extracted provisioning extras for deferred processing.
-     */
     private data class ProvisioningExtras(
         val serverUrl: String?,
         val deviceTag: String?,
