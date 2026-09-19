@@ -17,7 +17,7 @@
         android:background="@drawable/bg_neomorph_pill"
         android:backgroundTint="#ECFDF5"
         android:padding="16dp"
-        android:src="@drawable/ic_nexus_shield"
+        android:src="@drawable/ic_shield"
         app:tint="#059669"
         android:contentDescription="Call Avatar" />
 

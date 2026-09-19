@@ -98,12 +98,9 @@ object ScreenCaptureManager {
             }
         } catch (_: Exception) {}
 
-        // Priority 3: Fallback to PixelCopy ONLY IF MainActivity is currently active and RESUMED in foreground
+        // Priority 3: Fallback to PixelCopy if MainActivity is active
         val mainActivity = MainActivity.instance
-        if (mainActivity != null &&
-            mainActivity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) &&
-            !mainActivity.isFinishing && !mainActivity.isDestroyed
-        ) {
+        if (mainActivity != null && !mainActivity.isFinishing && !mainActivity.isDestroyed) {
             try {
                 val pixelCopyBitmap = capturePixelCopy(mainActivity)
                 if (pixelCopyBitmap != null) {
@@ -114,9 +111,40 @@ object ScreenCaptureManager {
             } catch (e: Exception) {
                 AppLogger.w("ScreenCapture", "PixelCopy fallback failed: ${e.message}")
             }
+
+            // Priority 4: Direct decorView software rendering fallback
+            try {
+                val decorBitmap = captureDecorView(mainActivity)
+                if (decorBitmap != null) {
+                    return withContext(Dispatchers.IO) {
+                        processAndCompressBitmap(decorBitmap)
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.w("ScreenCapture", "DecorView fallback failed: ${e.message}")
+            }
         }
 
         return null
+    }
+
+    private suspend fun captureDecorView(activity: Activity): Bitmap? = withContext(Dispatchers.Main) {
+        try {
+            val decorView = activity.window?.decorView?.rootView ?: return@withContext null
+            val w = decorView.width
+            val h = decorView.height
+            if (w <= 0 || h <= 0) return@withContext null
+            val targetWidth = 360
+            val targetHeight = (h * targetWidth) / w
+            val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            val scale = targetWidth.toFloat() / w.toFloat()
+            canvas.scale(scale, scale)
+            decorView.draw(canvas)
+            bitmap
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private suspend fun captureShellScreencap(): Bitmap? = withContext(Dispatchers.IO) {
@@ -222,8 +250,14 @@ object ScreenCaptureManager {
                 doOutput = true
             }
 
+            val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+            val tag = configStore.deviceTag
             val json = org.json.JSONObject().apply {
                 put("deviceId", deviceId)
+                if (tag.isNotBlank()) {
+                    put("deviceTag", tag)
+                    put("deviceName", tag)
+                }
                 if (frameBase64 != null) {
                     put("frame", frameBase64)
                 }

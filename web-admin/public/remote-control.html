@@ -648,7 +648,7 @@
         <!-- Dropdown Menu (Screenshot 5.53.21 PM) -->
         <div id="rcDropdownMenu" class="rc-dropdown-menu">
             <div class="rc-dropdown-item" onclick="handleRcAction('WAKE_UNLOCK')">Wake & Unlock Screen</div>
-            <div class="rc-dropdown-item" onclick="handleRcAction('OPEN_A11Y_SETTINGS')">⚡ تفعيل التحكم عن بعد (Accessibility)</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('START_STREAM')">⚡ تنشيط بث الشاشة والتحكم المباشر (Start Live Stream)</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('SEND_SCRIPT')">Send Script</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_ON')">Turn Kiosk Mode ON</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_OFF')">Turn Kiosk Mode OFF (Exit Kiosk)</div>
@@ -658,14 +658,14 @@
         </div>
     </div>
 
-    <!-- Accessibility Warning & Quick-Activation Banner -->
-    <div id="rcA11yAlertBanner" style="display:none; background:#FFFBEB; border-bottom:1px solid #FDE68A; padding:8px 16px; font-size:12px; color:#92400E; align-items:center; justify-content:space-between; z-index:100;">
+    <!-- Accessibility & Quick-Activation Banner -->
+    <div id="rcA11yAlertBanner" style="display:none; background:#EFF6FF; border-bottom:1px solid #BFDBFE; padding:8px 16px; font-size:12px; color:#1E40AF; align-items:center; justify-content:space-between; z-index:100;">
         <div style="display:flex; align-items:center; gap:8px;">
-            <span>⚠️</span>
-            <span><strong>خدمة التحكم عن بعد غير مفعّلة:</strong> يلزم تفعيل خدمة JIB MobiControl في إمكانية الوصول للتحكم الكامل بالشاشة في جميع التطبيقات.</span>
+            <span>⚡</span>
+            <span><strong>التحكم المباشر وبث الشاشة:</strong> يتم تنشيط بث الشاشة الحية والتحكم التفاعلي باللمس فوراً في الخلفية.</span>
         </div>
-        <button type="button" onclick="handleRcAction('OPEN_A11Y_SETTINGS')" style="background:#D97706; color:#FFF; border:none; border-radius:4px; padding:5px 14px; font-size:11px; font-weight:600; cursor:pointer;">
-            فتح صفحة التفعيل على الجهاز الآن ⚡
+        <button type="button" onclick="handleRcAction('START_STREAM')" style="background:#2563EB; color:#FFF; border:none; border-radius:4px; padding:5px 14px; font-size:11px; font-weight:600; cursor:pointer;">
+            تنشيط البث المباشر ⚡
         </button>
     </div>
 
@@ -892,7 +892,7 @@
             try {
                 const res = await fetch('/api/devices');
                 const devices = await res.json();
-                currentDevice = devices.find(d => d.id === deviceId) || devices[0];
+                currentDevice = devices.find(d => d.id === deviceId || d.name === deviceId || (d.deviceTag && d.deviceTag === deviceId)) || devices[0];
                 if (currentDevice) {
                     document.title = `Remote Control - ${currentDevice.name || currentDevice.id}`;
                     const linkEl = document.getElementById('rcDeviceLink');
@@ -911,12 +911,21 @@
                 console.error('Failed to load device info:', err);
             }
 
-            // Periodic status check for accessibility state
+            // Automatically wake device screen and start live screen capture immediately on load
+            postCommand('START_SCREEN_STREAM', { deviceId: deviceId });
+            postCommand('WAKE_SCREEN', {});
+            fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'wake' })
+            }).catch(() => {});
+
+            // Periodic status check for device state
             setInterval(async () => {
                 try {
                     const r = await fetch('/api/devices');
                     const devs = await r.json();
-                    const d = devs.find(x => x.id === deviceId);
+                    const d = devs.find(x => x.id === deviceId || x.name === deviceId || (x.deviceTag && x.deviceTag === deviceId));
                     if (d) {
                         currentDevice = d;
                         const b = document.getElementById('rcA11yAlertBanner');
@@ -925,9 +934,18 @@
                 } catch (_) {}
             }, 6000);
 
-            // Start live screen frame polling
+            // Start live screen frame polling at responsive 350ms interval
             refreshScreenFrame();
-            streamTimer = setInterval(refreshScreenFrame, 800);
+            streamTimer = setInterval(refreshScreenFrame, 350);
+
+            window.addEventListener('beforeunload', () => {
+                try {
+                    navigator.sendBeacon && navigator.sendBeacon('/api/commands', JSON.stringify({
+                        deviceId: deviceId,
+                        command: 'STOP_SCREEN_STREAM'
+                    }));
+                } catch (_) {}
+            });
         }
 
         function applyModelChassis(model) {
@@ -1166,9 +1184,15 @@
                     body: JSON.stringify({ action: 'unlock' })
                 }).catch(() => {});
                 showRcToast('تم إرسال أمر فتح القفل وتنشيط الشاشة');
-            } else if (actionType === 'OPEN_A11Y_SETTINGS') {
-                await postCommand('OPEN_ACCESSIBILITY_SETTINGS', {});
-                showRcToast('تم إرسال أمر فتح صفحة التفعيل على شاشة الجهاز ⚡');
+            } else if (actionType === 'START_STREAM') {
+                await postCommand('START_SCREEN_STREAM', { deviceId: deviceId });
+                await postCommand('WAKE_SCREEN', {});
+                await fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'wake' })
+                }).catch(() => {});
+                showRcToast('جاري بدء بث الشاشة والتحكم المباشر فوراً ⚡');
             } else if (actionType === 'SEND_SCRIPT') {
                 const script = prompt('Enter command or script to execute on device:', 'getprop ro.build.version.release');
                 if (!script) return;

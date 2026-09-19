@@ -3347,12 +3347,18 @@ async function sendOpenA11ySettingsCommand() {
             },
             body: JSON.stringify({
                 deviceId: activeStreamDeviceId,
-                command: 'OPEN_ACCESSIBILITY_SETTINGS',
+                command: 'START_SCREEN_STREAM',
                 payload: { timestamp: Date.now() }
             })
         });
+        fetch(`/api/devices/${encodeURIComponent(activeStreamDeviceId)}/touch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Tenant-Token': currentTenantToken || '' },
+            body: JSON.stringify({ action: 'wake' })
+        }).catch(() => {});
+
         if (res.ok) {
-            showToast('تم إرسال أمر فتح شاشة تفعيل التحكم عن بعد على الهاتف بنجاح.', 'success');
+            showToast('تم تنشيط بث الشاشة الحية والتحكم المباشر بنجاح.', 'success');
         } else {
             showToast('تعذر إرسال الأمر للجهاز.', 'error');
         }

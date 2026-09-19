@@ -334,6 +334,28 @@ latest_frames = {}     # device_id -> { 'frame': base64, 'timestamp': float }
 pending_touch_events = {} # device_id -> list of touch/gesture/key actions
 adb_stream_subscribers = {} # device_id -> expire_timestamp
 
+def resolve_canonical_device_id(dev_id):
+    """Resolves arbitrary device identifiers (custom tag, name, suffix, or canonical hardware ID)."""
+    if not dev_id:
+        return ''
+    s_dev = str(dev_id).strip()
+    if s_dev in devices:
+        return s_dev
+    lower_id = s_dev.lower()
+    for did, d in devices.items():
+        if did.lower() == lower_id:
+            return did
+        d_name = str(d.get('name', '')).strip()
+        if d_name and d_name.lower() == lower_id:
+            return did
+        d_tag = str(d.get('deviceTag', '')).strip()
+        if d_tag and d_tag.lower() == lower_id:
+            return did
+        if did.endswith(s_dev) or s_dev.endswith(did):
+            return did
+    return s_dev
+
+
 def find_adb_executable():
     """Locate adb binary across macOS, Linux, and Windows."""
     in_path = shutil.which('adb') or shutil.which('adb.exe')
@@ -938,19 +960,43 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
         if path.startswith('/api/devices/') and path.endswith('/screen-frame'):
             parts = path.strip('/').split('/')
-            dev_id = parts[2] if len(parts) >= 3 else ''
+            raw_dev_id = parts[2] if len(parts) >= 3 else ''
+            dev_id = resolve_canonical_device_id(raw_dev_id)
             if dev_id:
                 adb_stream_subscribers[dev_id] = time.time() + 4.0
+            if raw_dev_id and raw_dev_id != dev_id:
+                adb_stream_subscribers[raw_dev_id] = time.time() + 4.0
             
-            frame_data = latest_frames.get(dev_id, {})
+            frame_data = latest_frames.get(raw_dev_id) or latest_frames.get(dev_id, {})
             now = time.time()
-            if not frame_data.get('frame') or (now - frame_data.get('timestamp', 0)) > 1.5:
+            if not frame_data.get('frame') or (now - frame_data.get('timestamp', 0)) > 2.0:
+                # Auto-enqueue START_SCREEN_STREAM and wake if client is actively viewing screen
+                target_ids = {raw_dev_id, dev_id}
+                dev_obj = devices.get(dev_id) or devices.get(raw_dev_id)
+                if dev_obj:
+                    if dev_obj.get('id'): target_ids.add(dev_obj['id'])
+                    if dev_obj.get('name'): target_ids.add(dev_obj['name'])
+                    if dev_obj.get('deviceTag'): target_ids.add(dev_obj['deviceTag'])
+
+                stream_cmd = {"command": "START_SCREEN_STREAM", "timestamp": int(now * 1000)}
+                wake_act = {"action": "wake"}
+                for tid in target_ids:
+                    if not tid: continue
+                    q = pending_commands.setdefault(tid, [])
+                    if not any(c.get('command') == 'START_SCREEN_STREAM' for c in q):
+                        q.append(stream_cmd)
+                    t_q = pending_touch_events.setdefault(tid, [])
+                    if not any(t.get('action') == 'wake' for t in t_q):
+                        t_q.append(wake_act)
+
                 serial = get_connected_adb_serial()
                 if serial:
                     b64 = capture_adb_screen_frame(serial)
                     if b64:
                         frame_data = {"frame": b64, "timestamp": time.time()}
                         latest_frames[dev_id] = frame_data
+                        if raw_dev_id:
+                            latest_frames[raw_dev_id] = frame_data
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -2156,13 +2202,41 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # ---------------------------------------------------------
         if path.startswith('/api/devices/') and path.endswith('/screen-frame'):
             parts = path.strip('/').split('/')
-            dev_id = parts[2] if len(parts) >= 3 else ''
-            if dev_id and data.get('frame'):
-                latest_frames[dev_id] = {
+            raw_dev_id = parts[2] if len(parts) >= 3 else ''
+            dev_id = resolve_canonical_device_id(raw_dev_id)
+            tag = data.get('deviceTag') or data.get('deviceName') or ''
+
+            if (dev_id or raw_dev_id) and data.get('frame'):
+                frame_entry = {
                     "frame": data.get('frame'),
                     "timestamp": time.time()
                 }
-            actions = pending_touch_events.pop(dev_id, [])
+                if raw_dev_id:
+                    latest_frames[raw_dev_id] = frame_entry
+                if dev_id:
+                    latest_frames[dev_id] = frame_entry
+                if tag:
+                    latest_frames[tag] = frame_entry
+                dev_obj = devices.get(dev_id) or devices.get(raw_dev_id)
+                if dev_obj:
+                    d_name = dev_obj.get('name')
+                    if d_name:
+                        latest_frames[d_name] = frame_entry
+                    d_tag = dev_obj.get('deviceTag')
+                    if d_tag:
+                        latest_frames[d_tag] = frame_entry
+
+            # Collect actions from all matching alias queues
+            actions = []
+            seen_actions = set()
+            for k in [raw_dev_id, dev_id, tag]:
+                if k and k in pending_touch_events:
+                    for act in pending_touch_events.pop(k, []):
+                        act_sig = json.dumps(act, sort_keys=True)
+                        if act_sig not in seen_actions:
+                            seen_actions.add(act_sig)
+                            actions.append(act)
+
             self._send_json(200, {"status": "OK", "actions": actions})
             return
 
@@ -2352,9 +2426,22 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             devices[dev_id] = data
             save_devices_cache(devices)
 
-            # Get and flush pending commands for this device
-            cmds = pending_commands.get(dev_id, [])
-            pending_commands[dev_id] = []
+            # Get and flush pending commands for this device and all its aliases
+            cmds = []
+            seen_cmd_keys = set()
+            alias_keys = [dev_id]
+            if data.get('name'): alias_keys.append(data.get('name'))
+            if data.get('deviceTag'): alias_keys.append(data.get('deviceTag'))
+            can_id = resolve_canonical_device_id(dev_id)
+            if can_id and can_id not in alias_keys: alias_keys.append(can_id)
+
+            for ak in alias_keys:
+                if ak in pending_commands:
+                    for c in pending_commands.pop(ak, []):
+                        ck = f"{c.get('command')}_{c.get('timestamp')}_{c.get('payload')}"
+                        if ck not in seen_cmd_keys:
+                            seen_cmd_keys.add(ck)
+                            cmds.append(c)
 
             if cmds:
                 add_audit_log('COMMANDS_DELIVERED', dev_id, f"Delivered {len(cmds)} commands to agent")
@@ -2503,7 +2590,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             session_token = self.headers.get('X-Tenant-Token')
             session = ACTIVE_TENANT_SESSIONS.get(session_token) if session_token else None
 
-            dev_id = data.get('deviceId')
+            raw_dev_id = data.get('deviceId')
             command = data.get('command')
             raw_payload = data.get('payload') or data.get('params') or {}
             payload = dict(raw_payload) if isinstance(raw_payload, dict) else {}
@@ -2512,9 +2599,11 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 if k not in ('deviceId', 'command', 'payload', 'params') and k not in payload:
                     payload[k] = v
 
-            if not dev_id or not command:
+            if not raw_dev_id or not command:
                 self._send_json(400, {"error": "Missing deviceId or command"})
                 return
+
+            dev_id = resolve_canonical_device_id(raw_dev_id) if raw_dev_id != 'ALL' else 'ALL'
 
             # Normalize Kiosk exit commands
             is_kiosk_disable = False
@@ -2571,31 +2660,48 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             # Mirror interactive touch & screen control commands directly into real-time pending_touch_events
             if dev_id != 'ALL':
+                touch_targets = {raw_dev_id, dev_id}
+                dev_obj = devices.get(dev_id) or devices.get(raw_dev_id)
+                if dev_obj:
+                    if dev_obj.get('id'): touch_targets.add(dev_obj['id'])
+                    if dev_obj.get('name'): touch_targets.add(dev_obj['name'])
+                    if dev_obj.get('deviceTag'): touch_targets.add(dev_obj['deviceTag'])
+
                 if command in ('TOUCH_CLICK', 'TAP'):
                     x_val = float(payload.get('xRatio', payload.get('x', 0.5)))
                     y_val = float(payload.get('yRatio', payload.get('y', 0.5)))
-                    pending_touch_events.setdefault(dev_id, []).append({
-                        "action": "tap",
-                        "xRatio": x_val,
-                        "yRatio": y_val
-                    })
+                    for tid in touch_targets:
+                        if not tid: continue
+                        pending_touch_events.setdefault(tid, []).append({
+                            "action": "tap",
+                            "xRatio": x_val,
+                            "yRatio": y_val
+                        })
                 elif command in ('SWIPE', 'DRAG'):
-                    pending_touch_events.setdefault(dev_id, []).append({
+                    sw_act = {
                         "action": "swipe",
                         "startXRatio": float(payload.get('startXRatio', 0.5)),
                         "startYRatio": float(payload.get('startYRatio', 0.8)),
                         "endXRatio": float(payload.get('endXRatio', 0.5)),
                         "endYRatio": float(payload.get('endYRatio', 0.2)),
                         "duration": int(payload.get('duration', 300))
-                    })
+                    }
+                    for tid in touch_targets:
+                        if not tid: continue
+                        pending_touch_events.setdefault(tid, []).append(sw_act)
                 elif command in ('SEND_KEY', 'KEY'):
-                    pending_touch_events.setdefault(dev_id, []).append({
+                    k_act = {
                         "action": "key",
                         "key": payload.get('key', 'BACK')
-                    })
+                    }
+                    for tid in touch_targets:
+                        if not tid: continue
+                        pending_touch_events.setdefault(tid, []).append(k_act)
                 elif command in ('WAKE_SCREEN', 'WAKE_DEVICE', 'UNLOCK_SCREEN', 'UNLOCK_DEVICE', 'LOCK_SCREEN'):
                     act = 'wake' if 'WAKE' in command else ('unlock' if 'UNLOCK' in command else 'lock')
-                    pending_touch_events.setdefault(dev_id, []).append({"action": act})
+                    for tid in touch_targets:
+                        if not tid: continue
+                        pending_touch_events.setdefault(tid, []).append({"action": act})
 
             if dev_id == 'ALL':
                 target_ids = []
@@ -2614,7 +2720,16 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     pending_commands.setdefault(did, []).append(cmd_obj)
                 add_audit_log('BROADCAST_COMMAND', 'ALL_DEVICES', f"Dispatched: {command} to {len(target_ids)} devices")
             else:
-                pending_commands.setdefault(dev_id, []).append(cmd_obj)
+                target_ids = {raw_dev_id, dev_id}
+                dev_obj = devices.get(dev_id) or devices.get(raw_dev_id)
+                if dev_obj:
+                    if dev_obj.get('id'): target_ids.add(dev_obj['id'])
+                    if dev_obj.get('name'): target_ids.add(dev_obj['name'])
+                    if dev_obj.get('deviceTag'): target_ids.add(dev_obj['deviceTag'])
+
+                for tid in target_ids:
+                    if not tid: continue
+                    pending_commands.setdefault(tid, []).append(cmd_obj)
                 add_audit_log('DISPATCH_COMMAND', dev_id, f"Dispatched: {command}")
 
             if command == 'SET_WHITELIST':
@@ -2706,27 +2821,43 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             return
 
         if path.startswith('/api/devices/') and path.endswith('/touch'):
-            dev_id = path.split('/')[3]
+            raw_dev_id = path.split('/')[3]
+            dev_id = resolve_canonical_device_id(raw_dev_id)
             action = data.get('action', 'tap')
 
+            target_ids = {raw_dev_id, dev_id}
+            dev_obj = devices.get(dev_id) or devices.get(raw_dev_id)
+            if dev_obj:
+                if dev_obj.get('id'): target_ids.add(dev_obj['id'])
+                if dev_obj.get('name'): target_ids.add(dev_obj['name'])
+                if dev_obj.get('deviceTag'): target_ids.add(dev_obj['deviceTag'])
+
             # 1. Enqueue action for remote cloud device delivery (via screen-frame)
-            queue = pending_touch_events.setdefault(dev_id, [])
-            if len(queue) < 10:
-                queue.append(data)
+            for tid in target_ids:
+                if not tid: continue
+                queue = pending_touch_events.setdefault(tid, [])
+                if len(queue) < 15:
+                    queue.append(data)
 
             # 1.5 Also mirror high-priority power/screen actions directly into heartbeat command queue
             if action in ('wake', 'wake_screen'):
-                cmd_q = pending_commands.setdefault(dev_id, [])
-                if not any(c.get('command') == 'WAKE_SCREEN' for c in cmd_q):
-                    cmd_q.append({"command": "WAKE_SCREEN"})
+                for tid in target_ids:
+                    if not tid: continue
+                    cmd_q = pending_commands.setdefault(tid, [])
+                    if not any(c.get('command') == 'WAKE_SCREEN' for c in cmd_q):
+                        cmd_q.append({"command": "WAKE_SCREEN"})
             elif action in ('unlock', 'unlock_screen'):
-                cmd_q = pending_commands.setdefault(dev_id, [])
-                if not any(c.get('command') == 'UNLOCK_SCREEN' for c in cmd_q):
-                    cmd_q.append({"command": "UNLOCK_SCREEN"})
+                for tid in target_ids:
+                    if not tid: continue
+                    cmd_q = pending_commands.setdefault(tid, [])
+                    if not any(c.get('command') == 'UNLOCK_SCREEN' for c in cmd_q):
+                        cmd_q.append({"command": "UNLOCK_SCREEN"})
             elif action in ('lock', 'lock_screen'):
-                cmd_q = pending_commands.setdefault(dev_id, [])
-                if not any(c.get('command') == 'LOCK_SCREEN' for c in cmd_q):
-                    cmd_q.append({"command": "LOCK_SCREEN"})
+                for tid in target_ids:
+                    if not tid: continue
+                    cmd_q = pending_commands.setdefault(tid, [])
+                    if not any(c.get('command') == 'LOCK_SCREEN' for c in cmd_q):
+                        cmd_q.append({"command": "LOCK_SCREEN"})
 
             # 2. Local ADB fallback (if device is plugged into local computer)
             adb_path = find_adb_executable()

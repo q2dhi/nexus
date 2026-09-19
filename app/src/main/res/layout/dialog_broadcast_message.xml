@@ -16,7 +16,7 @@
         android:background="@drawable/bg_neomorph_pill"
         android:backgroundTint="#EFF6FF"
         android:padding="14dp"
-        android:src="@drawable/ic_nexus_shield"
+        android:src="@drawable/ic_shield"
         app:tint="#2563EB"
         android:contentDescription="Message Icon" />
 
