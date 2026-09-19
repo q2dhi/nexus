@@ -3,6 +3,7 @@ package com.nexus.mdm.agent.remote
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import com.nexus.mdm.agent.admin.PolicyManagerHelper
 import com.nexus.mdm.agent.installer.SilentInstaller
 import com.nexus.mdm.agent.kiosk.KioskManager
@@ -58,7 +59,11 @@ class CommandDispatcher(
                 }
 
                 "SET_KIOSK_MODE" -> {
-                    val enable = json.getBoolean("enable")
+                    val enable = if (json.has("enable")) {
+                        json.getBoolean("enable")
+                    } else {
+                        json.optBoolean("enabled", true)
+                    }
                     executeKioskMode(enable, currentActivity)
                 }
 
@@ -66,6 +71,15 @@ class CommandDispatcher(
                     val downloadUrl = json.getString("url")
                     val pkgName = json.optString("package_name", "managed_app")
                     executeInstallFromUrl(downloadUrl, pkgName)
+                }
+
+                "INSTALL_PLAY_STORE_APP" -> {
+                    val pkgName = json.optString("package_name", "")
+                    if (pkgName.isNotEmpty()) {
+                        executeInstallPlayStoreApp(pkgName)
+                    } else {
+                        Result.failure(IllegalArgumentException("Missing package_name for Google Play app"))
+                    }
                 }
 
                 "SET_PERIPHERAL_POLICY" -> {
@@ -313,8 +327,8 @@ class CommandDispatcher(
             val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
             configStore.isKioskEnabled = enable
 
-            if (activity != null) {
-                if (enable) kioskManager.startKiosk(activity) else kioskManager.launchStockAndroidHome(activity)
+            if (activity != null && activity is com.nexus.mdm.agent.ui.MainActivity) {
+                activity.handleKioskStateChange(enable)
             } else {
                 // Background Service invocation: Wake MainActivity to update UI
                 val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
@@ -414,6 +428,27 @@ class CommandDispatcher(
                 try { tempApkFile?.delete() } catch (_: Exception) {}
             }
         }
+
+    private fun executeInstallPlayStoreApp(pkgName: String): Result<String> {
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkgName")).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                setPackage("com.android.vending")
+            }
+            context.startActivity(intent)
+            Result.success("Google Play Store opened for package: $pkgName")
+        } catch (_: Exception) {
+            try {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkgName")).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(webIntent)
+                Result.success("Opened Play Store web fallback for package: $pkgName")
+            } catch (e2: Exception) {
+                Result.failure(e2)
+            }
+        }
+    }
 
     private fun executeSetPeripheral(key: String, enabled: Boolean): Result<String> {
         val success = when (key.lowercase()) {

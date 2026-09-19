@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control - Honeywell CT60</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #F8FAFC;
+            color: #1E293B;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top SOTI Remote Control Header */
+        .rc-top-header {
+            height: 40px;
+            background: #FFFFFF;
+            border-bottom: 1px solid #E2E8F0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+        .rc-top-title {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #334155;
+        }
+        .rc-top-btn {
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #0284C7;
+            transition: all 0.15s ease;
+        }
+        .rc-top-btn:hover {
+            background: #F1F5F9;
+            border-color: #94A3B8;
+        }
+
+        /* Sub-Header Bar */
+        .rc-sub-bar {
+            height: 38px;
+            background: #FFFFFF;
+            border-bottom: 1px solid #E2E8F0;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            font-size: 13px;
+            color: #475569;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .rc-sub-title {
+            font-weight: 700;
+            color: #0F172A;
+        }
+        .rc-device-link {
+            color: #0284C7;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .rc-menu-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+        .rc-menu-btn:hover {
+            background: #F1F5F9;
+            color: #0F172A;
+        }
+
+        /* SOTI 3-Dots Dropdown */
+        .rc-dropdown-menu {
+            position: absolute;
+            top: 36px;
+            left: 170px;
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            border-radius: 3px;
+            width: 210px;
+            display: none;
+            z-index: 1000;
+            padding: 4px 0;
+        }
+        .rc-dropdown-menu.show {
+            display: block;
+        }
+        .rc-dropdown-item {
+            padding: 9px 16px;
+            font-size: 13px;
+            color: #1E293B;
+            cursor: pointer;
+            transition: background 0.12s ease;
+        }
+        .rc-dropdown-item:hover {
+            background: #F1F5F9;
+            color: #0078D4;
+        }
+
+        /* Main Viewport Workspace */
+        .rc-workspace {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #F8FAFC;
+        }
+
+        /* Authentic Honeywell CT60 Handheld Hardware Frame */
+        .honeywell-device-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 360px;
+            max-width: 88vw;
+            position: relative;
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+
+        .honeywell-phone-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 364 / 719;
+            filter: drop-shadow(0 16px 36px rgba(15, 23, 42, 0.35));
+            user-select: none;
+        }
+
+        .honeywell-chassis-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: fill;
+            pointer-events: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Precise LCD Display Placement on Authentic Honeywell CT60 Hardware */
+        .phone-display-viewport {
+            position: absolute;
+            top: 15.72%;
+            left: 11.26%;
+            width: 75.82%;
+            height: 68.29%;
+            background: #000000;
+            border-radius: 2px;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            z-index: 2;
+            cursor: pointer;
+        }
+
+        /* Hardware Capacitive Touch Keys Overlay (Back, Home, Recents, Scan) */
+        .honeywell-hw-nav-strip {
+            position: absolute;
+            top: 84.8%;
+            left: 11.26%;
+            width: 75.82%;
+            height: 6.2%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .hw-nav-btn {
+            flex: 1;
+            height: 100%;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+
+        .hw-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .hw-nav-btn:active {
+            background: rgba(56, 189, 248, 0.4);
+        }
+
+        .phone-live-img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        /* Android Lockscreen (matching Screenshot 5.53.08 PM) */
+        .rc-android-lockscreen {
+            position: absolute;
+            inset: 0;
+            background: #0B0E14 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0l12 12-12 12L0 12z' fill='%23171C26' fill-opacity='0.4'/%3E%3C/svg%3E") repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 14px;
+            box-sizing: border-box;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        .rc-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #E2E8F0;
+            padding: 2px 2px;
+        }
+        .rc-status-left, .rc-status-right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rc-lock-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .rc-lock-icon {
+            opacity: 0.85;
+            margin-bottom: 8px;
+        }
+        .rc-lock-clock {
+            font-size: 46px;
+            font-weight: 300;
+            letter-spacing: -1px;
+            line-height: 1;
+            color: #FFFFFF;
+        }
+        .rc-lock-date {
+            font-size: 13px;
+            color: #CBD5E1;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* SOTI MobiControl Notification Card */
+        .rc-soti-notif-card {
+            background: #FFFFFF;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 14px 4px 0 4px;
+            color: #0F172A;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .rc-notif-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .rc-notif-app {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: #64748B;
+        }
+        .rc-notif-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0F172A;
+        }
+        .rc-notif-desc {
+            font-size: 11px;
+            color: #475569;
+        }
+        .rc-soti-logo-pill {
+            width: 32px;
+            height: 32px;
+            background: #0078D4;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .rc-lock-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .rc-lock-org {
+            font-size: 11px;
+            color: #94A3B8;
+        }
+        .rc-lock-emergency {
+            font-size: 11.5px;
+            color: #FFFFFF;
+            font-weight: 500;
+        }
+
+        /* Bottom Virtual Touch Nav Bar */
+        .rc-screen-nav-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .rc-nav-btn {
+            background: transparent;
+            border: none;
+            color: #94A3B8;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s ease;
+        }
+        .rc-nav-btn:hover {
+            color: #FFFFFF;
+        }
+        .rc-nav-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Right Floating Toolbars */
+        .rc-floating-toolbar-top {
+            position: absolute;
+            right: 20px;
+            top: 24px;
+            background: #0078D4;
+            border-radius: 22px;
+            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 14px rgba(0, 120, 212, 0.35);
+            z-index: 100;
+        }
+        .rc-floating-btn {
+            background: transparent;
+            border: none;
+            color: #FFFFFF;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.12s ease;
+        }
+        .rc-floating-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .rc-floating-toolbar-mid {
+            position: absolute;
+            right: 20px;
+            top: 200px;
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            border-radius: 22px;
+            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            z-index: 100;
+        }
+        .rc-floating-btn-mid {
+            background: transparent;
+            border: none;
+            color: #475569;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .rc-floating-btn-mid:hover {
+            background: #F1F5F9;
+            color: #0078D4;
+        }
+
+        .rc-floating-btn-bottom {
+            position: absolute;
+            right: 20px;
+            top: 420px;
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            border-radius: 22px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.12s ease;
+        }
+        .rc-floating-btn-bottom:hover {
+            background: #F1F5F9;
+            color: #0078D4;
+        }
+
+        /* Bottom-Left Chat Widget */
+        .rc-chat-widget {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            background: #151E28;
+            border-radius: 10px;
+            width: 250px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            color: #FFFFFF;
+            overflow: hidden;
+            z-index: 100;
+        }
+        .rc-chat-header {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #E2E8F0;
+        }
+        .rc-chat-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.12);
+        }
+        .rc-chat-body {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .rc-chat-devname {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #FFFFFF;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 110px;
+        }
+        .rc-chat-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rc-chat-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(2, 132, 199, 0.25);
+            border: 1px solid rgba(2, 132, 199, 0.4);
+            color: #38BDF8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .rc-chat-btn:hover {
+            background: #0284C7;
+            color: #FFFFFF;
+        }
+
+        /* Toast notification */
+        .rc-toast {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0F172A;
+            color: #FFFFFF;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header class="rc-top-header">
+        <div class="rc-top-title">Remote Control</div>
+        <button class="rc-top-btn" title="Remote Assistance" onclick="showRcToast('Remote Assistance Ready')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            </svg>
+        </button>
+    </header>
+
+    <!-- Sub-Bar -->
+    <div class="rc-sub-bar">
+        <span class="rc-sub-title">Remote Control</span>
+        <span>|</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" fill="#E0F2FE"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <a class="rc-device-link" id="rcDeviceLink" onclick="showDeviceInfo()">محمد علي ميسان 1</a>
+        <button class="rc-menu-btn" id="rcMenuToggle" onclick="toggleRcMenu(event)" title="Options">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+            </svg>
+        </button>
+
+        <!-- Dropdown Menu (Screenshot 5.53.21 PM) -->
+        <div id="rcDropdownMenu" class="rc-dropdown-menu">
+            <div class="rc-dropdown-item" onclick="handleRcAction('SEND_SCRIPT')">Send Script</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_ON')">Turn Kiosk Mode ON</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_OFF')">Turn Kiosk Mode OFF</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('SOFT_RESET')">Soft Reset</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('ADMIN_MODE')">Enter Administrator Mode</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('USER_MODE')">Enter User Mode</div>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="rc-workspace">
+
+        <!-- Authentic Honeywell Hardware Frame -->
+        <div class="honeywell-device-wrapper" id="ct60Wrapper">
+            <div class="honeywell-phone-frame" id="rcPhoneFrame">
+                <img id="rcChassisImg" src="honeywell-ct60-frame.png?v=20260919" alt="Honeywell Handheld Computer" class="honeywell-chassis-img" draggable="false" />
+                <div id="ct60Screen" class="phone-display-viewport" onclick="handleScreenTouch(event)">
+                    <!-- Live Screen or SOTI Lockscreen -->
+                    <img id="rcScreenImg" class="phone-live-img" style="display:none;" alt="Live Device Screen" />
+                    
+                    <!-- Android Default Lockscreen -->
+                    <div id="rcDefaultScreen" class="rc-android-lockscreen">
+                        <!-- Top Status Bar -->
+                        <div class="rc-status-bar">
+                            <div class="rc-status-left">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                                <span>zain IQ</span>
+                            </div>
+                            <div class="rc-status-right">
+                                <span>4G</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+                            </div>
+                        </div>
+
+                        <!-- Center Lock and Clock -->
+                        <div class="rc-lock-center">
+                            <div class="rc-lock-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                            <div class="rc-lock-clock" id="rcLiveClock">5:53</div>
+                            <div class="rc-lock-date" id="rcLiveDate">الجمعة، 18 أيلول</div>
+                        </div>
+
+                        <!-- SOTI MobiControl Notification Card -->
+                        <div class="rc-soti-notif-card">
+                            <div class="rc-notif-info">
+                                <div class="rc-notif-app">
+                                    <span style="font-weight:700; color:#0078D4;">J</span>
+                                    <span>JIB MobiControl • 6 أيام</span>
+                                </div>
+                                <div class="rc-notif-title">JIB MobiControl</div>
+                                <div class="rc-notif-desc">JIB MobiControl is running</div>
+                            </div>
+                            <div class="rc-soti-logo-pill">J</div>
+                        </div>
+
+                        <!-- Bottom Notice -->
+                        <div class="rc-lock-bottom">
+                            <div class="rc-lock-org">تتولى مؤسستك إدارة هذا الجهاز</div>
+                            <div class="rc-lock-emergency">الطوارئ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Capacitive Hardware Keys on Honeywell CT60 Bezel: Back (<), Home (O), Recents ([]), Scan / Search -->
+                <div id="rcHwNavStrip" class="honeywell-hw-nav-strip">
+                    <button type="button" class="hw-nav-btn" onclick="sendHardwareKey('KEYCODE_BACK', event)" title="Back (<)"></button>
+                    <button type="button" class="hw-nav-btn" onclick="sendHardwareKey('KEYCODE_HOME', event)" title="Home (O)"></button>
+                    <button type="button" class="hw-nav-btn" onclick="sendHardwareKey('KEYCODE_APP_SWITCH', event)" title="Recent Apps ([])"></button>
+                    <button type="button" class="hw-nav-btn" onclick="sendHardwareKey('KEYCODE_SEARCH', event)" title="Scan / Search"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Floating Top Blue Capsule -->
+        <div class="rc-floating-toolbar-top">
+            <button class="rc-floating-btn" title="Screen Share" onclick="showRcToast('Screen Share Active')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+            </button>
+            <button class="rc-floating-btn" title="Device Information" onclick="showDeviceInfo()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </button>
+            <button class="rc-floating-btn" title="File Explorer" onclick="showRcToast('File Explorer')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
+            <button class="rc-floating-btn" title="Collapse" onclick="showRcToast('Menu')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Right Floating Middle Action Pill -->
+        <div class="rc-floating-toolbar-mid">
+            <button class="rc-floating-btn-mid" title="Zoom In" onclick="zoomChassis(0.1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+            </button>
+            <button class="rc-floating-btn-mid" title="Fit to Screen" onclick="zoomChassis(0)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <polyline points="9 21 3 21 3 15"></polyline>
+                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+            </button>
+            <button class="rc-floating-btn-mid" title="Rotate" onclick="rotateChassis()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+            </button>
+            <button class="rc-floating-btn-mid" title="Screenshot" onclick="takeScreenshot()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+            </button>
+            <button class="rc-floating-btn-mid" title="Settings" onclick="showRcToast('Remote Settings')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Right Floating Bottom Key/Phone Button -->
+        <button class="rc-floating-btn-bottom" title="Device Controls" onclick="showRcToast('Device Controls')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+        </button>
+
+        <!-- Bottom-Left Chat Widget -->
+        <div class="rc-chat-widget">
+            <div class="rc-chat-header">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                </svg>
+                <span>Chat</span>
+            </div>
+            <div class="rc-chat-divider"></div>
+            <div class="rc-chat-body">
+                <span class="rc-chat-devname" id="rcChatDevName">محمد علي ميسان 1</span>
+                <div class="rc-chat-actions">
+                    <button class="rc-chat-btn" title="Send Message" onclick="openChatPrompt()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </button>
+                    <button class="rc-chat-btn" title="Audio Call" onclick="showRcToast('Calling device...')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                    </button>
+                    <button class="rc-chat-btn" title="Video Call" onclick="showRcToast('Video call request sent...')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Toast -->
+    <div id="rcToast" class="rc-toast">Action Executed</div>
+
+    <script>
+        // Extract deviceId from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const deviceId = urlParams.get('deviceId') || 'HONEYWELL_CT60_990010903302003';
+        let currentDevice = null;
+        let streamTimer = null;
+        let currentScale = 1.0;
+        let currentRotation = 0;
+
+        // Initialize Remote Session
+        async function initRemoteSession() {
+            try {
+                const res = await fetch('/api/devices');
+                const devices = await res.json();
+                currentDevice = devices.find(d => d.id === deviceId) || devices[0];
+                if (currentDevice) {
+                    document.title = `Remote Control - ${currentDevice.name || currentDevice.id}`;
+                    const linkEl = document.getElementById('rcDeviceLink');
+                    if (linkEl) linkEl.innerText = currentDevice.name || currentDevice.id;
+                    const chatEl = document.getElementById('rcChatDevName');
+                    if (chatEl) chatEl.innerText = currentDevice.name || currentDevice.id;
+
+                    applyModelChassis(currentDevice.model);
+                }
+            } catch (err) {
+                console.error('Failed to load device info:', err);
+            }
+
+            // Start live screen frame polling
+            refreshScreenFrame();
+            streamTimer = setInterval(refreshScreenFrame, 800);
+        }
+
+        function applyModelChassis(model) {
+            const isCt47 = (model || '').toUpperCase().includes('CT47');
+            const rcPhoneFrame = document.getElementById('rcPhoneFrame');
+            const rcChassisImg = document.getElementById('rcChassisImg');
+            const rcHwNavStrip = document.getElementById('rcHwNavStrip');
+            if (rcPhoneFrame && rcChassisImg) {
+                if (isCt47) {
+                    rcPhoneFrame.className = 'honeywell-phone-frame honeywell-frame-ct47';
+                    rcChassisImg.src = 'honeywell-ct47-frame.png?v=20260919';
+                    if (rcHwNavStrip) rcHwNavStrip.style.display = 'none';
+                } else {
+                    rcPhoneFrame.className = 'honeywell-phone-frame honeywell-frame-ct60';
+                    rcChassisImg.src = 'honeywell-ct60-frame.png?v=20260919';
+                    if (rcHwNavStrip) rcHwNavStrip.style.display = 'flex';
+                }
+            }
+        }
+
+        async function refreshScreenFrame() {
+            const img = document.getElementById('rcScreenImg');
+            const defaultScreen = document.getElementById('rcDefaultScreen');
+            if (!img || !deviceId) return;
+            try {
+                const res = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/screen-frame?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.frame) {
+                        img.src = `data:image/jpeg;base64,${data.frame}`;
+                        img.style.display = 'block';
+                        if (defaultScreen) defaultScreen.style.display = 'none';
+                        return;
+                    }
+                }
+            } catch (_) {}
+            
+            // Fallback to SOTI Lockscreen
+            img.style.display = 'none';
+            if (defaultScreen) defaultScreen.style.display = 'flex';
+        }
+
+        function updateLiveClock() {
+            const now = new Date();
+            let h = now.getHours();
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const clockEl = document.getElementById('rcLiveClock');
+            if (clockEl) clockEl.innerText = `${h}:${m}`;
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
+
+        // Screen Touch Interaction
+        async function handleScreenTouch(event) {
+            const viewport = document.getElementById('ct60Screen');
+            if (!viewport) return;
+            const rect = viewport.getBoundingClientRect();
+            const relX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+            const relY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+
+            // Visual touch feedback dot
+            const dot = document.createElement('div');
+            dot.style.position = 'absolute';
+            dot.style.left = `${event.clientX - rect.left - 12}px`;
+            dot.style.top = `${event.clientY - rect.top - 12}px`;
+            dot.style.width = '24px';
+            dot.style.height = '24px';
+            dot.style.borderRadius = '50%';
+            dot.style.background = 'rgba(2, 132, 199, 0.6)';
+            dot.style.border = '2px solid #FFFFFF';
+            dot.style.pointerEvents = 'none';
+            dot.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            dot.style.transform = 'scale(1)';
+            viewport.appendChild(dot);
+            setTimeout(() => {
+                dot.style.opacity = '0';
+                dot.style.transform = 'scale(1.5)';
+                setTimeout(() => dot.remove(), 300);
+            }, 100);
+
+            try {
+                await fetch('/api/commands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deviceId: deviceId,
+                        command: 'TOUCH_CLICK',
+                        params: { x: relX, y: relY }
+                    })
+                });
+                setTimeout(refreshScreenFrame, 150);
+            } catch (err) {
+                console.error('Touch event failed:', err);
+            }
+        }
+
+        // Hardware Navigation Keys
+        async function sendHardwareKey(keyName, event) {
+            if (event) event.stopPropagation();
+            showRcToast(`Key: ${keyName}`);
+            try {
+                await fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'key', key: keyName })
+                }).catch(() => {});
+                await fetch('/api/commands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deviceId: deviceId,
+                        command: 'SEND_KEY',
+                        params: { key: keyName }
+                    })
+                }).catch(() => {});
+                setTimeout(refreshScreenFrame, 150);
+                setTimeout(refreshScreenFrame, 350);
+            } catch (err) {
+                console.error('Failed to send hardware key:', err);
+            }
+        }
+
+        // 3-Dots Dropdown Actions
+        function toggleRcMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('rcDropdownMenu');
+            if (menu) menu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', () => {
+            const menu = document.getElementById('rcDropdownMenu');
+            if (menu) menu.classList.remove('show');
+        });
+
+        async function handleRcAction(actionType) {
+            const menu = document.getElementById('rcDropdownMenu');
+            if (menu) menu.classList.remove('show');
+
+            if (actionType === 'SEND_SCRIPT') {
+                const script = prompt('Enter command or script to execute on device:', 'getprop ro.build.version.release');
+                if (!script) return;
+                await postCommand('EXEC_SCRIPT', { script: script });
+                showRcToast('Script queued for execution');
+            } else if (actionType === 'KIOSK_ON') {
+                await postCommand('SET_KIOSK_MODE', { enable: true, enabled: true });
+                showRcToast('Kiosk Mode enabled on device');
+            } else if (actionType === 'KIOSK_OFF') {
+                await postCommand('SET_KIOSK_MODE', { enable: false, enabled: false });
+                showRcToast('Kiosk Mode disabled on device');
+            } else if (actionType === 'SOFT_RESET') {
+                const devName = currentDevice?.name || 'Honeywell';
+                if (confirm(`Reboot device ${devName}?`)) {
+                    await postCommand('REBOOT', {});
+                    showRcToast('Device reboot initiated');
+                }
+            } else if (actionType === 'ADMIN_MODE') {
+                await postCommand('SET_ADMIN_MODE', { mode: 'admin' });
+                showRcToast('Switched to Administrator Mode');
+            } else if (actionType === 'USER_MODE') {
+                await postCommand('SET_ADMIN_MODE', { mode: 'user' });
+                showRcToast('Switched to User Mode');
+            }
+            setTimeout(refreshScreenFrame, 300);
+        }
+
+        async function postCommand(command, params) {
+            try {
+                await fetch('/api/commands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId, command: command, params: params })
+                });
+            } catch (err) {
+                console.error('Command post error:', err);
+            }
+        }
+
+        // Toolbar Helpers
+        function zoomChassis(delta) {
+            const wrapper = document.getElementById('ct60Wrapper');
+            if (!wrapper) return;
+            if (delta === 0) {
+                currentScale = 1.0;
+            } else {
+                currentScale = Math.max(0.7, Math.min(1.4, currentScale + delta));
+            }
+            wrapper.style.transform = `scale(${currentScale}) rotate(${currentRotation}deg)`;
+            showRcToast(`Zoom: ${Math.round(currentScale * 100)}%`);
+        }
+
+        function rotateChassis() {
+            const wrapper = document.getElementById('ct60Wrapper');
+            if (!wrapper) return;
+            currentRotation = (currentRotation + 90) % 360;
+            wrapper.style.transform = `scale(${currentScale}) rotate(${currentRotation}deg)`;
+            showRcToast(`Rotated ${currentRotation}°`);
+        }
+
+        function takeScreenshot() {
+            const img = document.getElementById('rcScreenImg');
+            if (!img || !img.src) return;
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = `Honeywell_CT60_${deviceId}_${Date.now()}.png`;
+            a.click();
+            showRcToast('Screenshot downloaded');
+        }
+
+        function showDeviceInfo() {
+            if (!currentDevice) return;
+            alert(`Device: ${currentDevice.name}\nModel: Honeywell CT60\nOS: Android ${currentDevice.os}\nBattery: ${currentDevice.battery}%\nIP: ${currentDevice.ipAddress}\nMAC: ${currentDevice.macAddress}\nGroup: ${currentDevice.group}`);
+        }
+
+        function openChatPrompt() {
+            const msg = prompt(`Send push notification to ${currentDevice ? currentDevice.name : 'Device'}:`, 'يرجى مراجعة الفرع للاستلام');
+            if (msg) {
+                postCommand('SHOW_NOTIFICATION', { title: 'IT Support', message: msg });
+                showRcToast('Notification sent to operator');
+            }
+        }
+
+        function showRcToast(text) {
+            const toast = document.getElementById('rcToast');
+            if (!toast) return;
+            toast.innerText = text;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2200);
+        }
+
+        window.onload = initRemoteSession;
+    </script>
+</body>
+</html>

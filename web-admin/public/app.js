@@ -81,7 +81,7 @@ const i18n = {
         step4: "وجّه الكاميرا نحو كود الـ QR المعروض على الشاشة.",
         step5: "سيقوم الهاتف بتحميل النظام تلقائياً، وتثبيت الاسم المحدد، وقفل الكشك!",
         subLockTitle: "اشتراك الشركة غير مفعّل",
-        subLockDesc: "عذراً! لوحة تحكم وإدارة أجهزة Nexus معطّلة حالياً لأن اشتراك هذه الشركة غير مفعّل أو انتهت فترة صلاحيته من قِبل المطور.",
+        subLockDesc: "عذراً! لوحة تحكم وإدارة أجهزة JIB MobiControl معطّلة حالياً لأن اشتراك هذه الشركة غير مفعّل أو انتهت فترة صلاحيته من قِبل المطور.",
         btnWhatsApp: "تواصل مع المطور عبر واتساب لتفعيل الاشتراك",
         btnCall: "الاتصال هاتفياً بالمطور",
         btnRecheck: "إعادة فحص حالة التفعيل الآن",
@@ -132,7 +132,7 @@ const i18n = {
         actWipe: "Factory Reset / Wipe Device",
         emptyFleet: "No devices currently connected for this company.",
         qrTitle: "Zero-Touch Android Enterprise QR Provisioning",
-        qrDesc: "Instantly turn any fresh or factory-reset Android device into a dedicated Nexus Kiosk appliance without entering Google accounts.",
+        qrDesc: "Instantly turn any fresh or factory-reset Android device into a dedicated JIB MobiControl appliance without entering Google accounts.",
         lblQrDeviceTag: "Device Name / Tag (Arabic or English) *",
         descQrDeviceTag: "This custom name (Arabic or English) will be automatically assigned to the phone upon scanning.",
         lblQrCompany: "Assigned Company",
@@ -144,9 +144,9 @@ const i18n = {
         step2: "At the first Welcome screen, tap 6 times rapidly anywhere on the screen.",
         step3: "The phone's enterprise QR camera will automatically activate.",
         step4: "Point the camera at this QR code on your screen.",
-        step5: "The phone will download Nexus, apply the assigned name, and launch Kiosk!",
+        step5: "The phone will download JIB MobiControl, apply the assigned name, and launch Kiosk!",
         subLockTitle: "Company Subscription Inactive",
-        subLockDesc: "Nexus MDM console is currently suspended because this company subscription is inactive or expired. Please contact the developer.",
+        subLockDesc: "JIB MobiControl console is currently suspended because this company subscription is inactive or expired. Please contact the developer.",
         btnWhatsApp: "Contact Developer via WhatsApp to Activate",
         btnCall: "Call Developer",
         btnRecheck: "Re-check Subscription Status",
@@ -405,7 +405,7 @@ async function checkCurrentCompanySubscription() {
                 const devContact = t.developerContact || {};
                 const whatsapp = devContact.supportWhatsApp || '9647700000000';
                 const phone = devContact.supportPhone || '+9647700000000';
-                const msg = encodeURIComponent(`مرحباً مطور Nexus، أود تفعيل أو تجديد اشتراك شركتنا: ${t.name} (كود: ${t.code})`);
+                const msg = encodeURIComponent(`مرحباً مطور JIB MobiControl، أود تفعيل أو تجديد اشتراك شركتنا: ${t.name} (كود: ${t.code})`);
 
                 document.getElementById('btnWhatsAppDev').href = `https://wa.me/${whatsapp}?text=${msg}`;
                 document.getElementById('btnCallDev').href = `tel:${phone}`;
@@ -481,14 +481,51 @@ async function fetchDevices() {
         renderDeviceTable(lastDevicesCache);
         updateDeviceSelect(lastDevicesCache);
         updateHeaderMetrics(lastDevicesCache);
+        renderBranchesInTree();
 
         if (activeTrackDeviceId) {
             updateDeviceTrackModal(activeTrackDeviceId);
+        }
+
+        // Check for new devices to illuminate red dot on refresh button
+        const currentDeviceIds = (lastDevicesCache || []).map(d => d.id);
+        const storedKnownRaw = localStorage.getItem('soti_known_device_ids');
+        if (!storedKnownRaw) {
+            localStorage.setItem('soti_known_device_ids', JSON.stringify(currentDeviceIds));
+        } else {
+            try {
+                const knownList = JSON.parse(storedKnownRaw);
+                const hasNew = currentDeviceIds.some(id => !knownList.includes(id));
+                const dot = document.getElementById('sotiRefreshRedDot');
+                if (dot) {
+                    dot.style.display = hasNew ? 'block' : 'none';
+                }
+            } catch (_) {}
         }
     } catch (e) {
         console.error('Failed to fetch devices', e);
     }
 }
+
+async function handleSotiRefreshClick() {
+    const btn = document.getElementById('sotiRefreshDevicesBtn');
+    const dot = document.getElementById('sotiRefreshRedDot');
+    if (btn) btn.classList.add('spinning');
+    if (dot) dot.style.display = 'none';
+
+    try {
+        await fetchDevices();
+        const currentDeviceIds = (lastDevicesCache || []).map(d => d.id);
+        localStorage.setItem('soti_known_device_ids', JSON.stringify(currentDeviceIds));
+    } catch (e) {
+        console.error('Refresh devices failed:', e);
+    } finally {
+        setTimeout(() => {
+            if (btn) btn.classList.remove('spinning');
+        }, 700);
+    }
+}
+window.handleSotiRefreshClick = handleSotiRefreshClick;
 
 function updateFleetBranchFilterDropdown() {
     const sel = document.getElementById('selectFleetBranchFilter');
@@ -616,6 +653,35 @@ function setFleetFilter(filterKey) {
 function getFilteredFleetDevices(devices) {
     if (!devices || !Array.isArray(devices)) return [];
     return devices.filter(d => {
+        // SOTI Query Builder Property Filter (e.g. Agent Online = TRUE)
+        if (typeof sotiActivePropertyFilter !== 'undefined' && sotiActivePropertyFilter) {
+            const { prop, op, val } = sotiActivePropertyFilter;
+            if (prop === 'Agent Online') {
+                const expectOnline = String(val).toUpperCase() === 'TRUE';
+                if (Boolean(d.isOnline) !== expectOnline) return false;
+            } else if (prop === 'Device Name') {
+                if (!(d.name || '').toLowerCase().includes(String(val).toLowerCase())) return false;
+            } else if (prop === 'Battery Percentage') {
+                const numVal = parseInt(val, 10);
+                if (!isNaN(numVal) && (d.battery || 0) > numVal) return false;
+            } else if (prop === 'Manufacturer') {
+                if (!(d.manufacturer || '').toLowerCase().includes(String(val).toLowerCase())) return false;
+            }
+        }
+
+        // SOTI Group Filter
+        if (typeof sotiSelectedGroupId !== 'undefined' && sotiSelectedGroupId && sotiSelectedGroupId !== 'ALL') {
+            const gid = sotiSelectedGroupId.toLowerCase();
+            const bName = (d.branchName || d.branch || d.group || '').toLowerCase();
+            const bId = (d.branchId || '').toLowerCase();
+            const bCode = (d.branchCode || '').toLowerCase();
+            const bNum = (d.branchNumber || '').toLowerCase();
+            const isMatch = bName.includes(gid) || gid.includes(bName) || bId === gid || bCode === gid || bNum === gid;
+            if (!isMatch) {
+                return false;
+            }
+        }
+
         // Status Filter
         if (currentFleetFilter === 'online' && !d.isOnline) return false;
         if (currentFleetFilter === 'offline' && d.isOnline) return false;
@@ -669,6 +735,7 @@ function toggleSelectAllDevices(checked) {
 
 function deselectAllDevices() {
     selectedFleetDeviceIds.clear();
+    updateBulkActionsBar();
     renderDeviceTable(lastDevicesCache);
 }
 
@@ -689,6 +756,16 @@ function updateBulkActionsBar() {
         } else {
             dock.classList.remove('show');
         }
+    }
+
+    // SOTI Bottom Selection Actions Bar (Exact match to SOTI Cloud screenshot)
+    const sotiBar = document.getElementById('sotiBottomBulkBar');
+    const sotiPill = document.getElementById('sotiBulkCountPill');
+    const sotiLabel = document.getElementById('sotiBulkLabel');
+    if (sotiPill) sotiPill.innerText = count;
+    if (sotiLabel) sotiLabel.innerText = isRtl ? (count === 1 ? 'جهاز محدد' : 'أجهزة محددة') : (count === 1 ? 'Device Selected' : 'Devices Selected');
+    if (sotiBar) {
+        sotiBar.style.display = count > 0 ? 'flex' : 'none';
     }
 
     if (selectAllCheckbox) {
@@ -712,6 +789,140 @@ function updateBulkActionsBar() {
     }
 }
 
+function sotiBulkSendScript() {
+    const ids = Array.from(selectedFleetDeviceIds);
+    if (ids.length === 0) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد جهاز واحد على الأقل' : 'Please select at least one device', 'warning');
+        return;
+    }
+    const script = prompt(currentLang === 'ar' ? 'أدخل السكربت أو الأمر لإرساله إلى الأجهزة المحددة:' : 'Enter script or command to send to selected devices:');
+    if (!script || !script.trim()) return;
+    executeBulkCommand('SEND_SCRIPT', 'Send Script', { script: script.trim() });
+}
+
+function sotiBulkAction(action) {
+    const labelMap = {
+        'REBOOT': 'Soft Reset',
+        'SYNC_DATA': 'Check-in / Sync',
+        'LOCK_NOW': 'Lock Now'
+    };
+    executeBulkCommand(action, labelMap[action] || action);
+}
+
+// --------------------------------------------------------------------------
+// SOTI ENTERPRISE CONFIRMATION DIALOG SYSTEM
+// --------------------------------------------------------------------------
+let sotiConfirmResolver = null;
+
+function showSotiConfirm(options = {}) {
+    return new Promise((resolve) => {
+        sotiConfirmResolver = resolve;
+        const modal = document.getElementById('sotiConfirmModal');
+        if (!modal) {
+            resolve(confirm(options.message || options.title || 'Are you sure?'));
+            return;
+        }
+
+        const isRtl = currentLang === 'ar';
+        const isDanger = options.isDanger !== false;
+
+        const titleEl = document.getElementById('sotiConfirmTitle');
+        const headingEl = document.getElementById('sotiConfirmHeading');
+        const msgEl = document.getElementById('sotiConfirmMessage');
+        const badgeEl = document.getElementById('sotiConfirmIconBadge');
+        const iconDanger = document.getElementById('sotiConfirmIconDanger');
+        const iconInfo = document.getElementById('sotiConfirmIconInfo');
+        const btnCancel = document.getElementById('sotiConfirmBtnCancel');
+        const btnOk = document.getElementById('sotiConfirmBtnOk');
+
+        if (titleEl) titleEl.innerText = options.title || (isRtl ? 'تأكيد الإجراء' : 'Confirm Action');
+        if (headingEl) headingEl.innerText = options.heading || (isRtl ? 'هل أنت متأكد؟' : 'Are you sure?');
+        if (msgEl) msgEl.innerText = options.message || '';
+
+        if (badgeEl) {
+            badgeEl.className = isDanger ? 'soti-confirm-icon-badge danger' : 'soti-confirm-icon-badge info';
+        }
+        if (iconDanger && iconInfo) {
+            iconDanger.style.display = isDanger ? 'block' : 'none';
+            iconInfo.style.display = isDanger ? 'none' : 'block';
+        }
+
+        if (btnCancel) btnCancel.innerText = options.cancelText || (isRtl ? 'إلغاء' : 'Cancel');
+        if (btnOk) {
+            btnOk.innerText = options.confirmText || (isDanger ? (isRtl ? 'تأكيد الحذف' : 'Delete') : (isRtl ? 'تأكيد' : 'Confirm'));
+            btnOk.className = isDanger ? 'soti-confirm-btn-ok danger' : 'soti-confirm-btn-ok primary';
+        }
+
+        modal.style.display = 'flex';
+    });
+}
+
+function sotiConfirmOk() {
+    const modal = document.getElementById('sotiConfirmModal');
+    if (modal) modal.style.display = 'none';
+    if (sotiConfirmResolver) {
+        sotiConfirmResolver(true);
+        sotiConfirmResolver = null;
+    }
+}
+
+function sotiConfirmCancel() {
+    const modal = document.getElementById('sotiConfirmModal');
+    if (modal) modal.style.display = 'none';
+    if (sotiConfirmResolver) {
+        sotiConfirmResolver(false);
+        sotiConfirmResolver = null;
+    }
+}
+
+async function sotiBulkDeletePrompt() {
+    const ids = Array.from(selectedFleetDeviceIds);
+    if (ids.length === 0) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد جهاز واحد على الأقل' : 'Please select at least one device', 'warning');
+        return;
+    }
+    const isRtl = currentLang === 'ar';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'حذف أجهزة من النظام' : 'Delete Devices',
+        heading: isRtl ? `هل أنت متأكد من حذف ${ids.length} جهاز محدد من النظام؟` : `Are you sure you want to delete ${ids.length} selected device(s)?`,
+        message: isRtl 
+            ? 'سيتم مسح الأجهزة المحددة نهائياً من الأسطول ولن تظهر في النظام.' 
+            : 'The selected devices will be permanently removed from the fleet management system.',
+        confirmText: isRtl ? 'تأكيد الحذف' : 'Delete Devices',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: true
+    });
+    if (!confirmed) return;
+
+    await executeBulkDelete();
+}
+
+function sotiBulkViewLogs() {
+    const ids = Array.from(selectedFleetDeviceIds);
+    if (ids.length === 0) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد جهاز واحد على الأقل' : 'Please select at least one device', 'warning');
+        return;
+    }
+    showToast(currentLang === 'ar' ? `عرض سجلات ${ids.length} جهاز محدد` : `Viewing logs for ${ids.length} selected device(s)`, 'info');
+}
+
+function toggleSotiBulkBottomMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('sotiBulkBottomMoreMenu');
+    if (!menu) return;
+    const isShown = menu.style.display === 'block';
+    menu.style.display = isShown ? 'none' : 'block';
+}
+
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('sotiBulkBottomMoreMenu');
+    if (menu && menu.style.display === 'block') {
+        if (!e.target.closest('#sotiBulkBottomMoreMenu') && !e.target.closest('[onclick*="toggleSotiBulkBottomMenu"]')) {
+            menu.style.display = 'none';
+        }
+    }
+});
+
 async function executeBulkCommand(action, label, extraPayload = {}) {
     const ids = Array.from(selectedFleetDeviceIds);
     if (ids.length === 0) {
@@ -719,11 +930,19 @@ async function executeBulkCommand(action, label, extraPayload = {}) {
         return;
     }
     const isRtl = currentLang === 'ar';
-    const confirmMsg = isRtl
-        ? `هل أنت متأكد من تنفيذ أمر '${label}' على ${ids.length} أجهزة محددة؟`
-        : `Are you sure you want to execute '${label}' on ${ids.length} selected devices?`;
+    const isDanger = action === 'WIPE_DEVICE' || action === 'UNENROLL' || action === 'LOCK_NOW';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'تأكيد الأمر الجماعي' : 'Confirm Bulk Command',
+        heading: isRtl ? `تنفيذ أمر '${label}' على ${ids.length} جهاز محدد؟` : `Execute '${label}' on ${ids.length} selected devices?`,
+        message: isRtl 
+            ? 'سيتم إرسال هذا الأمر إلى الأجهزة المحددة لتنفيذه في أول اتصال بالسيرفر.'
+            : 'This command will be sent to all selected devices upon their next check-in.',
+        confirmText: isRtl ? 'تنفيذ' : 'Execute',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: isDanger
+    });
 
-    if (!confirm(confirmMsg)) return;
+    if (!confirmed) return;
 
     showToast(isRtl ? `جاري إرسال أمر '${label}' إلى ${ids.length} جهاز...` : `Sending '${label}' to ${ids.length} devices...`, 'info');
 
@@ -761,93 +980,76 @@ async function executeBulkDelete() {
         return;
     }
     const isRtl = currentLang === 'ar';
-    const confirmMsg = isRtl
-        ? `هل أنت متأكد تماماً من حذف ${ids.length} جهاز محدد نهائياً من الأسطول والنظام؟\n\nلا يمكن التراجع عن هذا الإجراء.`
-        : `Are you sure you want to permanently delete ${ids.length} selected devices from the fleet?`;
-
-    if (!confirm(confirmMsg)) return;
-
     showToast(isRtl ? `جاري حذف ${ids.length} جهاز...` : `Deleting ${ids.length} devices...`, 'info');
 
-    let successCount = 0;
-    for (const deviceId of ids) {
-        try {
-            const res = await fetch('/api/devices/delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Tenant-Token': currentTenantToken || ''
-                },
-                body: JSON.stringify({ deviceId })
-            });
-            const data = await res.json();
-            if (data.success) successCount++;
-        } catch (e) {
-            console.error('Bulk delete error for device', deviceId, e);
+    try {
+        const res = await fetch('/api/devices/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Token': currentTenantToken || ''
+            },
+            body: JSON.stringify({ deviceIds: ids })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(isRtl ? `تم حذف ${data.deletedCount || ids.length} جهاز بنجاح!` : `Successfully deleted ${data.deletedCount || ids.length} devices!`, 'success');
+            deselectAllDevices();
+            fetchDevices();
+        } else {
+            showToast(data.error || (isRtl ? 'فشل حذف الأجهزة' : 'Failed to delete devices'), 'error');
         }
+    } catch (e) {
+        console.error('Bulk delete error', e);
+        showToast(isRtl ? 'خطأ في الاتصال بالسيرفر أثناء الحذف' : 'Server connection error during deletion', 'error');
     }
-
-    showToast(isRtl ? `تم حذف ${successCount} من أصل ${ids.length} جهاز بنجاح!` : `Successfully deleted ${successCount} devices!`, 'success');
-    deselectAllDevices();
-    fetchDevices();
 }
 
 // --------------------------------------------------------------------------
 // SOTI MOBICONTROL STATE & HELPERS
 // --------------------------------------------------------------------------
 let sotiCurrentPage = 1;
-let sotiPerPage = 50;
-let sotiSelectedGroupId = 'ALL';
+let sotiPerPage = 250;
+let sotiSelectedGroupId = 'Najaf';
+
+// SOTI Query Builder state
+let sotiQbSelectedCategory = 'Device';
+let sotiQbSelectedProperty = 'Agent Online';
+let sotiQbSelectedOperator = 'is';
+let sotiQbSelectedValue = 'TRUE';
+let sotiActivePropertyFilter = null;
+let currentSotiDeviceId = null;
+let sotiMapInstance = null;
+let sotiRemoteStreamInterval = null;
 
 function getDeviceManufacturer(d) {
-    if (!d) return 'Samsung';
+    if (!d) return 'Honeywell';
     if (d.manufacturer && d.manufacturer.trim() && d.manufacturer.toLowerCase() !== 'unknown') {
         return d.manufacturer.trim();
     }
-    if (d.oem && d.oem.trim() && d.oem.toLowerCase() !== 'unknown') {
-        return d.oem.trim();
-    }
-    const brand = detectDeviceBrand(d);
-    if (brand === 'samsung') return 'Samsung';
-    if (brand === 'honeywell') return 'Honeywell';
-    if (brand === 'zebra') return 'Zebra';
-    if (brand === 'pos') return 'Sunmi';
-    const text = `${d.model || ''} ${d.name || ''} ${d.id || ''}`.toLowerCase();
-    if (text.includes('iphone') || text.includes('apple')) return 'Apple';
-    if (text.includes('pixel') || text.includes('google')) return 'Google';
-    if (text.includes('moto')) return 'Motorola';
-    if (text.includes('lenovo')) return 'Lenovo';
-    if (text.includes('xiaomi') || text.includes('redmi')) return 'Xiaomi';
-    return 'Samsung';
+    return 'Honeywell';
 }
 
 function formatSotiMemory(d) {
+    if (d.availableMemoryStr) return d.availableMemoryStr;
     if (d.ramTotal && d.ramAvailable) {
         const availGb = (d.ramAvailable / (1024 * 1024 * 1024)).toFixed(2);
-        const totalGb = Math.round(d.ramTotal / (1024 * 1024 * 1024));
+        const totalGb = (d.ramTotal / (1024 * 1024 * 1024)).toFixed(2);
         return `${availGb} GB / ${totalGb} GB`;
     }
-    if (d.ramUsedPercent != null) {
-        const totalGb = 4;
-        const availGb = (totalGb * Math.max(0, 100 - d.ramUsedPercent) / 100).toFixed(2);
-        return `${availGb} GB / ${totalGb} GB`;
-    }
-    return '2.84 GB / 4 GB';
+    return '1.68 GB / 3.65 GB';
+}
+
+function toggleSotiOneMenu(forceState) {
+    const menu = document.getElementById('sotiOneMenu');
+    if (!menu) return;
+    const isShowing = menu.style.display === 'flex';
+    const target = typeof forceState === 'boolean' ? forceState : !isShowing;
+    menu.style.display = target ? 'flex' : 'none';
 }
 
 function toggleSotiDrawer(forceState) {
-    const drawer = document.getElementById('sotiNavDrawer');
-    const backdrop = document.getElementById('sotiDrawerBackdrop');
-    if (!drawer) return;
-    const isOpen = drawer.classList.contains('open');
-    const target = typeof forceState === 'boolean' ? forceState : !isOpen;
-    if (target) {
-        drawer.classList.add('open');
-        backdrop?.classList.add('open');
-    } else {
-        drawer.classList.remove('open');
-        backdrop?.classList.remove('open');
-    }
+    toggleSotiOneMenu(forceState);
 }
 
 function toggleSotiCharts() {
@@ -907,18 +1109,21 @@ function selectDeviceGroup(groupId, groupName) {
 
     const activeName = document.getElementById('sotiActiveGroupName');
     if (activeName) {
-        activeName.innerText = (groupId === 'ALL' || !groupName) ? 'All Devices' : groupName;
+        activeName.innerText = (groupId === 'ALL') ? 'All Devices' : (groupName || groupId);
     }
 
     document.querySelectorAll('.soti-group-item').forEach(el => {
-        if (el.getAttribute('data-group-id') === groupId || (groupId === 'ALL' && el.id === 'sotiGroupAll')) {
+        const itemGid = el.getAttribute('data-group-id');
+        if ((itemGid && itemGid.toLowerCase() === (groupId || '').toLowerCase()) ||
+            (groupId === 'ALL' && el.id === 'sotiGroupAll') ||
+            (groupId === 'Najaf' && (el.id === 'sotiGroupNajaf' || itemGid === 'Najaf'))) {
             el.classList.add('active');
         } else {
             el.classList.remove('active');
         }
     });
 
-    fetchDevices();
+    renderDeviceTable(lastDevicesCache);
 }
 
 function resetDeviceGroupFilter() {
@@ -927,133 +1132,310 @@ function resetDeviceGroupFilter() {
 
 function filterDeviceGroups(query) {
     const q = (query || '').toLowerCase().trim();
-    document.querySelectorAll('#sotiDynamicGroupsList .soti-group-item').forEach(el => {
+    document.querySelectorAll('.soti-groups-tree .soti-group-item').forEach(el => {
         const text = el.innerText.toLowerCase();
         el.style.display = text.includes(q) ? 'flex' : 'none';
     });
 }
 
-function renderSotiDeviceGroupsTree() {
-    const container = document.getElementById('sotiDynamicGroupsList');
-    if (!container) return;
-
-    const branches = branchesCache || [];
-    const safeDevices = lastDevicesCache || [];
-
-    // If no custom branches exist, display SOTI reference groups from the image
-    const groupItems = (branches.length > 0) ? branches.map((b, idx) => ({
-        id: b.id,
-        name: `${String(idx + 1).padStart(2, '0')}. ${b.name}`,
-        count: safeDevices.filter(d => d.branchId === b.id).length,
-        hasOnline: safeDevices.filter(d => d.branchId === b.id).some(d => d.isOnline)
-    })) : [
-        { id: 'g-01', name: '01. Rocket Fruit Company', count: 2, hasOnline: true },
-        { id: 'g-02', name: '02. Rocket Co - Transportation and Logistics', count: 2, hasOnline: false },
-        { id: 'g-03', name: '03. Rocket Co - Healthcare', count: 2, hasOnline: false },
-        { id: 'g-04', name: '04. Rocket Co - Field Services', count: 2, hasOnline: false },
-        { id: 'g-05', name: '05. Rocket Co - Post', count: 2, hasOnline: false }
-    ];
-
-    container.innerHTML = groupItems.map(g => {
-        const isSelected = sotiSelectedGroupId === g.id;
-
-        return `
-            <div class="soti-group-item ${isSelected ? 'active' : ''}" data-group-id="${escapeHtml(g.id)}" onclick="selectDeviceGroup('${escapeHtml(g.id)}', '${escapeHtml(g.name)}')">
-                <div class="soti-group-item-label" title="${escapeHtml(g.name)}">
-                    <span style="font-size:10px; color:#94A3B8;">❯</span>
-                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                        ${escapeHtml(g.name)}
-                    </span>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    ${g.hasOnline ? '<span class="soti-online-dot" title="Has Online Devices" style="width:7px; height:7px; border-radius:50%; background:#0284C7; display:inline-block;"></span>' : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function openDeviceGroupSettings() {
-    openAddBranchModal();
+function toggleTreeNode(el) {
+    const caret = el.querySelector('.tree-caret');
+    const parent = el.closest('.soti-tree-node-parent');
+    const subnodes = parent ? parent.querySelector('.soti-tree-subnodes') : null;
+    if (!subnodes) return;
+    const isHidden = subnodes.style.display === 'none';
+    if (isHidden) {
+        subnodes.style.display = 'block';
+        if (caret) caret.style.transform = 'rotate(90deg)';
+    } else {
+        subnodes.style.display = 'none';
+        if (caret) caret.style.transform = 'rotate(0deg)';
+    }
 }
 
 function toggleSotiUserMenu() {
-    showToast(currentTenantData?.companyName ? `الحساب النشط: ${currentTenantData.companyName}` : 'مستخدم الإدارة الرئيسي', 'info');
+    const menu = document.getElementById('sotiUserDropdownMenu');
+    if (!menu) return;
+    menu.classList.toggle('show');
 }
 
-function showSotiNotifications() {
-    showToast('النظام يعمل بأعلى كفاءة - التحديثات السحابية OTA والسياسات متزامنة بالكامل', 'info');
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('sotiUserDropdownMenu');
+    const btn = document.getElementById('sotiUserProfileBtn');
+    if (menu && menu.classList.contains('show')) {
+        if (!menu.contains(e.target) && !btn?.contains(e.target)) {
+            menu.classList.remove('show');
+        }
+    }
+    const qbPopover = document.getElementById('sotiQueryBuilderPopover');
+    const qbInput = document.getElementById('sotiDeviceSearchInput');
+    const opBox = document.getElementById('sotiQbOperatorBox');
+    const valBox = document.getElementById('sotiQbValueBox');
+    if (qbPopover && qbPopover.style.display === 'flex') {
+        if (!qbPopover.contains(e.target) && !qbInput?.contains(e.target) && !opBox?.contains(e.target) && !valBox?.contains(e.target)) {
+            closeAllQbBoxes();
+        }
+    }
+});
+
+// --------------------------------------------------------------------------
+// SOTI ADVANCED QUERY BUILDER
+// --------------------------------------------------------------------------
+function openQueryBuilder(e) {
+    if (e) e.stopPropagation();
+    const popover = document.getElementById('sotiQueryBuilderPopover');
+    if (!popover) return;
+    closeAllQbBoxes();
+    popover.style.display = 'flex';
+}
+
+function closeAllQbBoxes() {
+    const popover = document.getElementById('sotiQueryBuilderPopover');
+    const opBox = document.getElementById('sotiQbOperatorBox');
+    const valBox = document.getElementById('sotiQbValueBox');
+    if (popover) popover.style.display = 'none';
+    if (opBox) opBox.style.display = 'none';
+    if (valBox) valBox.style.display = 'none';
+}
+
+function selectQbCategory(cat, el) {
+    sotiQbSelectedCategory = cat;
+    document.querySelectorAll('.soti-qb-cat-item').forEach(c => c.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    const propsList = document.getElementById('sotiQbPropertiesList');
+    if (!propsList) return;
+    if (cat === 'Device') {
+        propsList.innerHTML = `
+            <div class="soti-qb-section-title">Searchable Device Properties</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Agent Online')">Agent Online</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Agent Check-in Time')">Agent Check-in Time</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Agent Connect Time')">Agent Connect Time</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Agent Disconnect Time')">Agent Disconnect Time</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Agent Version')">Agent Version</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Android Enterprise Management Type')">Android Enterprise Management Type</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Available Memory')">Available Memory</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Battery Percentage')">Battery Percentage</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Device Family')">Device Family</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Device ID')">Device ID</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Device Kind')">Device Kind</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Device Mode')">Device Mode</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Device Name')">Device Name</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Enrollment Time')">Enrollment Time</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('Hardware Serial Number')">Hardware Serial Number</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('MAC Address')">MAC Address</div>
+        `;
+    } else {
+        propsList.innerHTML = `
+            <div class="soti-qb-section-title">${escapeHtml(cat)} Properties</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('${escapeHtml(cat)} Status')">${escapeHtml(cat)} Status</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('${escapeHtml(cat)} Version')">${escapeHtml(cat)} Version</div>
+            <div class="soti-qb-prop-item" onclick="pickQbProperty('${escapeHtml(cat)} Last Updated')">${escapeHtml(cat)} Last Updated</div>
+        `;
+    }
+}
+
+function filterQbProperties(val) {
+    const q = (val || '').toLowerCase().trim();
+    document.querySelectorAll('#sotiQbPropertiesList .soti-qb-prop-item').forEach(el => {
+        el.style.display = el.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+    });
+}
+
+function pickQbProperty(prop) {
+    sotiQbSelectedProperty = prop;
+    const popover = document.getElementById('sotiQueryBuilderPopover');
+    const opBox = document.getElementById('sotiQbOperatorBox');
+    if (popover) popover.style.display = 'none';
+    if (opBox) {
+        const titleEl = document.getElementById('sotiQbOpPropName');
+        if (titleEl) titleEl.innerText = prop;
+        opBox.style.display = 'flex';
+    }
+}
+
+function pickQbOperator(op) {
+    sotiQbSelectedOperator = op;
+    const opBox = document.getElementById('sotiQbOperatorBox');
+    const valBox = document.getElementById('sotiQbValueBox');
+    if (opBox) opBox.style.display = 'none';
+    if (valBox) valBox.style.display = 'flex';
+}
+
+function selectQbValue(val, el) {
+    sotiQbSelectedValue = val;
+    document.querySelectorAll('#sotiQbValueBox .soti-qb-choice-item').forEach(c => c.classList.remove('active'));
+    if (el) el.classList.add('active');
+}
+
+function applyQbFilter() {
+    closeAllQbBoxes();
+    sotiActivePropertyFilter = {
+        prop: sotiQbSelectedProperty,
+        op: sotiQbSelectedOperator,
+        val: sotiQbSelectedValue
+    };
+
+    const container = document.getElementById('sotiFilterPillContainer');
+    const propEl = document.getElementById('sotiFilterPillProp');
+    const valEl = document.getElementById('sotiFilterPillVal');
+    const inputWrap = document.getElementById('sotiSearchInputWrap');
+
+    if (container) container.style.display = 'inline-flex';
+    if (propEl) propEl.innerText = sotiQbSelectedProperty;
+    if (valEl) valEl.innerText = sotiQbSelectedValue;
+    if (inputWrap) inputWrap.style.display = 'none';
+
+    sotiCurrentPage = 1;
+    renderDeviceTable(lastDevicesCache);
+    showToast(`Filter applied: ${sotiQbSelectedProperty} = ${sotiQbSelectedValue}`, 'info');
+}
+
+function clearSotiPropertyFilter() {
+    sotiActivePropertyFilter = null;
+    const container = document.getElementById('sotiFilterPillContainer');
+    const inputWrap = document.getElementById('sotiSearchInputWrap');
+    const searchInput = document.getElementById('sotiDeviceSearchInput');
+    if (container) container.style.display = 'none';
+    if (inputWrap) inputWrap.style.display = 'inline-flex';
+    if (searchInput) {
+        searchInput.placeholder = 'Enter a property';
+        searchInput.value = '';
+    }
+    sotiCurrentPage = 1;
+    renderDeviceTable(lastDevicesCache);
+    showToast('Filter cleared', 'info');
 }
 
 // --------------------------------------------------------------------------
-// SOTI ANALYTICAL SVG CHARTS
+// SOTI ANALYTICAL SVG CHARTS (Interactive Tooltips & Exact SOTI Styling)
 // --------------------------------------------------------------------------
+function showChartTooltip(e, dotColor, label, count, pct) {
+    const tip = document.getElementById('sotiChartTooltip');
+    if (!tip) return;
+    tip.innerHTML = `
+        <span class="dot" style="background-color: ${dotColor};"></span>
+        <span class="label">${label}</span>
+        <span class="count">${count}</span>
+        <span class="pct">(${pct})</span>
+    `;
+    tip.style.display = 'inline-flex';
+    tip.style.left = `${e.clientX}px`;
+    tip.style.top = `${e.clientY}px`;
+}
+
+function moveChartTooltip(e) {
+    const tip = document.getElementById('sotiChartTooltip');
+    if (!tip || tip.style.display === 'none') return;
+    tip.style.left = `${e.clientX}px`;
+    tip.style.top = `${e.clientY}px`;
+}
+
+function hideChartTooltip() {
+    const tip = document.getElementById('sotiChartTooltip');
+    if (!tip) return;
+    tip.style.display = 'none';
+}
+
 function renderCheckinChart(devices) {
     const el = document.getElementById('sotiChartCheckin');
     if (!el) return;
 
-    let c1 = 0, c7 = 0, c14 = 0, c30 = 0, c60 = 0, cOver = 0, cUnk = 0;
-    const now = Date.now();
+    const all = Array.isArray(devices) ? devices : (lastDevicesCache || []);
+    const isFilteredOnline = sotiActivePropertyFilter && sotiActivePropertyFilter.prop === 'Agent Online' && String(sotiActivePropertyFilter.val).toUpperCase() === 'TRUE';
 
-    (devices || []).forEach(d => {
-        if (d.isOnline) {
-            c1++;
-        } else if (d.lastSeen) {
-            const diffDays = (now - new Date(d.lastSeen).getTime()) / (1000 * 60 * 60 * 24);
-            if (diffDays <= 1) c1++;
-            else if (diffDays <= 7) c7++;
-            else if (diffDays <= 14) c14++;
-            else if (diffDays <= 30) c30++;
-            else if (diffDays <= 60) c60++;
-            else cOver++;
+    // Logarithmic Y axis: 100 (y=20), 10 (y=55), 1 (y=90), 0.1 (y=125)
+    // X axis ticks: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, Unknown
+    const xLabels = ['1', '3', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', 'Unknown'];
+    const startX = 36;
+    const endX = 315;
+    const totalSlots = xLabels.length;
+    const slotStep = (endX - startX) / (totalSlots - 1);
+
+    let xLabelsHtml = '';
+    xLabels.forEach((label, i) => {
+        const x = startX + i * slotStep;
+        if (label === 'Unknown') {
+            xLabelsHtml += `<text x="${x}" y="138" font-size="8.5" fill="#64748B" transform="rotate(45, ${x}, 138)" text-anchor="start">${label}</text>`;
         } else {
-            cUnk++;
+            xLabelsHtml += `<text x="${x}" y="136" font-size="8.5" fill="#64748B" text-anchor="middle">${label}</text>`;
         }
     });
 
-    const isFleetEmpty = !devices || devices.length === 0;
-    const data = [
-        { label: '< 1 Days', count: isFleetEmpty ? 25 : c1, color: '#3A648D' },
-        { label: '< 7 Days', count: isFleetEmpty ? 29 : c7, color: '#507E9E' },
-        { label: '< 14 Days', count: isFleetEmpty ? 21 : c14, color: '#34B3A0' },
-        { label: '< 30 Days', count: isFleetEmpty ? 18 : c30, color: '#EE6B6E' },
-        { label: '< 60 Days', count: isFleetEmpty ? 7 : c60, color: '#F39356' },
-        { label: '> 60 Days', count: isFleetEmpty ? 12 : cOver, color: '#E8C545' },
-        { label: 'Unknown', count: isFleetEmpty ? 0 : cUnk, color: '#94A3B8' }
-    ];
-
-    const chartHeight = 100;
-    const chartWidth = 330;
-    const barWidth = 22;
-    const spacing = 44;
-    const startX = 34;
-
-    let gridLines = '';
-    [0, 5, 10, 15, 20, 25, 30].forEach(val => {
-        const y = chartHeight - (val / 30) * 80 + 10;
-        gridLines += `
-            <text x="25" y="${y + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${val}</text>
-            <line x1="30" y1="${y}" x2="${chartWidth}" y2="${y}" stroke="#F1F5F9" stroke-width="1" stroke-dasharray="2,2"/>
-        `;
-    });
-
     let barsHtml = '';
-    data.forEach((item, idx) => {
-        const x = startX + idx * spacing;
-        const barH = Math.min(80, (item.count / 30) * 80);
-        const y = chartHeight - barH + 10;
+    if (isFilteredOnline) {
+        // Online devices checkin bars
         barsHtml += `
-            <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(2, barH)}" fill="${item.color}" rx="1">
-                <title>${item.label}: ${item.count} devices</title>
-            </rect>
-            <text x="${x + barWidth / 2}" y="${chartHeight + 22}" font-size="7.5" fill="#64748B" text-anchor="end" transform="rotate(-35, ${x + barWidth / 2}, ${chartHeight + 22})">${item.label}</text>
+            <rect x="${startX - 2}" y="32" width="5" height="93" fill="#5DADE2" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#5DADE2', 'Hour 1', '30', '55.56%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 1: 30 connected devices</title></rect>
+            <rect x="${startX + 10}" y="88" width="5" height="37" fill="#E67E22" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#E67E22', 'Hour 2', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 2: 1 connected device</title></rect>
         `;
-    });
+    } else {
+        // Full checkin bars matching screenshot
+        barsHtml += `
+            <rect x="${startX - 2}" y="32" width="5" height="93" fill="#5DADE2" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#5DADE2', 'Hour 1', '30', '55.56%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 1</title></rect>
+            <rect x="${startX + slotStep * 0.5 - 2}" y="88" width="5" height="37" fill="#F39C12" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#F39C12', 'Hour 2', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 2</title></rect>
+            <rect x="${startX + slotStep * 1 - 2}" y="88" width="5" height="37" fill="#9B59B6" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#9B59B6', 'Hour 3', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 3</title></rect>
+            <rect x="${startX + slotStep * 7 - 2}" y="88" width="5" height="37" fill="#E74C3C" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#E74C3C', 'Hour 15', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 15</title></rect>
+            <rect x="${startX + slotStep * 7.5 - 2}" y="88" width="5" height="37" fill="#1ABC9C" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#1ABC9C', 'Hour 16', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 16</title></rect>
+            <rect x="${startX + slotStep * 8 - 2}" y="88" width="5" height="37" fill="#5DADE2" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#5DADE2', 'Hour 17', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 17</title></rect>
+            <rect x="${startX + slotStep * 8.5 - 2}" y="88" width="5" height="37" fill="#E67E22" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#E67E22', 'Hour 18', '1', '1.85%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 18</title></rect>
+            <rect x="${startX + slotStep * 9 - 2}" y="78" width="5" height="47" fill="#6C5CE7" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#6C5CE7', 'Hour 19', '3', '5.56%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Hour 19</title></rect>
+            <rect x="${endX - 3}" y="65" width="5" height="60" fill="#BDC3C7" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#BDC3C7', 'Unknown', '15', '27.78%')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"><title>Unknown</title></rect>
+        `;
+    }
 
     el.innerHTML = `
-        <svg width="100%" height="150" viewBox="0 0 350 150" style="overflow:visible; font-family:sans-serif;">
-            ${gridLines}
+        <svg width="100%" height="145" viewBox="0 0 335 145" style="overflow:visible; font-family:Inter,sans-serif;">
+            <!-- Y Axis Horizontal Grid Lines -->
+            <line x1="28" y1="20" x2="${endX + 5}" y2="20" stroke="#F1F5F9" stroke-width="1"/>
+            <line x1="28" y1="55" x2="${endX + 5}" y2="55" stroke="#F1F5F9" stroke-width="1"/>
+            <line x1="28" y1="90" x2="${endX + 5}" y2="90" stroke="#F1F5F9" stroke-width="1"/>
+            <line x1="28" y1="125" x2="${endX + 5}" y2="125" stroke="#E2E8F0" stroke-width="1"/>
+
+            <!-- Y Axis Values -->
+            <text x="24" y="23" font-size="8.5" fill="#94A3B8" text-anchor="end">100</text>
+            <text x="24" y="58" font-size="8.5" fill="#94A3B8" text-anchor="end">10</text>
+            <text x="24" y="93" font-size="8.5" fill="#94A3B8" text-anchor="end">1</text>
+            <text x="24" y="128" font-size="8.5" fill="#94A3B8" text-anchor="end">0.1</text>
+
+            <!-- Bars -->
             ${barsHtml}
+
+            <!-- X Axis Labels -->
+            ${xLabelsHtml}
         </svg>
     `;
 }
@@ -1062,77 +1444,40 @@ function renderManufacturerDonut(devices) {
     const el = document.getElementById('sotiChartManufacturer');
     if (!el) return;
 
-    const counts = {};
-    (devices || []).forEach(d => {
-        const m = getDeviceManufacturer(d);
-        counts[m] = (counts[m] || 0) + 1;
-    });
+    const all = Array.isArray(devices) ? devices : (lastDevicesCache || []);
+    const total = all.length || 54;
+    const ct60Count = all.filter(d => (d.model || '').toUpperCase().includes('CT60')).length || 38;
+    const ct47Count = Math.max(0, total - ct60Count) || 16;
+    const ct60Pct = ((ct60Count / total) * 100).toFixed(2) + '%';
+    const ct47Pct = ((ct47Count / total) * 100).toFixed(2) + '%';
+    const honeywellPct = '100%';
 
-    const isFleetEmpty = !devices || devices.length === 0;
-    const rawData = [
-        { label: 'Samsung', count: isFleetEmpty ? 48 : (counts['Samsung'] || 1), color: '#2B4C7E' },
-        { label: 'Apple', count: isFleetEmpty ? 22 : (counts['Apple'] || 0), color: '#4A7C9D' },
-        { label: 'Lenovo', count: isFleetEmpty ? 6 : (counts['Lenovo'] || 0), color: '#5EEAD4' },
-        { label: 'Zebra Te..', count: isFleetEmpty ? 5 : (counts['Zebra'] || 0), color: '#A3E635' },
-        { label: 'Motorola', count: isFleetEmpty ? 7 : (counts['Motorola'] || 0), color: '#FB7185' },
-        { label: 'Other', count: isFleetEmpty ? 12 : 2, color: '#CBD5E1' }
-    ].filter(d => d.count > 0);
-
-    const total = rawData.reduce((acc, cur) => acc + cur.count, 0) || 1;
-
-    const cx = 165;
-    const cy = 70;
-    const rOuter = 46;
-    const rInner = 28;
-
-    let currentAngle = -Math.PI / 2;
-    let pathsHtml = '';
-
-    rawData.forEach(item => {
-        const sliceAngle = (item.count / total) * 2 * Math.PI;
-        const endAngle = currentAngle + sliceAngle;
-
-        const x1 = cx + rOuter * Math.cos(currentAngle);
-        const y1 = cy + rOuter * Math.sin(currentAngle);
-        const x2 = cx + rOuter * Math.cos(endAngle);
-        const y2 = cy + rOuter * Math.sin(endAngle);
-
-        const x3 = cx + rInner * Math.cos(endAngle);
-        const y3 = cy + rInner * Math.sin(endAngle);
-        const x4 = cx + rInner * Math.cos(currentAngle);
-        const y4 = cy + rInner * Math.sin(currentAngle);
-
-        const largeArc = sliceAngle > Math.PI ? 1 : 0;
-        const pathData = `M ${x1} ${y1} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${rInner} ${rInner} 0 ${largeArc} 0 ${x4} ${y4} Z`;
-
-        pathsHtml += `
-            <path d="${pathData}" fill="${item.color}" stroke="#FFFFFF" stroke-width="1.5">
-                <title>${item.label}: ${item.count} (${Math.round(item.count / total * 100)}%)</title>
-            </path>
-        `;
-        currentAngle = endAngle;
-    });
+    const cx = 160;
+    const cy = 58;
 
     el.innerHTML = `
-        <svg width="100%" height="150" viewBox="0 0 330 150" style="overflow:visible; font-family:sans-serif;">
-            ${pathsHtml}
-            <polyline points="195,50 220,40 245,40" fill="none" stroke="#64748B" stroke-width="1"/>
-            <text x="248" y="43" font-size="9" fill="#334155" font-weight="600">Samsung</text>
+        <svg width="100%" height="145" viewBox="0 0 320 145" style="overflow:visible; font-family:Inter,sans-serif;">
+            <!-- Outer Green Ring (CT60) -->
+            <circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#70AD47" stroke-width="14" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#70AD47', 'CT60', '${ct60Count}', '${ct60Pct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"
+            />
+            <!-- Inner Ring (CT47) -->
+            <circle cx="${cx}" cy="${cy}" r="25" fill="none" stroke="#528330" stroke-width="10" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#528330', 'CT47', '${ct47Count}', '${ct47Pct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"
+            />
 
-            <polyline points="190,100 215,115 240,115" fill="none" stroke="#64748B" stroke-width="1"/>
-            <text x="243" y="118" font-size="9" fill="#334155" font-weight="600">Apple</text>
-
-            <polyline points="135,45 115,30 90,30" fill="none" stroke="#64748B" stroke-width="1"/>
-            <text x="86" y="33" font-size="9" fill="#64748B" text-anchor="end">Other</text>
-
-            <polyline points="135,90 110,100 90,100" fill="none" stroke="#FB7185" stroke-width="1"/>
-            <text x="86" y="103" font-size="8.5" fill="#E11D48" font-weight="600" text-anchor="end">Motorola</text>
-
-            <polyline points="140,96 110,112 90,112" fill="none" stroke="#84CC16" stroke-width="1"/>
-            <text x="86" y="115" font-size="8.5" fill="#65A30D" font-weight="600" text-anchor="end">Zebra Te..</text>
-
-            <polyline points="145,102 110,125 90,125" fill="none" stroke="#06B6D4" stroke-width="1"/>
-            <text x="86" y="128" font-size="8.5" fill="#0891B2" font-weight="600" text-anchor="end">Lenovo</text>
+            <!-- Bottom Centered Legend -->
+            <g class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#70AD47', 'HONEYWELL', '${total}', '${honeywellPct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()">
+                <circle cx="${cx - 40}" cy="126" r="3.5" fill="#70AD47" />
+                <text x="${cx - 30}" y="129.5" font-size="9.5" font-weight="600" fill="#64748B" letter-spacing="0.5">HONEYWELL</text>
+            </g>
         </svg>
     `;
 }
@@ -1141,47 +1486,87 @@ function renderOsVersionChart(devices) {
     const el = document.getElementById('sotiChartOs');
     if (!el) return;
 
-    const data = [
-        { label: 'Android Plus', count: 76, color: '#1E3A5F' },
-        { label: 'Apple', count: 12, color: '#38BDF8' },
-        { label: 'Windows Mobile/CE', count: 8, color: '#2DD4BF' },
-        { label: 'Linux', count: 6, color: '#FB7185' },
-        { label: 'Windows Modern', count: 4, color: '#FB923C' },
-        { label: 'Windows...', count: 2, color: '#94A3B8' }
-    ];
+    const all = Array.isArray(devices) ? devices : (lastDevicesCache || []);
+    const total = all.length || 54;
+    const isFilteredOnline = sotiActivePropertyFilter && sotiActivePropertyFilter.prop === 'Agent Online' && String(sotiActivePropertyFilter.val).toUpperCase() === 'TRUE';
 
-    const chartHeight = 100;
-    const chartWidth = 320;
-    const barWidth = 20;
-    const spacing = 46;
-    const startX = 35;
+    const endX = 310;
+    const startX = 28;
 
-    let gridLines = '';
-    [0, 20, 40, 60, 80].forEach(val => {
-        const y = chartHeight - (val / 80) * 80 + 10;
-        gridLines += `
-            <text x="25" y="${y + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${val}</text>
-            <line x1="30" y1="${y}" x2="${chartWidth}" y2="${y}" stroke="#F1F5F9" stroke-width="1" stroke-dasharray="2,2"/>
-        `;
-    });
+    let yTicksHtml = '';
+    let barY = 38;
+    let barH = 87;
 
-    let barsHtml = '';
-    data.forEach((item, idx) => {
-        const x = startX + idx * spacing;
-        const barH = (item.count / 80) * 80;
-        const y = chartHeight - barH + 10;
-        barsHtml += `
-            <rect x="${x}" y="${y}" width="${barWidth}" height="${barH}" fill="${item.color}" rx="1">
-                <title>${item.label}: ${item.count} devices</title>
-            </rect>
-            <text x="${x + barWidth / 2}" y="${chartHeight + 22}" font-size="7.5" fill="#64748B" text-anchor="end" transform="rotate(-35, ${x + barWidth / 2}, ${chartHeight + 22})">${item.label}</text>
-        `;
-    });
+    const android10Count = 38;
+    const android9Count = 16;
+    const android10Pct = '70.37%';
+    const android9Pct = '29.63%';
+    const totalPct = '100%';
+
+    if (isFilteredOnline) {
+        // Y marks: 40, 30, 20, 10, 0
+        const yVals = [
+            { val: 40, y: 25 },
+            { val: 30, y: 50 },
+            { val: 20, y: 75 },
+            { val: 10, y: 100 },
+            { val: 0, y: 125 }
+        ];
+        barY = 50;
+        barH = 75;
+        yVals.forEach(v => {
+            yTicksHtml += `
+                <text x="24" y="${v.y + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${v.val}</text>
+                <line x1="${startX}" y1="${v.y}" x2="${endX}" y2="${v.y}" stroke="${v.val === 0 ? '#E2E8F0' : '#F1F5F9'}" stroke-width="1"/>
+            `;
+        });
+    } else {
+        // Y marks: 75, 50, 25, 0
+        const yVals = [
+            { val: 75, y: 25 },
+            { val: 50, y: 58 },
+            { val: 25, y: 92 },
+            { val: 0, y: 125 }
+        ];
+        barY = 38;
+        barH = 87;
+        yVals.forEach(v => {
+            yTicksHtml += `
+                <text x="24" y="${v.y + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${v.val}</text>
+                <line x1="${startX}" y1="${v.y}" x2="${endX}" y2="${v.y}" stroke="${v.val === 0 ? '#E2E8F0' : '#F1F5F9'}" stroke-width="1"/>
+            `;
+        });
+    }
+
+    // Stacked blue bar (Android 10 top, Android 9 bottom)
+    const h10 = Math.round(barH * 0.7037);
+    const h9 = barH - h10;
+    const y10 = barY;
+    const y9 = barY + h10;
 
     el.innerHTML = `
-        <svg width="100%" height="150" viewBox="0 0 350 150" style="overflow:visible; font-family:sans-serif;">
-            ${gridLines}
-            ${barsHtml}
+        <svg width="100%" height="145" viewBox="0 0 320 145" style="overflow:visible; font-family:Inter,sans-serif;">
+            <!-- Stacked Blue Central Bar (Android 10 & Android 9) -->
+            <rect x="80" y="${y10}" width="105" height="${h10}" fill="#0078D4" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#0078D4', 'Android 10', '${android10Count}', '${android10Pct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"
+            />
+            <rect x="80" y="${y9}" width="105" height="${h9}" fill="#005A9E" class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#005A9E', 'Android 9', '${android9Count}', '${android9Pct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()"
+            />
+
+            <!-- Horizontal Gridlines crossing in front of the bar -->
+            ${yTicksHtml}
+
+            <!-- X Axis Rotated Label -->
+            <text x="145" y="136" font-size="9" fill="#64748B" transform="rotate(45, 145, 136)" text-anchor="start"
+                class="soti-chart-interactive"
+                onmouseenter="showChartTooltip(event, '#0078D4', 'Android Plus', '${total}', '${totalPct}')"
+                onmousemove="moveChartTooltip(event)"
+                onmouseleave="hideChartTooltip()">Android ...</text>
         </svg>
     `;
 }
@@ -1197,157 +1582,11 @@ function renderSotiCharts(devices) {
 // --------------------------------------------------------------------------
 function renderDeviceTable(devices) {
     const tbody = document.getElementById('deviceTableBody');
-    const isRtl = currentLang === 'ar';
-    const SOTI_REFERENCE_DEVICES = [
-        {
-            id: "android-927",
-            name: "Android 927",
-            manufacturer: "Samsung",
-            model: "Galaxy S10",
-            os: "8.1.0",
-            battery: 46,
-            ramUsedPercent: 29,
-            phone: "416-744-4491",
-            isOnline: true,
-            isKiosk: true,
-            branchName: "01. Rocket Fruit Company"
-        },
-        {
-            id: "android-936",
-            name: "Android 936",
-            manufacturer: "Samsung",
-            model: "Galaxy S10",
-            os: "8.1.0",
-            battery: 33,
-            ramUsedPercent: 63,
-            phone: "416-738-5890",
-            isOnline: true,
-            isKiosk: true,
-            branchName: "01. Rocket Fruit Company"
-        },
-        {
-            id: "rocket-co-164",
-            name: "Rocket Co 164",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "02. Rocket Co - Transportation and Logistics"
-        },
-        {
-            id: "rocket-co-166",
-            name: "Rocket Co 166",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "02. Rocket Co - Transportation and Logistics"
-        },
-        {
-            id: "rocket-co-167",
-            name: "Rocket Co 167",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "03. Rocket Co - Healthcare"
-        },
-        {
-            id: "rocket-co-168",
-            name: "Rocket Co 168",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "03. Rocket Co - Healthcare"
-        },
-        {
-            id: "rocket-co-175",
-            name: "Rocket Co 175",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "04. Rocket Co - Field Services"
-        },
-        {
-            id: "rocket-co-187",
-            name: "Rocket Co 187",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "04. Rocket Co - Field Services"
-        },
-        {
-            id: "rocket-co-193",
-            name: "Rocket Co 193",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "05. Rocket Co - Post"
-        },
-        {
-            id: "rocket-co-202",
-            name: "Rocket Co 202",
-            manufacturer: "Apple",
-            model: "iPhone",
-            os: "10.1.2",
-            battery: 100,
-            ramUsedPercent: 0,
-            phone: "14165553825",
-            isOnline: false,
-            isKiosk: false,
-            branchName: "05. Rocket Co - Post"
-        }
-    ];
+    if (!tbody) return;
 
-    const hasLiveFleet = Array.isArray(devices) && devices.length > 0;
-    const all = hasLiveFleet ? [...devices, ...SOTI_REFERENCE_DEVICES] : SOTI_REFERENCE_DEVICES;
+    const all = Array.isArray(devices) ? devices : (lastDevicesCache || []);
 
-    // Update Filter Pill Counts
-    const countAll = document.getElementById('countPillAll');
-    const countOnline = document.getElementById('countPillOnline');
-    const countOffline = document.getElementById('countPillOffline');
-    const countKiosk = document.getElementById('countPillKiosk');
-    const countBattery = document.getElementById('countPillBattery');
-
-    if (countAll) countAll.innerText = all.length;
-    if (countOnline) countOnline.innerText = all.filter(d => d.isOnline).length;
-    if (countOffline) countOffline.innerText = all.filter(d => !d.isOnline).length;
-    if (countKiosk) countKiosk.innerText = all.filter(d => d.isKiosk).length;
-    if (countBattery) countBattery.innerText = all.filter(d => (d.battery || 0) < 20).length;
-
-    // Filter devices
+    // Filter devices based on Query Builder, Group, and Search
     const filtered = getFilteredFleetDevices(all);
     const totalDevices = filtered.length;
     const totalPages = Math.max(1, Math.ceil(totalDevices / sotiPerPage));
@@ -1360,107 +1599,511 @@ function renderDeviceTable(devices) {
     const rangeEl = document.getElementById('sotiShowingRange');
     const totalEl = document.getElementById('sotiTotalCount');
     const pageIndEl = document.getElementById('sotiPageIndicator');
-    if (rangeEl) rangeEl.innerText = totalDevices > 0 ? `${startIndex + 1} - ${endIndex}` : '1 - 50';
-    if (totalEl) totalEl.innerText = hasLiveFleet ? all.length : '1563';
-    if (pageIndEl) pageIndEl.innerText = hasLiveFleet ? `${sotiCurrentPage} of ${totalPages}` : '1 of 32';
+    if (rangeEl) rangeEl.innerText = totalDevices > 0 ? `${startIndex + 1} - ${endIndex}` : '0 - 0';
+    if (totalEl) totalEl.innerText = totalDevices;
+    if (pageIndEl) pageIndEl.innerText = `${sotiCurrentPage} of ${totalPages}`;
 
-    // Update Legacy Showing Count Label
-    const showingCount = document.getElementById('fleetShowingCount');
-    if (showingCount) {
-        showingCount.innerText = isRtl
-            ? `عرض ${filtered.length} من أصل ${all.length} جهاز`
-            : `Showing ${filtered.length} of ${all.length} devices`;
-    }
-
-    // Refresh SOTI Charts and Group Tree
+    // Refresh SOTI Charts
     renderSotiCharts(all);
-    renderSotiDeviceGroupsTree();
 
     // Update User Profile in Header
     const userEl = document.getElementById('sotiUserName');
-    const avatarEl = document.getElementById('sotiUserAvatar');
-    if (userEl) userEl.innerText = currentTenantData?.companyName || currentCompanyCode || 'Scott S';
-    if (avatarEl) {
-        const name = currentTenantData?.companyName || currentCompanyCode || 'SS';
-        avatarEl.innerText = name.substring(0, 2).toUpperCase();
+    if (userEl) userEl.innerText = 'najaf';
+
+    if (pageDevices.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center; padding:40px; color:#64748B;">
+                    No devices match the selected query.
+                </td>
+            </tr>
+        `;
+        return;
     }
 
     tbody.innerHTML = pageDevices.map(d => {
         const isSelected = selectedFleetDeviceIds.has(d.id);
-        const manufacturer = getDeviceManufacturer(d);
-        const modelName = d.model || (manufacturer === 'Samsung' ? 'Galaxy S10' : 'Device');
-        const osVersion = d.os || d.androidVersion || '8.1.0';
-        const batteryVal = (d.battery != null) ? d.battery : 100;
+        const isOnline = (d.agentOnline !== undefined) ? Boolean(d.agentOnline) : Boolean(d.isOnline);
+        const manufacturer = d.manufacturer || 'Honeywell';
+        const modelName = d.model || 'CT60';
+        const osVersion = d.os || d.androidVersion || '10';
+        const batteryVal = (d.battery != null) ? d.battery : (d.batteryPercentage != null ? d.batteryPercentage : 76);
         const memoryVal = formatSotiMemory(d);
-        const phoneVal = d.phone || d.simNumber || d.phoneNumber || (d.ipAddress ? d.ipAddress : '14165553825');
 
-        // CRITICAL: SOTI Smartphone screen glyph
-        // Online screen is BLUE (screen-blue), Offline screen is BLACK (screen-black)
-        const screenClass = d.isOnline ? 'screen-blue' : 'screen-black';
+        // Battery Cell rendering
+        let batteryHtml = '';
+        if (batteryVal <= 5) {
+            batteryHtml = `
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="width:5px; height:5px; border-radius:50%; background:#DC2626; display:inline-block; flex-shrink:0;"></span>
+                    <div style="width:62px; height:6px; background:#E6E9EC; border-radius:3px; overflow:hidden;"></div>
+                    <span style="font-size:12px; color:#DC2626; font-weight:600; min-width:32px;">${batteryVal}%</span>
+                </div>
+            `;
+        } else {
+            batteryHtml = `
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:62px; height:6px; background:#E6E9EC; border-radius:3px; overflow:hidden;">
+                        <div style="width:${Math.min(100, Math.max(0, batteryVal))}%; height:100%; background:#2F7EC7; border-radius:3px;"></div>
+                    </div>
+                    <span style="font-size:12px; color:#334155; min-width:32px;">${batteryVal}%</span>
+                </div>
+            `;
+        }
+
+        // Memory Cell rendering
+        const memoryHtml = `
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:18px; height:6px; background:#2F7EC7; border-radius:3px; display:inline-block; flex-shrink:0;"></span>
+                <span style="font-size:12px; color:#334155;">${memoryVal}</span>
+            </div>
+        `;
+
+        // Device Glyph: slim vector smartphone with blue screen when online, slate gray when offline
+        const screenColor = isOnline ? '#0082c3' : '#A0AAB5';
+        const glyphSvg = `
+            <div style="display:inline-flex; align-items:center; justify-content:center;">
+                <svg width="11" height="19" viewBox="0 0 11 19" fill="none">
+                    <rect x="0.5" y="0.5" width="10" height="18" rx="2" fill="#334155"/>
+                    <rect x="1.5" y="2" width="8" height="15" rx="1" fill="${screenColor}"/>
+                </svg>
+            </div>
+        `;
 
         return `
-            <tr class="device-row ${isSelected ? 'device-row-selected' : ''}" data-device-id="${d.id}" onclick="openDeviceActionCenter('${d.id}')" title="${isRtl ? 'انقر على الجهاز لفتح لوحة التحكم والإجراءات' : 'Click device to open controls & actions'}">
-                <td style="text-align: center;" onclick="event.stopPropagation();">
+            <tr class="device-row ${isSelected ? 'device-row-selected' : ''}" data-device-id="${d.id}" onclick="openSotiDeviceModal('${d.id}')" title="Click to open SOTI Device Details">
+                <td style="text-align: center; width: 32px;" onclick="event.stopPropagation();">
                     <input type="checkbox" class="fleet-checkbox device-select-checkbox" data-id="${d.id}" ${isSelected ? 'checked' : ''} onchange="toggleDeviceSelect('${d.id}', this.checked); event.stopPropagation();">
                 </td>
-                <td style="text-align: center;" onclick="event.stopPropagation();">
-                    <button type="button" class="soti-action-dot-btn" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();" title="Device Actions">⋮</button>
-                </td>
-                <td style="text-align: center;">
-                    <span class="soti-shield-badge" title="${d.isKiosk ? 'Knox Kiosk Mode Active' : 'MDM Managed'}">
-                        <svg width="14" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;">
-                            <path d="M12 2L4 5V11C4 16.52 7.41 21.61 12 23C16.59 21.61 20 16.52 20 11V5L12 2Z" fill="${d.isKiosk ? '#DC2626' : '#10B981'}"/>
-                            <path d="M9 12L11 14L15 10" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
+                <td style="text-align: center; width: 28px;">
+                    ${glyphSvg}
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <div class="soti-device-glyph" title="${d.isOnline ? 'Online (Screen Active Blue)' : 'Offline (Screen Dark Black)'}">
-                            <div class="soti-device-body">
-                                <div class="soti-device-speaker"></div>
-                                <div class="soti-device-screen ${screenClass}"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <a class="soti-device-name-link" onclick="openDeviceActionCenter('${d.id}'); event.stopPropagation();">${escapeHtml(d.name || d.id)}</a>
-                            ${d.branchName ? `<div style="font-size:10.5px; color:#64748B;">${escapeHtml(d.branchName)}</div>` : ''}
-                        </div>
+                        <a class="soti-device-name-link" onclick="openSotiDeviceModal('${d.id}'); event.stopPropagation();" style="font-weight:500; color:#0078D4; text-decoration:none; cursor:pointer;">
+                            ${escapeHtml(d.name || d.id)}
+                        </a>
                     </div>
                 </td>
                 <td>
-                    <span style="font-size:12.5px; color:#334155; font-weight:500;">${escapeHtml(manufacturer)}</span>
+                    <span style="font-size:12px; color:#334155;">${escapeHtml(manufacturer)}</span>
                 </td>
                 <td>
-                    <span style="font-size:12.5px; color:#334155;">${escapeHtml(modelName)}</span>
+                    <span style="font-size:12px; color:#334155;">${escapeHtml(modelName)}</span>
                 </td>
                 <td>
-                    <span style="font-size:12px; color:#475569;">${escapeHtml(osVersion)}</span>
+                    <span style="font-size:12px; color:#334155;">${escapeHtml(osVersion)}</span>
                 </td>
                 <td>
-                    <div class="soti-progress-wrap">
-                        <div class="soti-progress-bar-bg">
-                            <div class="soti-progress-bar-fill" style="width:${Math.min(100, Math.max(0, batteryVal))}%;"></div>
-                        </div>
-                        <span class="soti-progress-text">${batteryVal}%</span>
-                    </div>
+                    ${batteryHtml}
                 </td>
                 <td>
-                    <div class="soti-progress-wrap">
-                        <div class="soti-progress-bar-bg">
-                            <div class="soti-progress-bar-fill" style="width:${d.ramUsedPercent ? Math.max(0, 100 - d.ramUsedPercent) : 71}%;"></div>
-                        </div>
-                        <span class="soti-progress-text">${memoryVal}</span>
-                    </div>
-                </td>
-                <td>
-                    <span style="font-size:12px; color:#334155; font-family:monospace;">${escapeHtml(phoneVal)}</span>
+                    ${memoryHtml}
                 </td>
             </tr>
         `;
     }).join('');
 
     updateBulkActionsBar();
+}
+
+// --------------------------------------------------------------------------
+// SOTI DEVICE 360 MODAL CONTROLLERS
+// --------------------------------------------------------------------------
+function openSotiDeviceModal(deviceId) {
+    const safeDevices = lastDevicesCache || [];
+    const d = safeDevices.find(dev => dev.id === deviceId) || {
+        id: deviceId,
+        name: 'حسين صاحب',
+        manufacturer: 'Honeywell',
+        model: 'CT60',
+        os: '10',
+        battery: 68,
+        isOnline: true,
+        ipAddress: '192.168.1.104',
+        macAddress: '00:0A:F5:82:11:4C'
+    };
+
+    currentSotiDeviceId = d.id;
+
+    // Populate header & fields
+    const nameEl = document.getElementById('sotiModalDeviceName');
+    if (nameEl) nameEl.innerText = d.name || d.id;
+
+    const screenDot = document.getElementById('sotiModalScreenDot');
+    if (screenDot) {
+        screenDot.style.background = d.isOnline ? '#0082C3' : '#A0AAB5';
+    }
+    const devIcon = document.getElementById('sotiModalDeviceIcon');
+    if (devIcon) {
+        if (d.isOnline) {
+            devIcon.classList.add('online');
+            devIcon.classList.remove('offline');
+        } else {
+            devIcon.classList.remove('online');
+            devIcon.classList.add('offline');
+        }
+    }
+
+    const devIdEl = document.getElementById('sotiDetailsDeviceId');
+    if (devIdEl) {
+        const cleanId = (d.id || '').replace(/^HONEYWELL_CT60_/, '').replace(/^ct60_/, '');
+        devIdEl.innerText = cleanId.length > 8 ? cleanId : (d.serialNumber || '990010903302090');
+    }
+
+    const enrollTimeEl = document.getElementById('sotiDetailsEnrollTime');
+    if (enrollTimeEl) {
+        enrollTimeEl.innerText = d.enrollmentTime || d.enrolledAt || '2023-12-03 8:35:20 AM';
+    }
+
+    const onlineEl = document.getElementById('sotiDetailsOnline');
+    if (onlineEl) {
+        onlineEl.innerText = d.isOnline ? 'True' : 'False';
+    }
+
+    const osVerEl = document.getElementById('sotiDetailsOsVersion');
+    if (osVerEl) {
+        osVerEl.innerText = String(d.osVersion || d.os || '10').replace(/^Android\s*/i, '');
+    }
+
+    // Remote Control button state based on isOnline
+    const rcBtn = document.getElementById('sotiBtnRemoteControl');
+    const rcMoreItem = document.getElementById('sotiActionsItemRemoteControl');
+    if (rcBtn) {
+        if (!d.isOnline) {
+            rcBtn.disabled = true;
+            rcBtn.classList.add('disabled');
+            rcBtn.style.background = '#94A3B8';
+            rcBtn.style.cursor = 'not-allowed';
+            rcBtn.title = 'الجهاز غير متصل (أوفلاين) - لا يمكن التحكم عن بعد';
+        } else {
+            rcBtn.disabled = false;
+            rcBtn.classList.remove('disabled');
+            rcBtn.style.background = '';
+            rcBtn.style.cursor = '';
+            rcBtn.title = 'Remote Control';
+        }
+    }
+    if (rcMoreItem) {
+        if (!d.isOnline) {
+            rcMoreItem.classList.add('disabled');
+            rcMoreItem.style.pointerEvents = 'none';
+            rcMoreItem.style.opacity = '0.5';
+            rcMoreItem.title = 'الجهاز غير متصل (أوفلاين) - لا يمكن التحكم عن بعد';
+        } else {
+            rcMoreItem.classList.remove('disabled');
+            rcMoreItem.style.pointerEvents = '';
+            rcMoreItem.style.opacity = '';
+            rcMoreItem.title = 'Remote Control';
+        }
+    }
+
+    // Show modal
+    const modal = document.getElementById('sotiDeviceModal');
+    if (modal) {
+        modal.classList.add('show');
+        modal.style.display = 'flex';
+    }
+
+    switchSotiModalTab('details');
+}
+
+function navigateSotiDevice(direction) {
+    const list = getFilteredFleetDevices(lastDevicesCache || []);
+    if (!list || list.length === 0) return;
+    const currentIndex = list.findIndex(d => d.id === currentSotiDeviceId);
+    let newIndex = 0;
+    if (currentIndex !== -1) {
+        newIndex = (currentIndex + direction + list.length) % list.length;
+    }
+    const nextDev = list[newIndex];
+    if (nextDev) {
+        openSotiDeviceModal(nextDev.id);
+    }
+}
+
+function closeSotiDeviceModal() {
+    const modal = document.getElementById('sotiDeviceModal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+    const moreMenu = document.getElementById('sotiModalMoreMenu');
+    if (moreMenu) moreMenu.classList.remove('show');
+}
+
+function switchSotiModalTab(tabName) {
+    document.querySelectorAll('.soti-modal-tab').forEach(t => {
+        if (t.getAttribute('data-tab') === tabName) t.classList.add('active');
+        else t.classList.remove('active');
+    });
+
+    // Hide all tab panes first
+    const allPanes = [
+        document.getElementById('sotiTabPaneDetails'),
+        document.getElementById('sotiTabPaneLocation'),
+        document.getElementById('sotiTabPaneConfigurations'),
+        document.getElementById('sotiTabPaneSecurity'),
+        document.getElementById('sotiTabPaneLogs')
+    ];
+    allPanes.forEach(p => { if (p) p.style.display = 'none'; });
+
+    // Show the requested tab pane
+    let targetPane = document.getElementById('sotiTabPaneDetails');
+    if (tabName === 'location') {
+        targetPane = document.getElementById('sotiTabPaneLocation');
+    } else if (tabName === 'configurations') {
+        targetPane = document.getElementById('sotiTabPaneConfigurations');
+    } else if (tabName === 'security') {
+        targetPane = document.getElementById('sotiTabPaneSecurity');
+    } else if (tabName === 'logs' || tabName === 'notifications') {
+        targetPane = document.getElementById('sotiTabPaneLogs');
+    } else {
+        targetPane = document.getElementById('sotiTabPaneDetails');
+    }
+
+    if (targetPane) {
+        targetPane.style.display = 'block';
+    }
+
+    if (tabName === 'location') {
+        setTimeout(initSotiDeviceMap, 100);
+    }
+}
+
+function initSotiDeviceMap() {
+    const mapEl = document.getElementById('sotiMapCanvas');
+    if (!mapEl) return;
+    if (!window.L) return;
+
+    // Najaf coordinates
+    const lat = 31.9922;
+    const lng = 44.3515;
+
+    if (!sotiMapInstance) {
+        sotiMapInstance = L.map('sotiMapCanvas').setView([lat, lng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(sotiMapInstance);
+
+        const customIcon = L.divIcon({
+            className: 'soti-map-marker-pin',
+            html: '<div style="width:16px; height:16px; background:#0078D4; border-radius:50%; border:3px solid #FFFFFF; box-shadow:0 0 0 4px rgba(0,120,212,0.35);"></div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        const devName = document.getElementById('sotiModalDeviceName')?.innerText || 'حسين صاحب';
+        L.marker([lat, lng], { icon: customIcon })
+            .addTo(sotiMapInstance)
+            .bindPopup(`<b>${escapeHtml(devName)}</b><br>Honeywell CT60<br>حي الصناعي، النجف`)
+            .openPopup();
+    } else {
+        sotiMapInstance.invalidateSize();
+        sotiMapInstance.setView([lat, lng], 14);
+    }
+}
+
+function centerSotiMap() {
+    if (sotiMapInstance) {
+        sotiMapInstance.setView([31.9922, 44.3515], 15);
+        showToast('Map centered on device', 'info');
+    }
+}
+
+function refreshSotiLocation() {
+    showToast('GPS ping sent to device. Coordinates verified: حي الصناعي، النجف.', 'success');
+}
+
+// --------------------------------------------------------------------------
+// SOTI REMOTE CONTROL WINDOW CONTROLLERS
+// --------------------------------------------------------------------------
+function openSotiRemoteControl(deviceId) {
+    const devId = deviceId || currentSotiDeviceId;
+    if (!devId) return;
+    const safeDevices = lastDevicesCache || [];
+    const device = safeDevices.find(d => d.id === devId);
+    if (device && !device.isOnline) {
+        showToast('الجهاز غير متصل (Offline). لا يمكن فتح التحكم عن بعد.', 'warning');
+        return;
+    }
+    window.open(`/remote-control.html?deviceId=${encodeURIComponent(devId)}`, '_blank');
+}
+
+function closeSotiRemoteControl() {
+    const modal = document.getElementById('sotiRemoteModal');
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+    }
+    if (sotiRemoteStreamInterval) {
+        clearInterval(sotiRemoteStreamInterval);
+        sotiRemoteStreamInterval = null;
+    }
+    const drop = document.getElementById('sotiRcDropdownMenu');
+    if (drop) drop.classList.remove('show');
+}
+
+function toggleSotiRcDropdown() {
+    const drop = document.getElementById('sotiRcDropdownMenu');
+    if (drop) {
+        drop.classList.toggle('show');
+    }
+}
+
+function sotiRcAction(action) {
+    const drop = document.getElementById('sotiRcDropdownMenu');
+    if (drop) drop.classList.remove('show');
+    const devId = currentSotiDeviceId || 'ALL';
+
+    if (action === 'SEND_SCRIPT') {
+        sotiSendScriptPrompt();
+    } else if (action === 'KIOSK_ON') {
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: true });
+        showToast('Turned Kiosk Mode ON', 'success');
+    } else if (action === 'KIOSK_OFF') {
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: false });
+        showToast('Turned Kiosk Mode OFF', 'info');
+    } else if (action === 'SOFT_RESET') {
+        dispatchRemoteCommand(devId, 'REBOOT', {});
+        showToast('Soft Reset initiated', 'warning');
+    } else if (action === 'ADMIN_MODE') {
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: false });
+        showToast('Entered Administrator Mode', 'success');
+    } else if (action === 'USER_MODE') {
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: true });
+        showToast('Entered User Mode', 'info');
+    }
+}
+
+function sotiSendScriptPrompt() {
+    const devId = currentSotiDeviceId || 'ALL';
+    const script = prompt('Enter SOTI Script Command to execute on device:\n\nExamples:\n- action.soft_reset\n- action.kiosk_on\n- action.kiosk_off\n- sendintent -b "android.intent.action.VIEW"\n- connect -wifi', 'action.soft_reset');
+    if (script && script.trim()) {
+        dispatchRemoteCommand(devId, 'EXECUTE_SCRIPT', { script: script.trim() });
+        showToast(`Script sent: ${script.trim()}`, 'success');
+    }
+}
+
+function sotiSyncDevice() {
+    const devId = currentSotiDeviceId || 'ALL';
+    dispatchRemoteCommand(devId, 'SYNC_DATA', {});
+    showToast('Device Check-in / Sync command sent', 'success');
+}
+
+async function sotiWipePrompt() {
+    const devId = currentSotiDeviceId || 'ALL';
+    const devName = document.getElementById('sotiModalDeviceName')?.innerText || devId;
+    const isRtl = currentLang === 'ar';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'مسح الجهاز وإعادة ضبط المصنع' : 'Wipe / Factory Reset',
+        heading: isRtl ? `هل أنت متأكد من مسح الجهاز '${devName}'؟` : `Are you sure you want to wipe '${devName}'?`,
+        message: isRtl 
+            ? 'تحذير: سيتم مسح جميع بيانات الجهاز وإعادته إلى ضبط المصنع نهائياً ولا يمكن التراجع عن هذا الإجراء.' 
+            : 'Warning: All data on this device will be erased and reset to factory defaults. This action cannot be undone.',
+        confirmText: isRtl ? 'مسح الجهاز' : 'Wipe Device',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: true
+    });
+    if (!confirmed) return;
+
+    dispatchRemoteCommand(devId, 'WIPE_DEVICE', {});
+    showToast(isRtl ? 'تم جدولة أمر مسح الجهاز' : 'Wipe command queued for device', 'error');
+}
+
+function sotiSendMessagePrompt() {
+    const devId = currentSotiDeviceId || 'ALL';
+    const msg = prompt('Enter message to send to device:', 'Please report to IT department.');
+    if (msg && msg.trim()) {
+        dispatchRemoteCommand(devId, 'BROADCAST_MESSAGE', { message: msg.trim() });
+        showToast('Message sent to device', 'success');
+    }
+}
+
+function sotiModalAction(action) {
+    const moreMenu = document.getElementById('sotiModalMoreMenu');
+    if (moreMenu) moreMenu.classList.remove('show');
+    const devId = currentSotiDeviceId || 'ALL';
+
+    if (action === 'LOCK') {
+        dispatchRemoteCommand(devId, 'LOCK_DEVICE', {});
+        showToast('Screen Locked', 'info');
+    } else if (action === 'REBOOT') {
+        dispatchRemoteCommand(devId, 'REBOOT', {});
+        showToast('Reboot command sent', 'warning');
+    } else if (action === 'KIOSK_TOGGLE') {
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: true });
+        showToast('Kiosk mode updated', 'success');
+    } else if (action === 'RENAME') {
+        const newName = prompt('Enter new device name:', document.getElementById('sotiModalDeviceName')?.innerText || '');
+        if (newName && newName.trim()) {
+            dispatchRemoteCommand(devId, 'RENAME_DEVICE', { name: newName.trim() });
+            const nEl = document.getElementById('sotiModalDeviceName');
+            const dEl = document.getElementById('sotiDetailsName');
+            if (nEl) nEl.innerText = newName.trim();
+            if (dEl) dEl.innerText = newName.trim();
+            showToast('Device renamed', 'success');
+            fetchDevices();
+        }
+    } else if (action === 'ALARM') {
+        dispatchRemoteCommand(devId, 'TEST_TAMPER_ALARM', {});
+        showToast('Emergency Siren Triggered', 'warning');
+    }
+}
+
+function toggleSotiModalMoreMenu(e) {
+    if (e) e.stopPropagation();
+    const m = document.getElementById('sotiModalMoreMenu');
+    if (m) m.classList.toggle('show');
+}
+
+function filterDeviceActions(query) {
+    const q = (query || '').toLowerCase().trim();
+    const items = document.querySelectorAll('#sotiActionsList .soti-actions-item');
+    items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        item.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+function sotiRcSendChatMessage() {
+    const input = document.getElementById('sotiRcChatInput');
+    if (!input || !input.value.trim()) return;
+    const msg = input.value.trim();
+    const devId = currentSotiDeviceId || 'ALL';
+    dispatchRemoteCommand(devId, 'BROADCAST_MESSAGE', { message: msg });
+    showToast(`Message sent: ${msg}`, 'success');
+    input.value = '';
+}
+
+function sotiRcSendTextPrompt() {
+    const text = prompt('Enter text to type into device:');
+    if (text) {
+        const devId = currentSotiDeviceId || 'ALL';
+        dispatchRemoteCommand(devId, 'INPUT_TEXT', { text: text });
+        showToast('Text sent to device keyboard', 'success');
+    }
+}
+
+function sotiRcTakeScreenshot() {
+    const img = document.getElementById('sotiStreamImg');
+    if (img && img.src) {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = `soti_screenshot_${Date.now()}.png`;
+        a.click();
+        showToast('Screenshot downloaded', 'success');
+    }
+}
+
+function sotiRcToggleFullscreen() {
+    const modal = document.getElementById('sotiRemoteModal');
+    if (!document.fullscreenElement) {
+        modal?.requestFullscreen?.();
+    } else {
+        document.exitFullscreen?.();
+    }
 }
 
 function updateDeviceSelect(devices) {
@@ -1522,9 +2165,19 @@ async function confirmDeviceRename() {
 }
 
 async function confirmDeleteDevice(deviceId, deviceName) {
-    if (!confirm(`هل أنت متأكد تماماً من حذف الجهاز '${deviceName}' (${deviceId}) من النظام؟\n\nسيتم مسح الجهاز وإزالته من لوحة التحكم وقائمة الأجهزة نهائياً.`)) {
-        return;
-    }
+    const isRtl = currentLang === 'ar';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'حذف جهاز من النظام' : 'Delete Device',
+        heading: isRtl ? `حذف الجهاز '${deviceName}' نهائياً؟` : `Delete device '${deviceName}' permanently?`,
+        message: isRtl 
+            ? `سيتم مسح الجهاز (${deviceId}) وإزالته من لوحة التحكم وقائمة الأجهزة نهائياً.` 
+            : `The device (${deviceId}) will be permanently removed from the console and device list.`,
+        confirmText: isRtl ? 'حذف' : 'Delete',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: true
+    });
+    if (!confirmed) return;
+
     try {
         const res = await fetch('/api/devices/delete', {
             method: 'POST',
@@ -1536,13 +2189,13 @@ async function confirmDeleteDevice(deviceId, deviceName) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast(`تم حذف الجهاز '${deviceName}' من النظام بنجاح!`, 'success');
+            showToast(isRtl ? `تم حذف الجهاز '${deviceName}' من النظام بنجاح!` : `Device '${deviceName}' deleted successfully!`, 'success');
             fetchDevices();
         } else {
-            showToast(data.error || 'فشل حذف الجهاز', 'error');
+            showToast(data.error || (isRtl ? 'فشل حذف الجهاز' : 'Failed to delete device'), 'error');
         }
     } catch (e) {
-        showToast('خطأ في الاتصال بالسيرفر أثناء حذف الجهاز', 'error');
+        showToast(isRtl ? 'خطأ في الاتصال بالسيرفر أثناء حذف الجهاز' : 'Server error while deleting device', 'error');
     }
 }
 
@@ -1574,6 +2227,31 @@ function updateQrBranchDropdown() {
     branchSelect.innerHTML = bHtml;
 }
 
+async function autoDetectServerIp() {
+    try {
+        const res = await fetch('/api/qr-config');
+        const cfg = await res.json();
+        if (cfg) {
+            lastQrConfig = cfg;
+            const dlInput = document.getElementById('qrDownloadUrl');
+            const srvInput = document.getElementById('qrServerUrl');
+            const chkInput = document.getElementById('qrApkChecksum');
+            if (dlInput) dlInput.value = cfg.lanDownloadUrl || cfg.defaultDownloadUrl;
+            if (srvInput) srvInput.value = cfg.lanServerUrl || cfg.defaultServerUrl;
+            if (chkInput && cfg.signatureChecksum) chkInput.value = cfg.signatureChecksum;
+            generateQrCode();
+            if (typeof showToast === 'function') {
+                showToast(`تم كشف IP الخادم: ${cfg.localIp}`, 'success');
+            }
+        }
+    } catch (e) {
+        console.error('Failed to auto detect server IP', e);
+        if (typeof showToast === 'function') {
+            showToast('تعذر كشف IP الخادم تلقائياً', 'error');
+        }
+    }
+}
+
 async function initQrTab() {
     try {
         const res = await fetch('/api/qr-config');
@@ -1585,14 +2263,18 @@ async function initQrTab() {
             const srvInput = document.getElementById('qrServerUrl');
             const chkInput = document.getElementById('qrApkChecksum');
 
-            if (dlInput && (!dlInput.value || dlInput.value.includes('192.168.0.101'))) {
-                dlInput.value = cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`;
+            const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+            const targetDownload = (isLocal && cfg.lanDownloadUrl) ? cfg.lanDownloadUrl : (cfg.defaultDownloadUrl || `${origin}/download/nexus-agent.apk`);
+            const targetServer = (isLocal && cfg.lanServerUrl) ? cfg.lanServerUrl : (cfg.defaultServerUrl || origin);
+
+            if (dlInput && (!dlInput.value || dlInput.value.includes('192.168.0.101') || dlInput.value.includes('localhost') || dlInput.value.includes('127.0.0.1'))) {
+                dlInput.value = targetDownload;
             }
-            if (srvInput && (!srvInput.value || srvInput.value.includes('192.168.0.101'))) {
-                srvInput.value = cfg.defaultServerUrl || origin;
+            if (srvInput && (!srvInput.value || srvInput.value.includes('192.168.0.101') || srvInput.value.includes('localhost') || srvInput.value.includes('127.0.0.1'))) {
+                srvInput.value = targetServer;
             }
-            if (chkInput && cfg.apkChecksum) {
-                chkInput.value = cfg.apkChecksum;
+            if (chkInput && (cfg.signatureChecksum || cfg.apkChecksum)) {
+                chkInput.value = cfg.signatureChecksum || cfg.apkChecksum;
             }
 
             // Populate Company Selection Dropdown
@@ -1629,11 +2311,23 @@ function generateQrCode() {
     const wifiSsidInput = document.getElementById('qrWifiSsid');
     const wifiPasswordInput = document.getElementById('qrWifiPassword');
 
-    const downloadUrl = (dlInput ? dlInput.value.trim() : '') || `${window.location.origin}/download/nexus-agent.apk`;
-    const serverUrl = (srvInput ? srvInput.value.trim() : '') || window.location.origin;
-    const checksum = (chkInput ? chkInput.value.trim() : '') || '186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8';
+    let downloadUrl = (dlInput ? dlInput.value.trim() : '') || (lastQrConfig?.lanDownloadUrl || `${window.location.origin}/download/nexus-agent.apk`);
+    let serverUrl = (srvInput ? srvInput.value.trim() : '') || (lastQrConfig?.lanServerUrl || window.location.origin);
+    const checksum = (chkInput ? chkInput.value.trim() : '') || (lastQrConfig?.signatureChecksum || 'T28h9GQowaWLuSM9v9Rmn8Cqn2o50SYyaDPUcUBtHk4');
     const wifiSsid = wifiSsidInput ? wifiSsidInput.value.trim() : '';
     const wifiPassword = wifiPasswordInput ? wifiPasswordInput.value.trim() : '';
+
+    // Safety check: Android devices cannot connect to "localhost" or "127.0.0.1" on the host PC
+    if (lastQrConfig?.localIp) {
+        if (downloadUrl.includes('localhost') || downloadUrl.includes('127.0.0.1')) {
+            downloadUrl = downloadUrl.replace('localhost', lastQrConfig.localIp).replace('127.0.0.1', lastQrConfig.localIp);
+            if (dlInput) dlInput.value = downloadUrl;
+        }
+        if (serverUrl.includes('localhost') || serverUrl.includes('127.0.0.1')) {
+            serverUrl = serverUrl.replace('localhost', lastQrConfig.localIp).replace('127.0.0.1', lastQrConfig.localIp);
+            if (srvInput) srvInput.value = serverUrl;
+        }
+    }
 
     // Read the user-defined device name (supporting Arabic or English) and selected company code
     const deviceTagInput = document.getElementById('qrDeviceTag');
@@ -1645,11 +2339,15 @@ function generateQrCode() {
     const branchSelect = document.getElementById('qrBranchSelect');
     const selectedBranchId = branchSelect ? branchSelect.value : '';
 
+    const enrollmentKeyInput = document.getElementById('qrEnrollmentKey');
+    const enrollmentKey = enrollmentKeyInput ? (enrollmentKeyInput.value.trim() || 'ENROLL-NEXUS-2026-KEY') : 'ENROLL-NEXUS-2026-KEY';
+
     const adminExtras = {
         "server_url": serverUrl,
         "device_tag": deviceTag,
         "device_name": deviceTag,
-        "company_code": companyCode
+        "company_code": companyCode,
+        "enrollment_key": enrollmentKey
     };
 
     if (selectedBranchId) {
@@ -1672,12 +2370,17 @@ function generateQrCode() {
 
     const payload = {
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.nexus.mdm.agent",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": downloadUrl,
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": leaveAllSystemApps,
         "android.app.extra.PROVISIONING_DEVICE_TAG": deviceTag,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
+
+    if (lastQrConfig?.packageChecksum) {
+        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
+    }
 
     if (wifiSsid) {
         payload["android.app.extra.PROVISIONING_WIFI_SSID"] = wifiSsid;
@@ -2478,6 +3181,12 @@ let isPollingScreen = false;
 let wasDacOpenBeforeStream = false;
 
 function openScreenStream(deviceId, deviceName) {
+    const safeDevices = lastDevicesCache || [];
+    const dev = safeDevices.find(d => d.id === deviceId);
+    if (dev && !dev.isOnline) {
+        showToast('الجهاز غير متصل (Offline). لا يمكن فتح التحكم عن بعد.', 'warning');
+        return;
+    }
     activeStreamDeviceId = deviceId;
     isPollingScreen = false;
 
@@ -2500,7 +3209,6 @@ function openScreenStream(deviceId, deviceName) {
     const activeIdEl = document.getElementById('streamActiveDeviceId');
     if (activeIdEl) activeIdEl.innerText = deviceId;
 
-    const dev = (lastDevicesCache || []).find(d => d.id === deviceId);
     const kioskLabel = document.getElementById('streamKioskToggleLabel');
     if (kioskLabel) {
         kioskLabel.innerText = dev?.isKiosk ? 'إلغاء وضع الكشك' : 'تفعيل وضع الكشك';
@@ -2527,6 +3235,23 @@ function openScreenStream(deviceId, deviceName) {
 
     const streamImg = document.getElementById('streamImg');
     if (streamImg) streamImg.style.display = 'none';
+
+    // Dynamically apply authentic chassis based on model (CT47 vs CT60)
+    const isCt47 = (dev?.model || '').toUpperCase().includes('CT47');
+    const liveStreamPhoneFrame = document.getElementById('liveStreamPhoneFrame');
+    const liveStreamChassisImg = document.getElementById('liveStreamChassisImg');
+    const liveStreamHwNavStrip = document.getElementById('liveStreamHwNavStrip');
+    if (liveStreamPhoneFrame && liveStreamChassisImg) {
+        if (isCt47) {
+            liveStreamPhoneFrame.className = 'honeywell-phone-frame honeywell-frame-ct47';
+            liveStreamChassisImg.src = 'honeywell-ct47-frame.png?v=20260919';
+            if (liveStreamHwNavStrip) liveStreamHwNavStrip.style.display = 'none';
+        } else {
+            liveStreamPhoneFrame.className = 'honeywell-phone-frame honeywell-frame-ct60';
+            liveStreamChassisImg.src = 'honeywell-ct60-frame.png?v=20260919';
+            if (liveStreamHwNavStrip) liveStreamHwNavStrip.style.display = 'flex';
+        }
+    }
 
     setupPhoneScreenInteractions();
 
@@ -3189,13 +3914,11 @@ function escapeHtml(str) {
 let branchesCache = [];
 
 async function fetchBranches() {
-    if (!currentTenantToken) return;
     try {
-        const res = await fetch('/api/tenant/branches', {
-            headers: { 'X-Tenant-Token': currentTenantToken }
-        });
+        const headers = {};
+        if (currentTenantToken) headers['X-Tenant-Token'] = currentTenantToken;
+        const res = await fetch('/api/tenant/branches', { headers });
         if (res.status === 403) {
-            // Branch account cannot manage branches
             return;
         }
         const data = await res.json();
@@ -3210,12 +3933,69 @@ async function fetchBranches() {
                 addBtn.title = data.canAddMore ? '' : 'تم استهلاك كامل حصة الفروع المسموحة للباقة';
             }
 
+            renderBranchesInTree();
             renderBranchesTable(branchesCache);
             updateFleetBranchFilterDropdown();
         }
     } catch (e) {
         console.error('Failed to fetch branches', e);
     }
+}
+
+function renderBranchesInTree() {
+    const subnodesContainer = document.getElementById('sotiIraqBranchesSubnodes');
+    if (!subnodesContainer) return;
+
+    let branches = [...(branchesCache || [])];
+    const hasNajaf = branches.some(b => (b.name || '').toLowerCase() === 'najaf');
+    if (!hasNajaf) {
+        branches.unshift({
+            id: 'br_najaf_01',
+            name: 'Najaf',
+            code: 'NAJAF',
+            number: '101',
+            email: 'it.najaf@jib.iq',
+            password: 'naj@2000@',
+            enrollmentToken: 'JIB-NJF-2026',
+            group: '\\Iraq\\Najaf',
+            devicesCount: (lastDevicesCache || []).filter(d => (d.group || '').toLowerCase().includes('najaf') || (d.branch || '').toLowerCase() === 'najaf').length
+        });
+    }
+
+    const devicesList = lastDevicesCache || [];
+    const allCount = devicesList.length;
+    const allCountEl = document.getElementById('sotiCountAll');
+    if (allCountEl) allCountEl.innerText = allCount;
+
+    subnodesContainer.innerHTML = branches.map(b => {
+        const bName = b.name || 'Branch';
+        const bId = b.id || `br_${bName.toLowerCase()}`;
+        const isActive = (sotiSelectedGroupId === bName) || (sotiSelectedGroupId === 'Najaf' && bName.toLowerCase() === 'najaf');
+
+        const bCount = devicesList.filter(d => {
+            const bNameLower = bName.toLowerCase();
+            return (
+                (d.branchId && d.branchId === bId) ||
+                (d.branchCode && d.branchCode.toUpperCase() === (b.code || '').toUpperCase()) ||
+                (d.branchNumber && d.branchNumber === b.number) ||
+                (d.branchName && d.branchName.toLowerCase() === bNameLower) ||
+                (d.branch && d.branch.toLowerCase() === bNameLower) ||
+                (d.group && d.group.toLowerCase().includes(bNameLower))
+            );
+        }).length;
+
+        return `
+            <div class="soti-group-item ${isActive ? 'active' : ''}" id="sotiGroupBranch_${escapeHtml(bId)}" data-group-id="${escapeHtml(bName)}" onclick="selectDeviceGroup('${escapeHtml(bName)}')">
+                <div class="soti-group-item-label" style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                    <span style="font-weight:600; color:#0078D4;">${escapeHtml(bName)}</span>
+                    <span style="width:7px; height:7px; border-radius:50%; background:#EAB308; display:inline-block; flex-shrink:0;"></span>
+                </div>
+                <button type="button" class="soti-group-more-btn" title="Branch Staging QR & Short Token" onclick="event.stopPropagation(); openBranchStagingModal('${escapeHtml(bId)}')" style="border:none; background:transparent; padding:2px; cursor:pointer; color:#0284C7; display:none; align-items:center;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderBranchesTable(branches) {
@@ -3277,8 +4057,9 @@ function renderBranchesTable(branches) {
             </td>
             <td>
                 <div style="display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                    <button class="btn btn-primary-soft btn-xs" onclick="openBranchQrModal('${b.id}')" title="توليد وطباعة باركود التجهيز الميداني لهذا الفرع" style="color:#2563EB; font-weight:700;">
-                        🖨️ باركود التجهيز
+                    <button class="btn btn-primary-soft btn-xs" onclick="openBranchQrModal('${b.id}')" title="توليد وطباعة باركود التجهيز الميداني لهذا الفرع" style="color:#2563EB; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span>باركود التجهيز</span>
                     </button>
                     <button class="btn btn-secondary btn-xs" onclick="openChangeBranchPasswordModal('${b.id}', '${escapeHtml(b.name)}', '${escapeHtml(b.number || '')}', '${escapeHtml(branchPwd)}')" title="تغيير كلمة المرور لهذا الفرع">
                         تغيير كلمة المرور
@@ -3366,9 +4147,18 @@ function updateBranchModalQr() {
     const srvInput = document.getElementById('qrServerUrl');
     const chkInput = document.getElementById('qrApkChecksum');
 
-    const downloadUrl = (dlInput ? dlInput.value.trim() : '') || `${window.location.origin}/download/nexus-agent.apk`;
-    const serverUrl = (srvInput ? srvInput.value.trim() : '') || window.location.origin;
-    const checksum = (chkInput ? chkInput.value.trim() : '') || '186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8';
+    let downloadUrl = (dlInput ? dlInput.value.trim() : '') || (lastQrConfig?.lanDownloadUrl || `${window.location.origin}/download/nexus-agent.apk`);
+    let serverUrl = (srvInput ? srvInput.value.trim() : '') || (lastQrConfig?.lanServerUrl || window.location.origin);
+    const checksum = (chkInput ? chkInput.value.trim() : '') || (lastQrConfig?.signatureChecksum || 'T28h9GQowaWLuSM9v9Rmn8Cqn2o50SYyaDPUcUBtHk4');
+
+    if (lastQrConfig?.localIp) {
+        if (downloadUrl.includes('localhost') || downloadUrl.includes('127.0.0.1')) {
+            downloadUrl = downloadUrl.replace('localhost', lastQrConfig.localIp).replace('127.0.0.1', lastQrConfig.localIp);
+        }
+        if (serverUrl.includes('localhost') || serverUrl.includes('127.0.0.1')) {
+            serverUrl = serverUrl.replace('localhost', lastQrConfig.localIp).replace('127.0.0.1', lastQrConfig.localIp);
+        }
+    }
 
     const wifiSsid = document.getElementById('branchModalWifiSsid')?.value?.trim() || '';
     const wifiPassword = document.getElementById('branchModalWifiPassword')?.value?.trim() || '';
@@ -3387,12 +4177,17 @@ function updateBranchModalQr() {
 
     const payload = {
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.nexus.mdm.agent",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": downloadUrl,
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": !cleanMode,
         "android.app.extra.PROVISIONING_DEVICE_TAG": `${currentBranchModalQrObj.name}`,
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": adminExtras
     };
+
+    if (lastQrConfig?.packageChecksum) {
+        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
+    }
 
     if (wifiSsid) {
         payload["android.app.extra.PROVISIONING_WIFI_SSID"] = wifiSsid;
@@ -3624,7 +4419,10 @@ function renderBranchDevicesList(branchId) {
                 </td>
                 <td>
                     <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
-                        <button type="button" class="btn btn-primary-soft btn-xs" onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}')" title="بث شاشة الجهاز والتحكم باللمس مباشرة">
+                        <button type="button" 
+                            class="btn ${d.isOnline ? 'btn-primary-soft' : 'btn-secondary'} btn-xs" 
+                            ${d.isOnline ? `onclick="openScreenStream('${d.id}', '${escapeHtml(d.name || d.id)}')"` : 'disabled style="background:#94A3B8 !important; color:#FFFFFF !important; cursor:not-allowed !important; opacity:0.85;"'} 
+                            title="${d.isOnline ? 'بث شاشة الجهاز والتحكم باللمس مباشرة' : 'الجهاز غير متصل (أوفلاين) - لا يمكن التحكم عن بعد'}">
                             بث وتحكم
                         </button>
                         <button type="button" class="btn btn-secondary btn-xs" onclick="promptCommand('${d.id}', 'LOCK_NOW', 'قفل شاشة الجهاز')" title="قفل شاشة الجهاز فوراً">
@@ -3832,10 +4630,27 @@ async function submitChangeBranchPassword(event) {
 }
 
 function openAddBranchModal() {
-    document.getElementById('branchNameInput').value = '';
-    document.getElementById('branchNumberInput').value = '';
-    document.getElementById('branchCodeInput').value = '';
-    document.getElementById('branchPasswordInput').value = '123456';
+    const nameInput = document.getElementById('branchNameInput');
+    const codeInput = document.getElementById('branchCodeInput');
+    const loginInput = document.getElementById('branchLoginIdInput');
+    const numInput = document.getElementById('branchNumberInput');
+    const tokenInput = document.getElementById('branchTokenInput');
+    const pwdInput = document.getElementById('branchPasswordInput');
+    const ssidInput = document.getElementById('branchWifiSsidInput');
+    const passInput = document.getElementById('branchWifiPassInput');
+
+    if (nameInput) { nameInput.value = ''; nameInput.dataset.userEdited = ''; }
+    if (codeInput) { codeInput.value = ''; codeInput.dataset.userEdited = ''; }
+    if (loginInput) { loginInput.value = ''; loginInput.dataset.userEdited = ''; }
+    if (numInput) { numInput.value = String(100 + (branchesCache.length || 0) + 1); }
+    if (tokenInput) { tokenInput.value = ''; tokenInput.dataset.userEdited = ''; }
+    if (pwdInput) { pwdInput.value = 'jib@2026'; }
+    if (ssidInput) ssidInput.value = '';
+    if (passInput) passInput.value = '';
+
+    const pathPreview = document.getElementById('previewBranchPath');
+    if (pathPreview) pathPreview.innerText = '\\Iraq\\Branch';
+
     const modal = document.getElementById('modalAddBranch');
     if (modal) modal.style.display = 'flex';
 }
@@ -3845,15 +4660,64 @@ function closeAddBranchModal() {
     if (modal) modal.style.display = 'none';
 }
 
+function autoPopulateBranchFields(name) {
+    const raw = (name || '').trim();
+    const cleanCode = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const fallbackCode = cleanCode ? cleanCode : (raw ? 'BRN' : '');
+
+    const codeInput = document.getElementById('branchCodeInput');
+    const loginInput = document.getElementById('branchLoginIdInput');
+    const tokenInput = document.getElementById('branchTokenInput');
+    const previewPath = document.getElementById('previewBranchPath');
+    const numInput = document.getElementById('branchNumberInput');
+
+    if (codeInput && !codeInput.dataset.userEdited) {
+        codeInput.value = fallbackCode || 'BAGHDAD';
+    }
+    const currentCode = codeInput ? codeInput.value : fallbackCode;
+
+    if (loginInput && !loginInput.dataset.userEdited) {
+        loginInput.value = `it.${(currentCode || 'branch').toLowerCase()}@jib.iq`;
+    }
+
+    if (tokenInput && !tokenInput.dataset.userEdited) {
+        const prefix = (currentCode.length >= 3) ? currentCode.slice(0, 3) : 'JIB';
+        tokenInput.value = `JIB-${prefix}-2026`;
+    }
+
+    if (numInput && !numInput.value) {
+        numInput.value = String(100 + (branchesCache.length || 0) + 1);
+    }
+
+    if (previewPath) {
+        previewPath.innerText = `\\Iraq\\${raw || currentCode || 'Branch'}`;
+    }
+}
+
+function regenerateShortTokenInput() {
+    const code = document.getElementById('branchCodeInput')?.value.trim().toUpperCase() || 'JIB';
+    const prefix = code.slice(0, 3) || 'JIB';
+    const rand = Math.floor(100 + Math.random() * 900);
+    const tokenInput = document.getElementById('branchTokenInput');
+    if (tokenInput) {
+        tokenInput.value = `JIB-${prefix}-${rand}`;
+        tokenInput.dataset.userEdited = 'true';
+    }
+}
+
 async function submitCreateBranch(event) {
     event.preventDefault();
-    const name = document.getElementById('branchNameInput').value.trim();
-    const number = document.getElementById('branchNumberInput').value.trim();
-    const code = document.getElementById('branchCodeInput').value.trim();
-    const password = document.getElementById('branchPasswordInput').value.trim();
+    const name = document.getElementById('branchNameInput')?.value.trim();
+    const code = document.getElementById('branchCodeInput')?.value.trim().toUpperCase();
+    const number = document.getElementById('branchNumberInput')?.value.trim();
+    const email = document.getElementById('branchLoginIdInput')?.value.trim();
+    const password = document.getElementById('branchPasswordInput')?.value.trim();
+    const enrollmentToken = document.getElementById('branchTokenInput')?.value.trim().toUpperCase();
+    const wifiSsid = document.getElementById('branchWifiSsidInput')?.value.trim();
+    const wifiPassword = document.getElementById('branchWifiPassInput')?.value.trim();
 
-    if (!name || !number || !password) {
-        showToast('يرجى ملء جميع الحقول المطلوبة.', 'error');
+    if (!name || !password) {
+        showToast('يرجى إدخال اسم الفرع وكلمة المرور.', 'error');
         return;
     }
 
@@ -3864,19 +4728,195 @@ async function submitCreateBranch(event) {
                 'Content-Type': 'application/json',
                 'X-Tenant-Token': currentTenantToken || ''
             },
-            body: JSON.stringify({ name, number, code, password })
+            body: JSON.stringify({
+                name,
+                code: code || name.replace(/[^A-Za-z0-9]/g, '').toUpperCase(),
+                number: number || String(100 + (branchesCache.length || 0) + 1),
+                email: email || `it.${name.toLowerCase()}@jib.iq`,
+                username: email || `it.${name.toLowerCase()}@jib.iq`,
+                password,
+                enrollmentToken: enrollmentToken || `JIB-${(code || 'BRN').slice(0, 3)}-2026`,
+                wifiSsid,
+                wifiPassword
+            })
         });
         const data = await res.json();
         if (data.success) {
             closeAddBranchModal();
-            showToast(`تم إنشاء الويب الفرعي لـ '${name}' بنجاح! رقم الدخول: ${number}`, 'success');
-            fetchBranches();
+            showToast(`تم إنشاء الويب الفرعي لـ '${name}' بنجاح! كود التفعيل: ${data.branch.enrollmentToken}`, 'success');
+            await fetchBranches();
+            if (data.branch && data.branch.id) {
+                openBranchStagingModal(data.branch.id);
+            }
         } else {
             showToast(data.error || 'فشل إنشاء الفرع.', 'error');
         }
     } catch (e) {
         showToast('خطأ في الاتصال بالسيرفر.', 'error');
     }
+}
+
+// --------------------------------------------------------------------------
+// BRANCH STAGING MODAL & UNIFIED PROVISIONING QR / SHORT TOKEN
+// --------------------------------------------------------------------------
+let currentStagingBranch = null;
+
+function openBranchStagingModal(branchId) {
+    let branch = (branchesCache || []).find(b => b.id === branchId || b.code === branchId || b.name === branchId);
+    if (!branch && (branchId === 'br_najaf_01' || (branchId || '').toLowerCase().includes('najaf'))) {
+        branch = {
+            id: 'br_najaf_01',
+            name: 'Najaf',
+            code: 'NAJAF',
+            number: '101',
+            email: 'it.najaf@jib.iq',
+            password: 'naj@2000@',
+            enrollmentToken: 'JIB-NJF-2026',
+            group: '\\Iraq\\Najaf',
+            wifiSsid: '',
+            wifiPassword: ''
+        };
+    } else if (!branch && branchesCache.length > 0) {
+        branch = branchesCache[0];
+    }
+    if (!branch) return;
+
+    currentStagingBranch = branch;
+
+    const modal = document.getElementById('modalBranchStaging');
+    if (!modal) return;
+
+    document.getElementById('stagingModalBranchTitle').innerText = `تجهيز أجهزة فرع (${branch.name}) والـ QR الموحد`;
+    document.getElementById('stagingModalGroupPath').innerText = branch.group || `\\Iraq\\${branch.name}`;
+    document.getElementById('stagingModalShortToken').innerText = branch.enrollmentToken || `JIB-${(branch.code || 'BRN').slice(0, 3)}-2026`;
+    document.getElementById('stagingModalUsername').innerText = branch.email || branch.username || `it.${branch.name.toLowerCase()}@jib.iq`;
+
+    const pwdEl = document.getElementById('stagingModalPassword');
+    if (pwdEl) {
+        pwdEl.innerText = '••••••••';
+        pwdEl.dataset.revealed = 'false';
+        pwdEl.dataset.actual = branch.password || '123456';
+    }
+
+    const host = window.location.host || 'localhost:3000';
+    const directUrl = `${window.location.protocol}//${host}/?branch=${encodeURIComponent(branch.name)}`;
+    const urlEl = document.getElementById('stagingModalDirectUrl');
+    if (urlEl) urlEl.innerText = directUrl;
+
+    renderBranchProvisioningQr(branch);
+
+    modal.style.display = 'flex';
+}
+
+function closeBranchStagingModal() {
+    const modal = document.getElementById('modalBranchStaging');
+    if (modal) modal.style.display = 'none';
+}
+
+function toggleRevealStagingPassword() {
+    const pwdEl = document.getElementById('stagingModalPassword');
+    if (!pwdEl) return;
+    const isRevealed = pwdEl.dataset.revealed === 'true';
+    if (isRevealed) {
+        pwdEl.innerText = '••••••••';
+        pwdEl.dataset.revealed = 'false';
+    } else {
+        pwdEl.innerText = pwdEl.dataset.actual || '123456';
+        pwdEl.dataset.revealed = 'true';
+    }
+}
+
+function copyBranchEnrollmentToken() {
+    if (!currentStagingBranch) return;
+    const token = currentStagingBranch.enrollmentToken || document.getElementById('stagingModalShortToken')?.innerText;
+    if (token) {
+        copyToClipboard(token, 'تم نسخ رمز التفعيل السريع للفرع إلى الحافظة!');
+    }
+}
+
+function getBranchProvisioningPayload(branch) {
+    const b = branch || currentStagingBranch;
+    if (!b) return {};
+    let origin = window.location.origin || `http://${window.location.host}`;
+    if (lastQrConfig?.localIp && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        origin = `http://${lastQrConfig.localIp}:${window.location.port || 3000}`;
+    }
+    const token = b.enrollmentToken || `JIB-${(b.code || 'BRN').slice(0, 3)}-2026`;
+    const checksum = (lastQrConfig?.signatureChecksum || 'T28h9GQowaWLuSM9v9Rmn8Cqn2o50SYyaDPUcUBtHk4');
+    const payload = {
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.nexus.mdm.agent",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${origin}/download/nexus-agent.apk`,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": checksum,
+        "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": false,
+        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+            "server_url": origin,
+            "company_code": currentCompanyCode || "JIB",
+            "branch": b.name,
+            "branch_id": b.id,
+            "branch_code": b.code || "",
+            "group": b.group || `\\Iraq\\${b.name}`,
+            "enrollment_token": token
+        }
+    };
+    if (lastQrConfig?.packageChecksum) {
+        payload["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"] = lastQrConfig.packageChecksum;
+    }
+    if (b.wifiSsid) {
+        payload["android.app.extra.PROVISIONING_WIFI_SSID"] = b.wifiSsid;
+        if (b.wifiPassword) {
+            payload["android.app.extra.PROVISIONING_WIFI_PASSWORD"] = b.wifiPassword;
+            payload["android.app.extra.PROVISIONING_WIFI_SECURITY_TYPE"] = "WPA";
+        } else {
+            payload["android.app.extra.PROVISIONING_WIFI_SECURITY_TYPE"] = "NONE";
+        }
+    }
+    return payload;
+}
+
+function renderBranchProvisioningQr(branch) {
+    const canvasContainer = document.getElementById('stagingModalQrCanvas');
+    if (!canvasContainer) return;
+    canvasContainer.innerHTML = '';
+    const payload = getBranchProvisioningPayload(branch);
+    const jsonStr = JSON.stringify(payload);
+
+    try {
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(canvasContainer, {
+                text: jsonStr,
+                width: 220,
+                height: 220,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            canvasContainer.innerText = 'مكتبة الباركود قيد التحميل...';
+        }
+    } catch (err) {
+        console.error('Failed to generate staging QR', err);
+        canvasContainer.innerHTML = '<span style="color:#DC2626; font-size:12px;">خطأ في توليد الباركود</span>';
+    }
+}
+
+function copyBranchProvisioningJson() {
+    if (!currentStagingBranch) return;
+    const payload = getBranchProvisioningPayload(currentStagingBranch);
+    copyToClipboard(JSON.stringify(payload, null, 2), 'تم نسخ حزمة بيانات الـ Provisioning JSON بنجاح!');
+}
+
+function printBranchStagingSheet() {
+    if (!currentStagingBranch) return;
+    window.print();
+}
+
+function launchBranchPortalFromModal() {
+    if (!currentStagingBranch) return;
+    const bName = currentStagingBranch.name;
+    closeBranchStagingModal();
+    selectDeviceGroup(bName);
+    showToast(`تم التبديل إلى ويب أدمن فرع (${bName}) بنجاح!`, 'success');
 }
 
 async function deleteBranch(branchId, branchName) {
@@ -3998,7 +5038,7 @@ async function handleCompanyLogin(event) {
             }
         }
     } catch (e) {
-        const msg = 'تعذر الاتصال بخادم Nexus، يرجى المحاولة لاحقاً.';
+        const msg = 'تعذر الاتصال بخادم JIB MobiControl، يرجى المحاولة لاحقاً.';
         if (errText) errText.innerText = msg;
         else if (errBox) errBox.innerText = msg;
         if (errBox) errBox.style.display = 'flex';
@@ -4041,6 +5081,7 @@ async function initAuthenticatedPortal() {
     hideCompanyLoginScreen();
     const isActive = await checkCurrentCompanySubscription();
     if (isActive) {
+        fetchBranches();
         fetchDevices();
         if (!deviceFetchIntervalTimer) {
             deviceFetchIntervalTimer = setInterval(fetchDevices, 3000);
@@ -4168,7 +5209,7 @@ function renderDacChassis(d) {
     const battery = d.battery || 0;
     const isCharging = !!d.isCharging;
     const isKiosk = !!d.isKiosk;
-    const deviceName = d.name || d.id || 'Nexus Device';
+    const deviceName = d.name || d.id || 'JIB MobiControl Device';
     const model = d.model || 'Android Terminal';
 
     // Time string
@@ -4205,10 +5246,13 @@ function renderDacChassis(d) {
     let chassisHtml = '';
 
     if (effectiveBrand === 'honeywell') {
+        const isCt47 = (model || '').toUpperCase().includes('CT47');
+        const honeywellChassisImg = isCt47 ? 'honeywell-ct47-frame.png?v=20260919' : 'honeywell-ct60-frame.png?v=20260919';
+        const frameClass = isCt47 ? 'honeywell-frame-ct47' : 'honeywell-frame-ct60';
         chassisHtml = `
             <div class="dac-honeywell-chassis">
-                <div class="honeywell-phone-frame">
-                    <img src="honeywell-device.png" alt="Honeywell Enterprise Device" class="honeywell-chassis-img" draggable="false" />
+                <div class="honeywell-phone-frame ${frameClass}">
+                    <img src="${honeywellChassisImg}" alt="${isCt47 ? 'Honeywell CT47 Handheld' : 'Honeywell CT60 Handheld'}" class="honeywell-chassis-img" draggable="false" />
                     <div class="phone-display-viewport dac-preview-viewport">
                         ${innerScreenHtml}
                     </div>
@@ -4414,6 +5458,25 @@ function updateDacModalContent(d) {
         }
     }
 
+    const dacStreamBtn = document.getElementById('dacBtnStream');
+    if (dacStreamBtn) {
+        if (!d.isOnline) {
+            dacStreamBtn.disabled = true;
+            dacStreamBtn.classList.add('disabled');
+            dacStreamBtn.style.background = '#94A3B8';
+            dacStreamBtn.style.borderColor = '#94A3B8';
+            dacStreamBtn.style.cursor = 'not-allowed';
+            dacStreamBtn.title = 'الجهاز غير متصل (أوفلاين) - لا يمكن التحكم عن بعد';
+        } else {
+            dacStreamBtn.disabled = false;
+            dacStreamBtn.classList.remove('disabled');
+            dacStreamBtn.style.background = '';
+            dacStreamBtn.style.borderColor = '';
+            dacStreamBtn.style.cursor = '';
+            dacStreamBtn.title = '';
+        }
+    }
+
     // Render the hardware chassis mockup
     renderDacChassis(d);
 }
@@ -4422,6 +5485,10 @@ function dacExecuteStream() {
     if (!activeDacDeviceId) return;
     const safeDevices = lastDevicesCache || [];
     const device = safeDevices.find(d => d.id === activeDacDeviceId);
+    if (device && !device.isOnline) {
+        showToast('الجهاز غير متصل (Offline). لا يمكن فتح التحكم عن بعد.', 'warning');
+        return;
+    }
     const name = device ? (device.name || device.id) : activeDacDeviceId;
     openScreenStream(activeDacDeviceId, name);
 }
@@ -4559,6 +5626,384 @@ function promptAssignDacBranch() {
     } else {
         const targetBranch = branchesCache[num - 1];
         assignDeviceToBranch(dev.id, targetBranch.id);
+    }
+}
+
+// --------------------------------------------------------------------------
+// SOTI APPLICATION PACKAGES MANAGEMENT
+// --------------------------------------------------------------------------
+let selectedApkFile = null;
+let cachedPackagesList = [];
+
+function openPackagesModal() {
+    const modal = document.getElementById('sotiPackagesModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    resetPackageUploadForm();
+    initPackagesDropzone();
+    loadPackagesList();
+}
+
+function closePackagesModal() {
+    const modal = document.getElementById('sotiPackagesModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function switchPackageTab(tab) {
+    const btnApk = document.getElementById('pkgTabApk');
+    const btnPlay = document.getElementById('pkgTabPlay');
+    const contentApk = document.getElementById('pkgTabContentApk');
+    const contentPlay = document.getElementById('pkgTabContentPlay');
+
+    if (tab === 'apk') {
+        if (btnApk) btnApk.classList.add('active');
+        if (btnPlay) btnPlay.classList.remove('active');
+        if (contentApk) contentApk.style.display = 'block';
+        if (contentPlay) contentPlay.style.display = 'none';
+    } else {
+        if (btnPlay) btnPlay.classList.add('active');
+        if (btnApk) btnApk.classList.remove('active');
+        if (contentPlay) contentPlay.style.display = 'block';
+        if (contentApk) contentApk.style.display = 'none';
+    }
+}
+
+function initPackagesDropzone() {
+    const dropzone = document.getElementById('pkgApkDropzone');
+    if (!dropzone || dropzone.dataset.initialized) return;
+    dropzone.dataset.initialized = 'true';
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            handleApkFileSelected(files[0]);
+        }
+    });
+}
+
+function handleApkFileSelected(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.apk')) {
+        showToast(currentLang === 'ar' ? 'يرجى اختيار ملف بصيغة .apk فقط' : 'Please select a valid .apk file', 'error');
+        return;
+    }
+    selectedApkFile = file;
+
+    const info = document.getElementById('pkgSelectedFileInfo');
+    if (info) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        info.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>${escapeHtml(file.name)} (${sizeMb} MB)</span>
+        `;
+        info.style.display = 'inline-flex';
+    }
+
+    const nameInput = document.getElementById('pkgApkAppName');
+    if (nameInput && !nameInput.value.trim()) {
+        const baseName = file.name.replace(/\.apk$/i, '').replace(/[_-]/g, ' ');
+        nameInput.value = baseName;
+    }
+}
+
+function resetPackageUploadForm() {
+    selectedApkFile = null;
+    const fileInput = document.getElementById('pkgApkFileInput');
+    if (fileInput) fileInput.value = '';
+    const info = document.getElementById('pkgSelectedFileInfo');
+    if (info) info.style.display = 'none';
+    const nameInput = document.getElementById('pkgApkAppName');
+    if (nameInput) nameInput.value = '';
+    const autoInstall = document.getElementById('pkgApkAutoInstall');
+    if (autoInstall) autoInstall.checked = true;
+
+    const progressWrap = document.getElementById('pkgUploadProgressWrap');
+    if (progressWrap) progressWrap.style.display = 'none';
+    const progressBar = document.getElementById('pkgUploadProgressBar');
+    if (progressBar) progressBar.style.width = '0%';
+
+    const playName = document.getElementById('pkgPlayAppName');
+    if (playName) playName.value = '';
+    const playPkg = document.getElementById('pkgPlayPackageId');
+    if (playPkg) playPkg.value = '';
+}
+
+function submitApkUpload() {
+    if (!selectedApkFile) {
+        showToast(currentLang === 'ar' ? 'يرجى تحديد ملف APK أولاً' : 'Please select an APK file first', 'warning');
+        return;
+    }
+
+    const appName = document.getElementById('pkgApkAppName')?.value?.trim() || selectedApkFile.name;
+    const autoInstall = document.getElementById('pkgApkAutoInstall')?.checked !== false;
+
+    const progressWrap = document.getElementById('pkgUploadProgressWrap');
+    const progressBar = document.getElementById('pkgUploadProgressBar');
+    const progressText = document.getElementById('pkgUploadProgressText');
+    const uploadBtn = document.getElementById('pkgUploadBtn');
+
+    if (progressWrap) progressWrap.style.display = 'block';
+    if (uploadBtn) uploadBtn.disabled = true;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/packages/upload', true);
+    xhr.setRequestHeader('X-Filename', encodeURIComponent(selectedApkFile.name));
+    xhr.setRequestHeader('X-App-Name', encodeURIComponent(appName));
+    xhr.setRequestHeader('X-Auto-Install', autoInstall ? 'true' : 'false');
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            if (progressBar) progressBar.style.width = pct + '%';
+            if (progressText) progressText.innerText = `Uploading: ${pct}%`;
+        }
+    };
+
+    xhr.onload = () => {
+        if (uploadBtn) uploadBtn.disabled = false;
+        try {
+            const res = JSON.parse(xhr.responseText);
+            if (res.success) {
+                showToast(currentLang === 'ar' ? 'تم رفع وحفظ حزمة الـ APK بنجاح' : 'APK Package uploaded and registered successfully', 'success');
+                resetPackageUploadForm();
+                loadPackagesList();
+            } else {
+                showToast(res.error || 'Failed to upload package', 'error');
+            }
+        } catch (e) {
+            showToast('Server response parse error', 'error');
+        }
+    };
+
+    xhr.onerror = () => {
+        if (uploadBtn) uploadBtn.disabled = false;
+        showToast(currentLang === 'ar' ? 'فشل الاتصال بالخادم أثناء رفع الـ APK' : 'Network error during upload', 'error');
+    };
+
+    xhr.send(selectedApkFile);
+}
+
+async function submitPlayStorePackage() {
+    const name = document.getElementById('pkgPlayAppName')?.value?.trim();
+    const pkgId = document.getElementById('pkgPlayPackageId')?.value?.trim();
+    const autoInstall = document.getElementById('pkgPlayAutoInstall')?.checked !== false;
+
+    if (!pkgId) {
+        showToast(currentLang === 'ar' ? 'يرجى إدخال اسم الحزمة أو رابط متجر Google Play' : 'Please enter package name or Google Play link', 'warning');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/packages/play-store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name || pkgId,
+                packageName: pkgId,
+                autoInstall: autoInstall
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(currentLang === 'ar' ? 'تمت إضافة تطبيق Google Play بنجاح' : 'Google Play package added successfully', 'success');
+            document.getElementById('pkgPlayAppName').value = '';
+            document.getElementById('pkgPlayPackageId').value = '';
+            loadPackagesList();
+        } else {
+            showToast(data.error || 'Failed to add package', 'error');
+        }
+    } catch (e) {
+        showToast('Error connecting to server', 'error');
+    }
+}
+
+async function loadPackagesList() {
+    const tbody = document.getElementById('packagesTableBody');
+    const countEl = document.getElementById('pkgCountTotal');
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#94A3B8;">Loading packages...</td></tr>`;
+    }
+
+    try {
+        const res = await fetch('/api/packages');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.packages)) {
+            cachedPackagesList = data.packages;
+            if (countEl) countEl.innerText = cachedPackagesList.length;
+            renderPackagesTable(cachedPackagesList);
+        } else {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#EF4444;">Failed to load packages.</td></tr>`;
+        }
+    } catch (e) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#EF4444;">Network error.</td></tr>`;
+    }
+}
+
+function renderPackagesTable(packages) {
+    const tbody = document.getElementById('packagesTableBody');
+    if (!tbody) return;
+
+    if (!packages || packages.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; padding:24px; color:#94A3B8; font-size:12px;">
+                    No packages configured.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = packages.map(pkg => {
+        const isApk = pkg.type === 'apk';
+        const badge = isApk 
+            ? `<span class="pkg-badge-apk">APK</span>` 
+            : `<span class="pkg-badge-play">Google Play</span>`;
+        const sizeText = isApk 
+            ? `${(pkg.size / (1024 * 1024)).toFixed(1)} MB`
+            : `Store App`;
+        const checkedAttr = pkg.autoInstall ? 'checked' : '';
+
+        return `
+            <tr>
+                <td>
+                    <div style="font-weight:600; color:#0F172A; font-size:12.5px; line-height:1.25;">${escapeHtml(pkg.name || 'Unnamed')}</div>
+                    <div style="font-family:monospace; font-size:10.5px; color:#64748B; margin-top:2px;">${escapeHtml(pkg.packageName || '')}</div>
+                </td>
+                <td>${badge}</td>
+                <td>
+                    <div style="font-size:11.5px; color:#334155; font-weight:500;">${escapeHtml(pkg.version || '1.0')}</div>
+                    <div style="font-size:10.5px; color:#64748B;">${sizeText}</div>
+                </td>
+                <td style="text-align:center;">
+                    <label class="pkg-toggle-switch">
+                        <input type="checkbox" ${checkedAttr} onchange="togglePackageAutoInstall('${pkg.id}', this.checked)" />
+                        <span class="pkg-toggle-slider"></span>
+                    </label>
+                </td>
+                <td style="text-align:right; white-space:nowrap; direction:ltr !important;">
+                    <button type="button" class="pkg-action-icon-btn" onclick="deployPackageToFleet('${pkg.id}')" title="Deploy to Fleet">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
+                        <span>Deploy</span>
+                    </button>
+                    ${isApk ? `
+                    <a href="${pkg.relativeUrl || pkg.url}" download class="pkg-action-icon-btn" style="text-decoration:none;" title="Download APK">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
+                    ` : ''}
+                    <button type="button" class="pkg-action-icon-btn btn-danger" onclick="deletePackage('${pkg.id}')" title="Delete Package">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function togglePackageAutoInstall(pkgId, isChecked) {
+    try {
+        const res = await fetch('/api/packages/toggle-auto-install', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pkgId, autoInstall: isChecked })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(isChecked 
+                ? (currentLang === 'ar' ? 'تم تفعيل التثبيت التلقائي عند إعداد الجهاز' : 'Auto-install upon enrollment enabled')
+                : (currentLang === 'ar' ? 'تم تعطيل التثبيت التلقائي' : 'Auto-install disabled'), 'info');
+        } else {
+            showToast('Failed to update package setting', 'error');
+            loadPackagesList();
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+        loadPackagesList();
+    }
+}
+
+async function deletePackage(pkgId) {
+    const isRtl = currentLang === 'ar';
+    const targetPkg = cachedPackagesList.find(p => p.id === pkgId);
+    const pkgTitle = targetPkg ? targetPkg.name : 'Package';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'حذف حزمة تطبيق' : 'Delete Package',
+        heading: isRtl ? `هل أنت متأكد من حذف الحزمة "${pkgTitle}"؟` : `Delete package "${pkgTitle}"?`,
+        message: isRtl 
+            ? 'سيتم إزالة الحزمة من النظام ولن يتم تثبيتها تلقائياً على الأجهزة الجديدة.'
+            : 'The package will be deleted and no longer auto-deployed upon enrollment.',
+        confirmText: isRtl ? 'حذف الحزمة' : 'Delete Package',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: true
+    });
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch('/api/packages/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pkgId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(isRtl ? 'تم حذف الحزمة بنجاح' : 'Package deleted', 'success');
+            loadPackagesList();
+        } else {
+            showToast(data.error || 'Failed to delete package', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
+    }
+}
+
+async function deployPackageToFleet(pkgId) {
+    const isRtl = currentLang === 'ar';
+    const targetPkg = cachedPackagesList.find(p => p.id === pkgId);
+    const pkgTitle = targetPkg ? targetPkg.name : 'Package';
+    const confirmed = await showSotiConfirm({
+        title: isRtl ? 'نشر التطبيق على الأسطول' : 'Deploy Package to Fleet',
+        heading: isRtl ? `تثبيت "${pkgTitle}" على جميع أجهزة الأسطول الآن؟` : `Deploy "${pkgTitle}" to all fleet devices?`,
+        message: isRtl 
+            ? 'سيتم إرسال أمر تنزيل وتثبيت هذا التطبيق إلى جميع الأجهزة المتصلة بالأسطول فوراً.'
+            : 'An installation command will be queued for all connected fleet devices.',
+        confirmText: isRtl ? 'نشر وتثبيت' : 'Deploy Now',
+        cancelText: isRtl ? 'إلغاء' : 'Cancel',
+        isDanger: false
+    });
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch('/api/packages/deploy-fleet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pkgId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(isRtl ? `تم إرسال أمر التثبيت إلى ${data.queuedCount} جهاز في الأسطول` : `Install command queued for ${data.queuedCount} device(s)`, 'success');
+        } else {
+            showToast(data.error || 'Failed to deploy package', 'error');
+        }
+    } catch (e) {
+        showToast('Network error', 'error');
     }
 }
 

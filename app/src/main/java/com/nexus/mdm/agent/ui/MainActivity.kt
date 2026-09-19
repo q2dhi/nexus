@@ -565,17 +565,21 @@ class MainActivity : AppCompatActivity() {
         handleIncomingIntent(intent)
     }
 
+    fun handleKioskStateChange(enable: Boolean) {
+        if (enable) {
+            configStore.isKioskEnabled = true
+            kioskManager.startKiosk(this)
+            activateKioskView()
+        } else {
+            exitKioskToAndroid()
+        }
+    }
+
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
         if (intent.hasExtra("EXTRA_KIOSK_STATE_CHANGE")) {
             val enable = intent.getBooleanExtra("EXTRA_KIOSK_STATE_CHANGE", false)
-            if (enable) {
-                configStore.isKioskEnabled = true
-                kioskManager.startKiosk(this)
-                activateKioskView()
-            } else {
-                exitKioskToAndroid()
-            }
+            handleKioskStateChange(enable)
         }
         if (intent.getBooleanExtra("EXTRA_REMOTE_LOCK", false)) {
             if (policyHelper.isAdminActive()) {
@@ -1079,7 +1083,7 @@ class MainActivity : AppCompatActivity() {
                         if (code == 200) {
                             tvCloudStatusBadge.text = "Cloud: Connected"
                             tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_green))
-                            Toast.makeText(this@MainActivity, "✅ تم الاتصال بنجاح! سيظهر الجهاز الآن في لوحة الويب.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, "تم الاتصال بنجاح! سيظهر الجهاز الآن في لوحة الويب.", Toast.LENGTH_LONG).show()
                         } else {
                             tvCloudStatusBadge.text = "Cloud: HTTP $code"
                             tvCloudStatusBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.nexus_amber))

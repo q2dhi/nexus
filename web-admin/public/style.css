@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NEXUS ENTERPRISE MDM — MINIMAL WHITE & ROYAL BLUE DESIGN SYSTEM
+   JIB MOBICONTROL — ENTERPRISE SOTI DESIGN SYSTEM
    Palette: Pure White & Royal Blue (#0066FF) | Style: Apple / Linear Minimalist
    Font: Thmanyah Serif Text (Desktop Font)
    ========================================================================== */
@@ -1388,7 +1388,7 @@ body.ltr-mode .qr-instructions ol {
 .dac-honeywell-chassis .honeywell-phone-frame {
     position: relative;
     width: 100%;
-    aspect-ratio: 375 / 797;
+    aspect-ratio: 364 / 719;
     filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.4));
 }
 
@@ -1403,12 +1403,12 @@ body.ltr-mode .qr-instructions ol {
 
 .dac-preview-viewport {
     position: absolute;
-    top: 14.05%;
-    left: 5.33%;
-    width: 88.00%;
-    height: 77.29%;
+    top: 15.72%;
+    left: 11.26%;
+    width: 75.82%;
+    height: 68.29%;
     background: #000000;
-    border-radius: 4px 4px 10px 10px;
+    border-radius: 2px;
     overflow: hidden;
     cursor: default;
     z-index: 2;
@@ -1886,7 +1886,7 @@ body.ltr-mode .dac-btn { text-align: left; }
 .honeywell-phone-frame {
     position: relative;
     width: 100%;
-    aspect-ratio: 375 / 797;
+    aspect-ratio: 364 / 719;
     filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.25));
     user-select: none;
 }
@@ -1900,15 +1900,15 @@ body.ltr-mode .dac-btn { text-align: left; }
     -webkit-user-drag: none;
 }
 
-/* Precise LCD Display Placement on Honeywell Hardware */
+/* Precise LCD Display Placement on Authentic Honeywell CT60 Hardware */
 .phone-display-viewport {
     position: absolute;
-    top: 14.05%;
-    left: 5.33%;
-    width: 88.00%;
-    height: 77.29%;
+    top: 15.72%;
+    left: 11.26%;
+    width: 75.82%;
+    height: 68.29%;
     background: #000000;
-    border-radius: 4px 4px 12px 12px;
+    border-radius: 2px;
     overflow: hidden;
     /* Sleek Mobile Touch Reticle with Grab Fallback */
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='rgba(255,255,255,0.25)' stroke='%23ffffff' stroke-width='2' filter='drop-shadow(0 1px 2px rgba(0,0,0,0.8))'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%2338bdf8'/%3E%3C/svg%3E") 12 12, grab, pointer;
@@ -1916,6 +1916,72 @@ body.ltr-mode .dac-btn { text-align: left; }
     -webkit-user-select: none;
     touch-action: none;
     z-index: 2;
+}
+
+/* Authentic Honeywell CT60 Hardware Capacitive Touch Keys Overlay */
+.honeywell-hw-nav-strip {
+    position: absolute;
+    top: 84.8%;
+    left: 11.26%;
+    width: 75.82%;
+    height: 6.2%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    user-select: none;
+}
+
+.hw-nav-btn {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.hw-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.hw-nav-btn:active {
+    background: rgba(56, 189, 248, 0.4);
+}
+
+/* Model-Specific Honeywell Frame Adaptations (CT47 vs CT60) */
+.honeywell-frame-ct47 {
+    aspect-ratio: 375 / 797 !important;
+}
+.honeywell-frame-ct47 .phone-display-viewport,
+.honeywell-frame-ct47.phone-display-viewport,
+.honeywell-frame-ct47 .dac-preview-viewport {
+    top: 14.05% !important;
+    left: 5.33% !important;
+    width: 88.00% !important;
+    height: 77.29% !important;
+    border-radius: 4px 4px 12px 12px !important;
+}
+.honeywell-frame-ct47 .honeywell-hw-nav-strip {
+    display: none !important;
+}
+
+.honeywell-frame-ct60 {
+    aspect-ratio: 364 / 719 !important;
+}
+.honeywell-frame-ct60 .phone-display-viewport,
+.honeywell-frame-ct60.phone-display-viewport,
+.honeywell-frame-ct60 .dac-preview-viewport {
+    top: 15.72% !important;
+    left: 11.26% !important;
+    width: 75.82% !important;
+    height: 68.29% !important;
+    border-radius: 2px !important;
+}
+.honeywell-frame-ct60 .honeywell-hw-nav-strip {
+    display: flex !important;
 }
 
 .phone-display-viewport:active,
@@ -3501,6 +3567,7 @@ body.ltr-mode .soti-app-wrapper {
     padding: 0 !important;
     gap: 0 !important;
     direction: ltr !important;
+    text-align: left !important;
 }
 
 /* SOTI Top Header Bar (Classic Navy Blue) */
@@ -3707,20 +3774,44 @@ body.ltr-mode .soti-app-wrapper {
     opacity: 1;
 }
 
-.soti-device-search-input {
-    border: 1px solid #CBD5E1;
-    border-radius: 4px;
-    padding: 5px 10px;
-    font-size: 12.5px;
+.soti-subnav-search-wrap {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
     background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    height: 28px;
+    box-sizing: border-box;
+}
+
+.soti-search-plus-icon {
+    position: absolute;
+    left: 7px;
+    pointer-events: none;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+}
+
+.soti-device-search-input {
+    border: none;
+    background: transparent;
+    padding: 4px 8px 4px 26px;
+    font-size: 12px;
     color: #1E293B;
-    width: 220px;
-    transition: width 0.2s ease, border-color 0.2s ease;
+    width: 200px;
+    outline: none;
+    box-sizing: border-box;
+    transition: width 0.2s ease;
+}
+
+.soti-device-search-input::placeholder {
+    color: #64748B;
 }
 
 .soti-device-search-input:focus {
-    width: 280px;
-    border-color: #0078D4;
+    width: 240px;
     outline: none;
 }
 
@@ -3841,23 +3932,46 @@ body.ltr-mode .soti-app-wrapper {
 }
 
 .soti-group-search-box {
+    position: relative;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.soti-group-search-box svg {
+    position: absolute;
+    left: 8px;
+    pointer-events: none;
 }
 
 .soti-group-search-input {
     width: 100%;
     font-size: 12px;
-    padding: 6px 8px;
+    padding: 6px 8px 6px 26px;
     border: 1px solid #CBD5E1;
-    border-radius: 4px;
-    background: #F8FAFC;
+    border-radius: 3px;
+    background: #FFFFFF;
     color: #1E293B;
+    box-sizing: border-box;
 }
 
 .soti-group-search-input:focus {
     background: #FFFFFF;
     border-color: #0078D4;
     outline: none;
+}
+
+.soti-tree-node-plus-btn,
+.soti-tree-add-btn,
+.soti-group-more-btn,
+.soti-group-count {
+    display: none !important;
+}
+
+.soti-tree-node-parent:hover .soti-tree-node-plus-btn,
+.soti-groups-header:hover .soti-tree-add-btn,
+.soti-group-item:hover .soti-group-more-btn {
+    display: inline-flex !important;
 }
 
 .soti-groups-tree {
@@ -3885,9 +3999,9 @@ body.ltr-mode .soti-app-wrapper {
 }
 
 .soti-group-item.active {
-    background: #E0F2FE;
-    color: #0369A1;
-    font-weight: 600;
+    background: #EBF3FB !important;
+    color: #004B87 !important;
+    font-weight: 600 !important;
 }
 
 .soti-group-item-label {
@@ -3909,8 +4023,25 @@ body.ltr-mode .soti-app-wrapper {
     width: 8px;
     height: 8px;
     border-radius: 50%;
+    flex-shrink: 0;
     background: #0284C7;
     display: inline-block;
+}
+
+.soti-tree-add-btn:hover {
+    background: #E0F2FE !important;
+    border-color: #0078D4 !important;
+    color: #0078D4 !important;
+}
+
+.soti-group-more-btn:hover {
+    background: #E0F2FE !important;
+    border-radius: 4px;
+}
+
+.soti-tree-node-plus-btn:hover {
+    color: #0078D4 !important;
+    transform: scale(1.15);
 }
 
 .soti-sidebar-footer {
@@ -4082,20 +4213,47 @@ body.ltr-mode .soti-app-wrapper {
 }
 
 .soti-refresh-btn {
+    position: relative;
     background: none;
     border: none;
     cursor: pointer;
     font-size: 14px;
     color: #64748B;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     padding: 2px 4px;
+    outline: none;
 }
 
-.soti-refresh-btn:hover {
-    color: #0284C7;
-    transform: rotate(45deg);
-    transition: transform 0.2s ease;
+.soti-refresh-btn svg {
+    display: block;
+    transition: color 0.15s ease;
+}
+
+.soti-refresh-btn:hover svg {
+    color: #0078D4;
+}
+
+.soti-refresh-btn.spinning svg {
+    animation: sotiRefreshSpin 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes sotiRefreshSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.soti-refresh-red-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 0 1.5px #FFFFFF;
+    pointer-events: none;
 }
 
 .soti-table-top-right {
@@ -4152,6 +4310,8 @@ body.ltr-mode .soti-app-wrapper {
     border-bottom: 1px solid #F1F5F9;
     color: #334155;
     vertical-align: middle;
+    text-align: left !important;
+    direction: ltr !important;
 }
 
 .soti-fleet-table tbody tr:hover {
@@ -4278,63 +4438,1552 @@ body.ltr-mode .soti-app-wrapper {
     min-width: 32px;
 }
 
-/* SOTI Module Navigation Off-Canvas Drawer */
-.soti-nav-drawer {
-    position: fixed;
+/* SOTI ONE Floating White Popover (Screenshot 5.55.39 PM) */
+.soti-one-menu {
+    position: absolute;
     top: 48px;
-    left: 0;
-    width: 270px;
-    height: calc(100vh - 48px);
-    background: #003B71;
-    z-index: 1050;
-    transform: translateX(-100%);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 4px 0 16px rgba(0,0,0,0.25);
-    display: flex;
+    left: 8px;
+    width: 250px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    z-index: 2000;
+    display: none;
     flex-direction: column;
-    padding: 16px 0;
+    padding: 8px 0;
 }
 
-.soti-nav-drawer.open {
-    transform: translateX(0);
+.soti-one-menu.show {
+    display: flex;
 }
 
-.soti-nav-drawer-item {
+.soti-one-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 12px 16px;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.soti-one-menu-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
-    color: #E2E8F0;
-    font-size: 13px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    color: #334155;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-    border-left: 3px solid transparent;
+    transition: background 0.12s ease;
 }
 
-.soti-nav-drawer-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #FFFFFF;
+.soti-one-menu-item:hover {
+    background: #F1F5F9;
+    color: #0078D4;
 }
 
-.soti-nav-drawer-item.active {
-    background: rgba(255, 255, 255, 0.15);
+.soti-one-menu-item.active {
+    background: #E8F3FA;
+    color: #0078D4;
+    font-weight: 600;
+}
+
+.soti-one-menu-divider {
+    height: 1px;
+    background: #E2E8F0;
+    margin: 6px 0;
+}
+
+/* ==========================================================================
+   SOTI MOBICONTROL 100% PARITY STYLES (NO EMOJIS, CLEAN SVG ARCHITECTURE)
+   ========================================================================== */
+
+/* Top bar User Profile Dropdown */
+.soti-user-dropdown-menu {
+    position: absolute;
+    top: 48px;
+    right: 12px;
+    width: 200px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    display: none;
+    flex-direction: column;
+    padding: 6px 0;
+}
+.soti-user-dropdown-menu.show {
+    display: flex;
+}
+.soti-user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #1E293B;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.soti-user-dropdown-item:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
+.soti-user-dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #64748B;
+    stroke-width: 1.8;
+}
+
+/* Advanced Query Builder Popup */
+.soti-query-builder-popover {
+    position: absolute;
+    top: 86px;
+    left: 170px;
+    width: 580px;
+    background: #FFFFFF;
+    border: 1px solid #94A3B8;
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1060;
+    display: none;
+    flex-direction: column;
+    font-family: inherit;
+}
+.soti-query-builder-popover.show {
+    display: flex;
+}
+.soti-qb-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #E2E8F0;
+    gap: 8px;
+}
+.soti-qb-header input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: #1E293B;
+}
+.soti-qb-body {
+    display: flex;
+    height: 340px;
+}
+.soti-qb-col-categories {
+    width: 210px;
+    border-right: 1px solid #E2E8F0;
+    overflow-y: auto;
+    background: #FAFAFA;
+}
+.soti-qb-section-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #64748B;
+    padding: 10px 14px 6px 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.soti-qb-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    color: #334155;
+    cursor: pointer;
+}
+.soti-qb-cat-item:hover {
+    background: #F1F5F9;
+}
+.soti-qb-cat-item.active {
+    background: #E0F2FE;
+    color: #0369A1;
+    font-weight: 600;
+}
+.soti-qb-cat-item svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 1.8;
+}
+.soti-qb-col-properties {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.soti-qb-prop-item {
+    padding: 7px 16px;
+    font-size: 12.5px;
+    color: #1E293B;
+    cursor: pointer;
+}
+.soti-qb-prop-item:hover {
+    background: #F8FAFC;
+    color: #0284C7;
+}
+
+/* Operator & Value Step Popups */
+.soti-qb-operator-box, .soti-qb-value-box {
+    position: absolute;
+    top: 86px;
+    left: 210px;
+    width: 290px;
+    background: #FFFFFF;
+    border: 1px solid #94A3B8;
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1065;
+    display: none;
+    flex-direction: column;
+}
+.soti-qb-operator-box.show, .soti-qb-value-box.show {
+    display: flex;
+}
+.soti-qb-step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1E293B;
+}
+.soti-qb-choice-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    color: #1E293B;
+    cursor: pointer;
+}
+.soti-qb-choice-item:hover {
+    background: #F1F5F9;
+    color: #0284C7;
+}
+.soti-qb-choice-item.active {
+    background: #E0F2FE;
+    color: #0369A1;
+    font-weight: 600;
+}
+.soti-qb-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-top: 1px solid #E2E8F0;
+    background: #F8FAFC;
+}
+.soti-btn-done {
+    background: #0078D4;
     color: #FFFFFF;
-    border-left-color: #00A3AF;
+    border: none;
+    border-radius: 3px;
+    padding: 5px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.soti-btn-done:hover {
+    background: #106EBE;
+}
+
+/* Applied Filter Pill */
+.soti-applied-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFFFFF;
+    border: 1px solid #94A3B8;
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-size: 12.5px;
+    color: #1E293B;
+    font-weight: 500;
+}
+.soti-applied-filter-pill .pill-op {
+    color: #64748B;
+    font-weight: 700;
+}
+.soti-applied-filter-pill .pill-val {
+    color: #0284C7;
     font-weight: 700;
 }
 
-.soti-drawer-backdrop {
+.soti-filter-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #0078D4;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s ease;
+}
+
+.soti-filter-action-btn:hover {
+    background: #005A9E;
+}
+
+/* Charts Header Enhancements */
+.soti-chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #F1F5F9;
+}
+.soti-chart-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.soti-chart-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.soti-chart-tool-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid #CBD5E1;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #475569;
+    padding: 0;
+}
+.soti-chart-tool-btn:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
+
+/* Table Battery and Memory Visual Bars */
+.soti-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.soti-progress-track {
+    width: 65px;
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+.soti-progress-bar-blue {
+    height: 100%;
+    background: #1D70B8;
+    border-radius: 3px;
+}
+.soti-progress-bar-red {
+    height: 100%;
+    background: #D9381E;
+    border-radius: 3px;
+}
+.soti-progress-text {
+    font-size: 12px;
+    color: #334155;
+    min-width: 32px;
+}
+
+/* Device Details SOTI 360 Modal */
+.soti-device-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+    z-index: 9999 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    direction: ltr !important;
+    text-align: left;
+    box-sizing: border-box;
+}
+.soti-device-modal.show {
+    display: flex !important;
+}
+.soti-modal-floating-close {
     position: fixed;
-    top: 48px;
+    top: 56px;
+    right: 28px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #23272B;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    z-index: 10001;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.soti-modal-floating-close:hover {
+    background: #33383F;
+    transform: scale(1.05);
+}
+.soti-modal-floating-prev {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #23272B;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    z-index: 10001;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.soti-modal-floating-prev:hover {
+    background: #33383F;
+    transform: translateY(-50%) scale(1.05);
+}
+.soti-modal-floating-next {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #23272B;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    z-index: 10001;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.soti-modal-floating-next:hover {
+    background: #33383F;
+    transform: translateY(-50%) scale(1.05);
+}
+.soti-device-modal-card {
+    background: #FFFFFF;
+    width: 960px;
+    max-width: calc(100vw - 120px);
+    height: 86vh;
+    max-height: 840px;
+    border-radius: 4px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    direction: ltr !important;
+    text-align: left;
+    position: relative;
+    z-index: 10000;
+}
+.soti-modal-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    direction: ltr !important;
+    position: relative;
+    z-index: 100;
+}
+.soti-modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    direction: ltr !important;
+}
+.soti-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    direction: ltr !important;
+}
+.soti-action-icon-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #1677BE;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+.soti-action-icon-circle:hover {
+    background: #105D96;
+    transform: translateY(-1px);
+}
+.soti-action-icon-circle:disabled,
+.soti-action-icon-circle.disabled {
+    background: #94A3B8 !important;
+    color: #E2E8F0 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.85 !important;
+}
+.soti-actions-item.disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    background: transparent !important;
+}
+.soti-actions-item.disabled span,
+.soti-actions-item.disabled svg {
+    color: #94A3B8 !important;
+    stroke: #94A3B8 !important;
+}
+.soti-modal-tabs-bar {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 0 16px;
+    gap: 20px;
+    overflow-x: auto;
+    direction: ltr !important;
+}
+.soti-modal-tab {
+    padding: 10px 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+.soti-modal-tab:hover {
+    color: #0F172A;
+}
+.soti-modal-tab.active {
+    color: #0078D4;
+    border-bottom: 2px solid #0078D4;
+}
+.soti-modal-subsearch {
+    padding: 8px 16px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.soti-modal-subsearch input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 12px;
+    color: #334155;
+}
+.soti-modal-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #F8FAFC;
+}
+.soti-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.soti-prop-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.soti-prop-card-header {
+    background: #FFFFFF;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0F172A;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.soti-prop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid #F8FAFC;
+    font-size: 12.5px;
+}
+.soti-prop-row:last-child {
+    border-bottom: none;
+}
+.soti-prop-key {
+    color: #475569;
+}
+.soti-prop-val {
+    color: #0F172A;
+    font-weight: 500;
+}
+
+/* Location Map View */
+.soti-location-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 520px;
+    background: #FFFFFF;
+    border-radius: 4px;
+    border: 1px solid #E2E8F0;
+    overflow: hidden;
+}
+.soti-map-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+}
+.soti-map-canvas {
+    flex: 1;
+    min-height: 420px;
+    width: 100%;
+}
+.soti-map-bottom-legend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #FFFFFF;
+    border-top: 1px solid #E2E8F0;
+    font-size: 12px;
+}
+
+/* SOTI Remote Control Window */
+.soti-remote-modal {
+    position: fixed;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.35);
-    z-index: 1040;
+    background: #F1F5F9;
+    z-index: 2100;
     display: none;
+    flex-direction: column;
+}
+.soti-remote-modal.show {
+    display: flex;
+}
+.soti-remote-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #CBD5E1;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.soti-remote-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #0F172A;
+}
+.soti-remote-workspace {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #E2E8F0;
+}
+.soti-remote-floating-actions {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10;
+}
+.soti-floating-pill {
+    background: #0088CC;
+    border-radius: 20px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.soti-floating-pill-btn {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+.soti-floating-white-pill {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 20px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.soti-floating-white-pill-btn {
+    background: transparent;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+.soti-floating-white-pill-btn:hover {
+    color: #0284C7;
+}
+.soti-remote-chat-widget {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 250px;
+    background: #0F172A;
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10;
+}
+.soti-rc-dropdown {
+    position: absolute;
+    top: 38px;
+    right: 0;
+    left: auto;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+    z-index: 1050;
+    display: none;
+    flex-direction: column;
+    width: 240px;
+    padding: 6px 0;
+    direction: ltr !important;
+    text-align: left;
+}
+.soti-rc-dropdown.show {
+    display: flex;
+}
+.soti-rc-dropdown-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #1E293B;
+    cursor: pointer;
+}
+.soti-rc-dropdown-item:hover {
+    background: #F1F5F9;
+    color: #0284C7;
 }
 
-.soti-drawer-backdrop.open {
-    display: block;
+/* SOTI Device Actions Popover Menu (Screenshot 5.54.22 PM) */
+.soti-actions-popover {
+    position: absolute;
+    top: 38px;
+    right: 0;
+    left: auto;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+    z-index: 2100;
+    display: none;
+    flex-direction: column;
+    width: 260px;
+    direction: ltr !important;
+    text-align: left;
+    overflow: hidden;
+}
+.soti-actions-popover.show {
+    display: flex;
+}
+.soti-actions-popover-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1E293B;
+    border-bottom: 1px solid #F1F5F9;
+}
+.soti-actions-search-box {
+    margin: 8px 12px;
+    padding: 6px 10px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.soti-actions-search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12px;
+    color: #1E293B;
+    width: 100%;
+}
+.soti-actions-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.soti-actions-item {
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+.soti-actions-item:hover {
+    background: #F0F9FF;
+    color: #0078D4;
+}
+.soti-actions-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* SOTI Interactive Chart Tooltip */
+.soti-chart-tooltip {
+    position: fixed;
+    z-index: 99999;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #1E293B;
+    pointer-events: none;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transform: translate(-50%, -125%);
+    transition: opacity 0.1s ease;
+}
+.soti-chart-tooltip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.soti-chart-tooltip .label {
+    font-weight: 600;
+    color: #0F172A;
+    margin-right: 4px;
+}
+.soti-chart-tooltip .count {
+    font-weight: 700;
+    color: #0F172A;
+}
+.soti-chart-tooltip .pct {
+    color: #64748B;
+    margin-left: 2px;
+}
+
+/* SOTI Bottom Selection Actions Bar (Exact match to Screenshot) */
+.soti-bottom-bulk-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: #FFFFFF;
+    border-top: 1px solid #CBD5E1;
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 1050;
+    user-select: none;
+    animation: sotiSlideUp 0.18s ease-out;
+    direction: ltr !important;
+}
+
+@keyframes sotiSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.soti-bottom-bulk-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.soti-bulk-deselect-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: background 0.15s ease;
+    padding: 0;
+}
+
+.soti-bulk-deselect-btn:hover {
+    background: #F1F5F9;
+}
+
+.soti-bulk-count-pill {
+    background: #1677BE;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 2px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    line-height: 1.4;
+}
+
+.soti-bulk-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.soti-bottom-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* SOTI chart hover interactive transitions */
+.soti-chart-interactive {
+    cursor: pointer;
+    transition: opacity 0.15s ease, filter 0.15s ease, transform 0.15s ease;
+}
+.soti-chart-interactive:hover {
+    opacity: 0.88;
+    filter: brightness(1.1);
+}
+
+/* ==========================================================================
+   SOTI PACKAGES MANAGEMENT MODAL STYLING
+   ========================================================================== */
+.packages-modal-card {
+    max-width: 800px;
+    width: 92%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    background: #FFFFFF;
+    border-radius: 4px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid #CBD5E1;
+    direction: ltr !important;
+    text-align: left;
+}
+
+.packages-modal-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    direction: ltr !important;
+}
+
+.packages-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    direction: ltr !important;
+}
+
+.packages-header-icon-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    background: #F0F7FF;
+    border: 1px solid #BAE6FD;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.packages-modal-title {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+}
+
+.packages-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #64748B;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.packages-modal-close-btn:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
+
+.packages-modal-body {
+    padding: 16px 20px 20px;
+    overflow-y: auto;
+    flex: 1;
+    direction: ltr !important;
+    text-align: left;
+}
+
+.packages-tabs-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #E2E8F0;
+    margin-bottom: 14px;
+    direction: ltr !important;
+}
+
+.pkg-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #64748B;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    direction: ltr !important;
+}
+
+.pkg-tab-btn:hover {
+    color: #1677BE;
+}
+
+.pkg-tab-btn.active {
+    color: #1677BE;
+    border-bottom-color: #1677BE;
+}
+
+.pkg-dropzone {
+    border: 1px dashed #94A3B8;
+    border-radius: 4px;
+    background: #F8FAFC;
+    padding: 14px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    direction: ltr !important;
+}
+
+.pkg-dropzone:hover, .pkg-dropzone.dragover {
+    border-color: #1677BE;
+    background: #EFF6FF;
+}
+
+.pkg-dropzone-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #334155;
+}
+
+.pkg-selected-file-badge {
+    background: #EFF6FF;
+    color: #0369A1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 3px;
+    border: 1px solid #BFDBFE;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pkg-form-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
+    align-items: center;
+    direction: ltr !important;
+}
+
+.pkg-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+    direction: ltr !important;
+}
+
+@media (max-width: 600px) {
+    .pkg-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pkg-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #334155;
+    user-select: none;
+    direction: ltr !important;
+}
+
+.pkg-checkbox-label input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #1677BE;
+}
+
+.pkg-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    direction: ltr !important;
+}
+
+.pkg-progress-bar-bg {
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.pkg-progress-bar-fill {
+    height: 100%;
+    background: #1677BE;
+    transition: width 0.2s ease;
+}
+
+.pkg-progress-text {
+    font-size: 11px;
+    color: #64748B;
+    text-align: right;
+    margin-top: 3px;
+    direction: ltr !important;
+}
+
+.packages-list-section {
+    margin-top: 20px;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 14px;
+    direction: ltr !important;
+}
+
+.packages-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    direction: ltr !important;
+}
+
+.packages-list-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0F172A;
+    direction: ltr !important;
+}
+
+.packages-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    background: #FFFFFF;
+    direction: ltr !important;
+}
+
+.packages-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    direction: ltr !important;
+    text-align: left;
+}
+
+.packages-table th {
+    background: #F8FAFC;
+    padding: 7px 12px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #E2E8F0;
+    text-align: left;
+    direction: ltr !important;
+}
+
+.packages-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+    color: #1E293B;
+    font-size: 12px;
+    text-align: left;
+    direction: ltr !important;
+}
+
+.packages-table tr:hover td {
+    background: #F8FAFC;
+}
+
+.pkg-badge-apk {
+    background: #DCFCE7;
+    color: #166534;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    display: inline-block;
+}
+
+.pkg-badge-play {
+    background: #E0F2FE;
+    color: #075985;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    display: inline-block;
+}
+
+.pkg-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+}
+
+.pkg-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pkg-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #CBD5E1;
+    transition: .15s;
+    border-radius: 18px;
+}
+
+.pkg-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .15s;
+    border-radius: 50%;
+}
+
+.pkg-toggle-switch input:checked + .pkg-toggle-slider {
+    background-color: #1677BE;
+}
+
+.pkg-toggle-switch input:checked + .pkg-toggle-slider:before {
+    transform: translateX(14px);
+}
+
+.pkg-action-icon-btn {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    line-height: 1.3;
+}
+
+.pkg-action-icon-btn:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+    border-color: #94A3B8;
+}
+
+.pkg-action-icon-btn.btn-danger:hover {
+    background: #FEF2F2;
+    color: #DC2626;
+    border-color: #FCA5A5;
+}
+
+/* ==========================================================================
+   SOTI ENTERPRISE CONFIRMATION MODAL STYLING
+   ========================================================================== */
+.soti-confirm-card {
+    max-width: 440px;
+    width: 90%;
+    background: #FFFFFF;
+    border-radius: 4px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid #CBD5E1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    animation: sotiConfirmFadeIn 0.15s ease-out;
+}
+
+@keyframes sotiConfirmFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.soti-confirm-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.soti-confirm-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.soti-confirm-icon-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.soti-confirm-icon-badge.danger {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+
+.soti-confirm-icon-badge.info {
+    background: #F0F7FF;
+    border: 1px solid #BAE6FD;
+}
+
+.soti-confirm-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.01em;
+}
+
+.soti-confirm-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #64748B;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.soti-confirm-close-btn:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+}
+
+.soti-confirm-body {
+    padding: 18px 20px;
+    color: #1E293B;
+}
+
+.soti-confirm-heading {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #0F172A;
+    margin-bottom: 6px;
+    line-height: 1.35;
+}
+
+.soti-confirm-message {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.soti-confirm-footer {
+    background: #F8FAFC;
+    border-top: 1px solid #E2E8F0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.soti-confirm-btn-cancel {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.soti-confirm-btn-cancel:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+    border-color: #94A3B8;
+}
+
+.soti-confirm-btn-ok {
+    border: none;
+    border-radius: 4px;
+    padding: 6px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.soti-confirm-btn-ok.danger {
+    background: #DC2626;
+}
+
+.soti-confirm-btn-ok.danger:hover {
+    background: #B91C1C;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.soti-confirm-btn-ok.primary {
+    background: #1677BE;
+}
+
+.soti-confirm-btn-ok.primary:hover {
+    background: #105D96;
+    box-shadow: 0 2px 6px rgba(22, 119, 190, 0.35);
 }

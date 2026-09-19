@@ -59,7 +59,7 @@ async function handleDevLogin(event) {
             errBox.style.display = 'block';
         }
     } catch (e) {
-        errBox.innerText = 'فشل الاتصال بخادم Nexus.';
+        errBox.innerText = 'فشل الاتصال بخادم JIB MobiControl.';
         errBox.style.display = 'block';
     } finally {
         btn.disabled = false;
@@ -189,17 +189,29 @@ function renderTenantsTable(tenants) {
                 </td>
                 <td>
                     <div style="font-size:12.5px;">
-                        <strong style="color:var(--primary-royal); font-size:13.5px;">${(t.branches || []).length}</strong>
-                        <span style="color:var(--text-muted); font-size:12px;">/ ${sub.maxBranches ?? 5} فرع</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span><strong style="color:var(--primary-royal); font-size:13.5px;">${(t.branches || []).length}</strong> <span style="color:var(--text-muted); font-size:12px;">/ ${sub.maxBranches ?? 25} فرع</span></span>
+                            <button type="button" class="btn btn-xs btn-outline-primary" style="padding:1px 6px; font-size:10.5px;" onclick="openAddBranchForTenant('${t.id}', '${escapeHtml(t.name)}')">+ فرع</button>
+                        </div>
                         ${(t.branches && t.branches.length > 0) ? `
-                            <div style="margin-top:5px; display:flex; flex-direction:column; gap:3px;">
-                                ${t.branches.map(b => `
-                                    <div style="background:#F8FAFC; border:1px solid #CBD5E1; padding:2px 6px; font-size:11px;">
-                                        <strong style="color:#0F172A;">${escapeHtml(b.name)}</strong>: <span dir="ltr" style="font-family:monospace; color:#1E40AF; font-weight:700;">${escapeHtml(b.number || b.phone || '')}</span>
+                            <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
+                                ${t.branches.map(b => {
+                                    const bToken = b.enrollmentToken || `JIB-${(b.code || 'BRN').slice(0,3)}-2026`;
+                                    const bLogin = b.email || b.username || b.number || '-';
+                                    const bPwd = b.password || '123456';
+                                    return `
+                                    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:4px; padding:4px 6px; font-size:11px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <strong style="color:#0F172A; font-size:11.5px;">${escapeHtml(b.name)}</strong>
+                                            <a href="/?company=${t.code}&branch=${encodeURIComponent(b.name)}" target="_blank" style="color:#0284C7; font-weight:700; text-decoration:none; font-size:10.5px;">فتح الويب</a>
+                                        </div>
+                                        <div style="color:#475569; margin-top:2px;">دخول: <code style="color:#1E40AF; font-weight:700;">${escapeHtml(bLogin)}</code> | سر: <code>${escapeHtml(bPwd)}</code></div>
+                                        <div style="margin-top:2px;">كود الـ Token: <span style="background:#DCFCE7; color:#166534; font-weight:700; padding:1px 4px; border-radius:3px; font-family:monospace;">${escapeHtml(bToken)}</span></div>
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
-                        ` : '<div style="color:var(--text-muted); font-size:11px; margin-top:2px;">لا توجد فروع مسجلة</div>'}
+                        ` : '<div style="color:var(--text-muted); font-size:11px; margin-top:4px;">لا توجد فروع مسجلة</div>'}
                     </div>
                 </td>
                 <td>
@@ -876,3 +888,39 @@ function escapeHtml(str) {
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     })[m]);
 }
+
+async function openAddBranchForTenant(tenantId, tenantName) {
+    const branchName = prompt(`أدخل اسم الفرع الجديد لشركة (${tenantName}):`, 'بغداد');
+    if (!branchName || !branchName.trim()) return;
+    const cleanCode = branchName.trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase() || 'BRN';
+    const pwd = prompt(`أدخل كلمة المرور لويب أدمن الفرع (${branchName}):`, 'jib@2026');
+    if (!pwd) return;
+
+    try {
+        const res = await fetch('/api/tenant/branches', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Developer-Token': devToken || ''
+            },
+            body: JSON.stringify({
+                tenantId,
+                name: branchName.trim(),
+                code: cleanCode,
+                password: pwd.trim(),
+                email: `it.${cleanCode.toLowerCase()}@jib.iq`,
+                enrollmentToken: `JIB-${cleanCode.slice(0,3)}-2026`
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showDevToast(`تم إنشاء الفرع '${branchName}' بنجاح! رمز التفعيل: ${data.branch.enrollmentToken}`, 'success');
+            loadDeveloperOverview();
+        } else {
+            showDevToast(data.error || 'فشل إنشاء الفرع', 'error');
+        }
+    } catch (e) {
+        showDevToast('فشل الاتصال بالخادم', 'error');
+    }
+}
+

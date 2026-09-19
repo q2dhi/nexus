@@ -28,9 +28,11 @@ class SecureConfigStore(context: Context) {
         private const val KEY_BRANCH_NAME = "cfg_branch_name"
         private const val KEY_BRANCH_CODE = "cfg_branch_code"
         private const val KEY_SUBSCRIPTION_ACTIVE = "cfg_subscription_active"
+        private const val KEY_ENROLLMENT_KEY = "cfg_enrollment_key"
 
         private const val DEFAULT_SALT = "NEXUS_MDM_SALT_2026"
         private const val DEFAULT_PIN = "849201"
+        private const val DEFAULT_ENROLLMENT_KEY = "ENROLL-NEXUS-2026-KEY"
     }
 
     private val sharedPreferences: SharedPreferences = try {
@@ -97,8 +99,12 @@ class SecureConfigStore(context: Context) {
         get() = sharedPreferences.getStringSet(KEY_WHITELISTED_PACKAGES, emptySet()) ?: emptySet()
         set(value) = sharedPreferences.edit().putStringSet(KEY_WHITELISTED_PACKAGES, value).apply()
 
+    var enrollmentKey: String
+        get() = sharedPreferences.getString(KEY_ENROLLMENT_KEY, DEFAULT_ENROLLMENT_KEY) ?: DEFAULT_ENROLLMENT_KEY
+        set(value) = sharedPreferences.edit().putString(KEY_ENROLLMENT_KEY, value).apply()
+
     var isKioskEnabled: Boolean
-        get() = sharedPreferences.getBoolean(KEY_KIOSK_ENABLED, true)
+        get() = sharedPreferences.getBoolean(KEY_KIOSK_ENABLED, false)
         set(value) = sharedPreferences.edit().putBoolean(KEY_KIOSK_ENABLED, value).apply()
 
     fun verifyPin(enteredPin: String): Boolean {

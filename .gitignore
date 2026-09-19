@@ -13,6 +13,9 @@ __pycache__/
 *.pyc
 node_modules/
 
-# OS
+# OS & IDE
 .DS_Store
 Thumbs.db
+Screenshot *.png
+*.log
+

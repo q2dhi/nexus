@@ -1,5 +1,79 @@
 {
-  "tenants": [],
+  "tenants": [
+    {
+      "id": "comp_jib_01",
+      "name": "JIB",
+      "code": "JIB",
+      "email": "admin@jib.iq",
+      "username": "admin@jib.iq",
+      "password": "123456",
+      "contactPerson": "IT Department",
+      "phone": "+964 770 000 0000",
+      "createdAt": "2026-09-18T19:11:59.728682",
+      "subscription": {
+        "status": "ACTIVE",
+        "startDate": "2026-09-18",
+        "expiryDate": "2027-03-18",
+        "maxDevices": 100,
+        "maxBranches": 20,
+        "planName": "باقة JIB MobiControl الماسية"
+      },
+      "branches": [
+        {
+          "id": "br_najaf_01",
+          "name": "Najaf",
+          "code": "NAJAF",
+          "number": "101",
+          "email": "it.najaf@jib.iq",
+          "username": "it.najaf@jib.iq",
+          "password": "naj@2000@",
+          "enrollmentToken": "JIB-NJF-2026",
+          "group": "\\Iraq\\Najaf",
+          "wifiSsid": "",
+          "wifiPassword": "",
+          "createdAt": "2026-09-18T19:13:10.477175"
+        },
+        {
+          "id": "br_1789754774_2",
+          "name": "Basra",
+          "number": "102",
+          "code": "BSR",
+          "email": "it.basra@jib.iq",
+          "username": "it.basra@jib.iq",
+          "password": "bas@2026@",
+          "enrollmentToken": "JIB-BSR-2026",
+          "group": "\\Iraq\\Basra",
+          "wifiSsid": "",
+          "wifiPassword": "",
+          "createdAt": "2026-09-18T21:06:14.233915"
+        },
+        {
+          "id": "br_1789805182_3",
+          "name": "babil",
+          "number": "110",
+          "code": "BABIL",
+          "email": "it.babil@jib.iq",
+          "username": "it.babil@jib.iq",
+          "password": "123456",
+          "enrollmentToken": "JIB-BAB-2026",
+          "group": "\\Iraq\\babil",
+          "wifiSsid": "",
+          "wifiPassword": "",
+          "createdAt": "2026-09-19T11:06:22.325961"
+        }
+      ],
+      "allowedScreens": {
+        "fleet": true,
+        "whitelist": true,
+        "qr": true,
+        "ota": false,
+        "logs": false,
+        "screenControl": true,
+        "gpsGeofence": true,
+        "remoteWipe": false
+      }
+    }
+  ],
   "developer": {
     "pin": "nexus2026",
     "supportPhone": "+964 770 000 0000",

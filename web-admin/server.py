@@ -8,6 +8,7 @@ import base64
 import math
 import datetime
 import io
+import re
 import threading
 import subprocess
 try:
@@ -17,6 +18,7 @@ except ImportError:
     HAS_PIL = False
 from datetime import datetime, timedelta, date
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import urllib.parse
 from urllib.parse import urlparse, parse_qs
 
 PORT = int(os.environ.get('PORT', 3000))
@@ -29,9 +31,26 @@ DEVICES_FILE = os.path.join(DATA_DIR, 'devices_cache.json')
 # Ensure directories exist
 DOWNLOADS_DIR = os.path.join(PUBLIC_DIR, 'downloads')
 OTA_HISTORY_FILE = os.path.join(DATA_DIR, 'ota_history.json')
+PACKAGES_FILE = os.path.join(DATA_DIR, 'packages.json')
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(PUBLIC_DIR, exist_ok=True)
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+def load_packages_data():
+    if os.path.exists(PACKAGES_FILE):
+        try:
+            with open(PACKAGES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[PACKAGES] Error loading packages: {e}")
+    return []
+
+def save_packages_data(packages):
+    try:
+        with open(PACKAGES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(packages, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"[PACKAGES] Error saving packages: {e}")
 
 # --------------------------------------------------------------------------
 # APK Management & Checksum Extraction Helpers
@@ -98,7 +117,7 @@ def extract_apk_package_name(apk_path):
         print(f"[APK_PARSE_ERROR] Failed to extract package name from {apk_path}: {e}")
         return None
 
-KNOWN_DEBUG_SIGNATURE_CHECKSUM = "186vU9UaxTohVbAWXcnMNDgnXDp1oPstFMvprK-WVD8"
+KNOWN_DEBUG_SIGNATURE_CHECKSUM = "T28h9GQowaWLuSM9v9Rmn8Cqn2o50SYyaDPUcUBtHk4"
 
 def resolve_agent_apk():
     """Locate the freshest agent APK, synchronizing debug build outputs to web-admin/apk/."""
@@ -490,9 +509,61 @@ SimpleHTTPRequestHandler.extensions_map.update({
     '.woff2': 'font/woff2',
 })
 
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
 class NexusAdminHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
+
+    def do_HEAD(self):
+        """Handle HTTP HEAD requests for APK downloads and endpoints without writing body."""
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == '/download/nexus-agent.apk':
+            apk_path = resolve_agent_apk()
+            if os.path.exists(apk_path) and os.path.getsize(apk_path) > 0:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/vnd.android.package-archive')
+                self.send_header('Content-Length', str(os.path.getsize(apk_path)))
+                self.send_header('Content-Disposition', 'attachment; filename="nexus-agent.apk"')
+                self.send_header('Accept-Ranges', 'bytes')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                return
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
+
+        if path.startswith('/downloads/') and path.endswith('.apk'):
+            rel_path = path.lstrip('/')
+            full_path = os.path.join(PUBLIC_DIR, rel_path)
+            if os.path.exists(full_path) and os.path.getsize(full_path) > 0:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/vnd.android.package-archive')
+                self.send_header('Content-Length', str(os.path.getsize(full_path)))
+                self.send_header('Accept-Ranges', 'bytes')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                return
+
+        super().do_HEAD()
+
+    def get_server_url(self):
+        host = self.headers.get('Host')
+        if not host:
+            host = f"{get_local_ip()}:{PORT}"
+        proto = self.headers.get('X-Forwarded-Proto', 'https' if ('onrender.com' in host or self.headers.get('X-Forwarded-Ssl') == 'on') else 'http')
+        return f"{proto}://{host}"
 
     def _send_json(self, status_code, data):
         response_bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
@@ -577,19 +648,74 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             })
             return
 
-        if path == '/api/tenant/branches':
-            session_token = self.headers.get('X-Tenant-Token') or qs.get('token', [''])[0]
-            session = ACTIVE_TENANT_SESSIONS.get(session_token)
-            if not session:
-                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
+        # ENROLLMENT SHORT TOKEN RESOLUTION API (GET)
+        # ---------------------------------------------------------
+        if path == '/api/enroll/token':
+            token_val = qs.get('token', [''])[0].strip().upper()
+            if not token_val:
+                self._send_json(400, {"success": False, "error": "Missing enrollment token parameter (?token=...)"})
                 return
 
             tenants_data = load_tenants_data()
-            matched = None
+            matched_branch = None
+            matched_tenant = None
+
             for t in tenants_data.get('tenants', []):
-                if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
-                    matched = t
+                for br in t.get('branches', []):
+                    b_tok = str(br.get('enrollmentToken', '')).strip().upper()
+                    b_code = str(br.get('code', '')).strip().upper()
+                    b_num = str(br.get('number', '')).strip()
+                    if token_val in (b_tok, b_code, b_num):
+                        matched_branch = br
+                        matched_tenant = t
+                        break
+                if matched_branch:
                     break
+
+            if not matched_branch:
+                self._send_json(404, {"success": False, "error": f"Invalid or expired enrollment token: '{token_val}'"})
+                return
+
+            server_url = self.get_server_url()
+            self._send_json(200, {
+                "success": True,
+                "branch": {
+                    "id": matched_branch.get('id'),
+                    "name": matched_branch.get('name'),
+                    "code": matched_branch.get('code'),
+                    "number": matched_branch.get('number'),
+                    "group": matched_branch.get('group', f"\\Iraq\\{matched_branch.get('name')}"),
+                    "enrollmentToken": matched_branch.get('enrollmentToken'),
+                    "wifiSsid": matched_branch.get('wifiSsid', ''),
+                    "wifiPassword": matched_branch.get('wifiPassword', '')
+                },
+                "companyCode": matched_tenant.get('code', 'JIB'),
+                "companyName": matched_tenant.get('name', 'JIB'),
+                "serverUrl": server_url,
+                "apkUrl": f"{server_url}/download/nexus-agent.apk",
+                "autoInstallPackages": [p for p in load_packages_data() if p.get('autoInstall')]
+            })
+            return
+
+        if path == '/api/packages':
+            self._send_json(200, {
+                "success": True,
+                "packages": load_packages_data()
+            })
+            return
+
+        if path == '/api/tenant/branches':
+            session_token = self.headers.get('X-Tenant-Token') or qs.get('token', [''])[0]
+            session = ACTIVE_TENANT_SESSIONS.get(session_token)
+            tenants_data = load_tenants_data()
+            matched = None
+            if session:
+                for t in tenants_data.get('tenants', []):
+                    if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
+                        matched = t
+                        break
+            elif len(tenants_data.get('tenants', [])) >= 1:
+                matched = tenants_data['tenants'][0]
 
             if not matched:
                 self._send_json(404, {"error": "الشركة غير موجودة."})
@@ -597,8 +723,8 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             now = time.time()
 
-            if session.get('isBranch'):
-                # For branch web admin sessions, return only their own branch info rather than 403 error
+            if session and session.get('isBranch'):
+                # For branch web admin sessions, return their own branch info
                 bid = str(session.get('branchId', ''))
                 bnum = str(session.get('branchNumber', ''))
                 my_branch = None
@@ -609,11 +735,15 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 enriched = []
                 if my_branch:
                     b_copy = dict(my_branch)
+                    b_name = str(my_branch.get('name', '')).lower()
                     b_devs = [
                         d for d in devices.values()
                         if str(d.get('branchId', '')) == bid
-                        or str(d.get('branchCode', '')) == str(my_branch.get('code', ''))
+                        or str(d.get('branchCode', '')).upper() == str(my_branch.get('code', '')).upper()
                         or str(d.get('branchNumber', '')) == bnum
+                        or (b_name and str(d.get('branchName', '')).lower() == b_name)
+                        or (b_name and str(d.get('branch', '')).lower() == b_name)
+                        or (b_name and b_name in str(d.get('group', '')).lower())
                     ]
                     b_copy['devicesCount'] = len(b_devs)
                     b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 120)
@@ -638,11 +768,15 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 bid = str(b.get('id', ''))
                 bcode = str(b.get('code', ''))
                 bnum = str(b.get('number', ''))
+                b_name = str(b.get('name', '')).lower()
                 b_devs = [
                     d for d in devices.values()
                     if str(d.get('branchId', '')) == bid
-                    or (bcode and str(d.get('branchCode', '')) == bcode)
+                    or (bcode and str(d.get('branchCode', '')).upper() == bcode.upper())
                     or (bnum and str(d.get('branchNumber', '')) == bnum)
+                    or (b_name and str(d.get('branchName', '')).lower() == b_name)
+                    or (b_name and str(d.get('branch', '')).lower() == b_name)
+                    or (b_name and b_name in str(d.get('group', '')).lower())
                 ]
                 b_copy['devicesCount'] = len(b_devs)
                 b_copy['onlineCount'] = sum(1 for d in b_devs if (now - d.get('lastSeen', 0)) < 120)
@@ -706,7 +840,12 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             dev_list = []
             for d in devices.values():
                 d_copy = dict(d)
-                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
+                if d.get('agentOnline') is not None:
+                    d_copy['isOnline'] = bool(d.get('agentOnline'))
+                    if d_copy['isOnline'] and (now - d.get('lastSeen', 0)) >= 120:
+                        d_copy['lastSeen'] = now
+                else:
+                    d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
                 dev_list.append(d_copy)
             self._send_json(200, dev_list)
             return
@@ -728,10 +867,10 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             if session and session.get('code'):
                 req_company = str(session.get('code', '')).strip().upper()
 
-            req_branch = qs.get('branchId', [''])[0].strip()
+            req_branch = qs.get('branchId', [''])[0].strip() or qs.get('branch', [''])[0].strip() or qs.get('group', [''])[0].strip()
             # If session is a branch session, authoritatively enforce branch filtering!
             if session and session.get('isBranch'):
-                req_branch = str(session.get('branchId', '')).strip()
+                req_branch = str(session.get('branchName') or session.get('branchId') or '').strip()
 
             tenants_data = load_tenants_data()
             single_tenant_code = tenants_data['tenants'][0].get('code', '').upper() if len(tenants_data.get('tenants', [])) == 1 else None
@@ -739,31 +878,52 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             # Prepare target branch match identifiers
             target_branch_identifiers = set()
             if req_branch and req_branch != 'ALL':
-                target_branch_identifiers.add(req_branch)
+                target_branch_identifiers.add(req_branch.lower())
             if session and session.get('isBranch'):
-                if session.get('branchId'): target_branch_identifiers.add(str(session.get('branchId')).strip())
-                if session.get('branchNumber'): target_branch_identifiers.add(str(session.get('branchNumber')).strip())
-                if session.get('branchCode'): target_branch_identifiers.add(str(session.get('branchCode')).strip())
+                if session.get('branchId'): target_branch_identifiers.add(str(session.get('branchId')).strip().lower())
+                if session.get('branchNumber'): target_branch_identifiers.add(str(session.get('branchNumber')).strip().lower())
+                if session.get('branchCode'): target_branch_identifiers.add(str(session.get('branchCode')).strip().lower())
+                if session.get('branchName'): target_branch_identifiers.add(str(session.get('branchName')).strip().lower())
 
             device_list = []
             for d in devices.values():
                 d_company = str(d.get('companyCode', 'NEXUS-DEFAULT')).upper()
                 if req_company and req_company != 'ALL' and d_company != req_company:
-                    if d_company == 'NEXUS-DEFAULT' and single_tenant_code and req_company == single_tenant_code:
+                    if d_company in ('NEXUS-DEFAULT', 'JIB') and single_tenant_code and req_company == single_tenant_code:
                         pass
                     else:
                         continue
 
                 if target_branch_identifiers:
-                    b_id = str(d.get('branchId', '')).strip()
-                    b_code = str(d.get('branchCode', '')).strip()
-                    b_num = str(d.get('branchNumber', '')).strip()
-                    device_identifiers = {x for x in (b_id, b_code, b_num) if x}
-                    if not (target_branch_identifiers & device_identifiers):
+                    b_id = str(d.get('branchId', '')).strip().lower()
+                    b_code = str(d.get('branchCode', '')).strip().lower()
+                    b_num = str(d.get('branchNumber', '')).strip().lower()
+                    b_name = str(d.get('branchName', '') or d.get('branch', '')).strip().lower()
+                    b_group = str(d.get('group', '')).strip().lower()
+
+                    matched_target = False
+                    for target in target_branch_identifiers:
+                        if not target:
+                            continue
+                        if target in (b_id, b_code, b_num, b_name):
+                            matched_target = True
+                            break
+                        if b_group and target in b_group:
+                            matched_target = True
+                            break
+                        if b_name and b_name in target:
+                            matched_target = True
+                            break
+                    if not matched_target:
                         continue
 
                 d_copy = dict(d)
-                d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
+                if d.get('agentOnline') is not None:
+                    d_copy['isOnline'] = bool(d.get('agentOnline'))
+                    if d_copy['isOnline'] and (now - d.get('lastSeen', 0)) >= 120:
+                        d_copy['lastSeen'] = now
+                else:
+                    d_copy['isOnline'] = (now - d.get('lastSeen', 0)) < 120
                 device_list.append(d_copy)
             self._send_json(200, device_list)
             return
@@ -810,14 +970,27 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             sig_checksum = get_apk_signature_checksum(apk_path)
             pkg_checksum = get_apk_file_checksum(apk_path)
 
-            local_ip = "192.168.0.101"
+            local_ip = "192.168.0.104"
+            all_ips = []
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.connect(("8.8.8.8", 80))
                 local_ip = s.getsockname()[0]
                 s.close()
+                all_ips.append(local_ip)
             except Exception:
                 pass
+
+            try:
+                hostname = socket.gethostname()
+                for ip in socket.gethostbyname_ex(hostname)[2]:
+                    if not ip.startswith('127.') and ip not in all_ips:
+                        all_ips.append(ip)
+            except Exception:
+                pass
+
+            if not all_ips:
+                all_ips = [local_ip]
 
             tenants_data = load_tenants_data()
             companies_summary = [
@@ -838,21 +1011,50 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 for t in tenants_data.get("tenants", [])
             ]
 
-            host = self.headers.get('Host', f"{local_ip}:{PORT}")
+            host = self.headers.get('Host', '')
+            host_name = host.split(':')[0] if host else ''
             proto = self.headers.get('X-Forwarded-Proto', 'https' if ('onrender.com' in host or self.headers.get('X-Forwarded-Ssl') == 'on') else 'http')
-            server_url = f"{proto}://{host}"
-            download_url = f"{server_url}/download/nexus-agent.apk"
+
+            is_cloud = os.environ.get('RENDER') == 'true' or 'onrender.com' in host or (
+                host_name and host_name not in ('localhost', '127.0.0.1')
+                and not host_name.startswith('192.168.')
+                and not host_name.startswith('10.')
+                and not host_name.startswith('172.')
+            )
+
+            if is_cloud and host:
+                server_url = f"{proto}://{host}"
+                download_url = f"{server_url}/download/nexus-agent.apk"
+                active_ip = host_name
+            elif host_name and host_name not in ('localhost', '127.0.0.1'):
+                active_ip = host_name
+                server_url = f"http://{active_ip}:{PORT}"
+                download_url = f"{server_url}/download/nexus-agent.apk"
+            else:
+                active_ip = local_ip
+                server_url = f"http://{active_ip}:{PORT}"
+                download_url = f"{server_url}/download/nexus-agent.apk"
+
+            lan_download_url = f"http://{local_ip}:{PORT}/download/nexus-agent.apk"
+            lan_server_url = f"http://{local_ip}:{PORT}"
 
             self._send_json(200, {
-                "localIp": host.split(':')[0],
+                "localIp": local_ip,
+                "activeIp": active_ip,
+                "availableIps": all_ips,
                 "port": PORT,
                 "apkChecksum": sig_checksum,
                 "signatureChecksum": sig_checksum,
                 "packageChecksum": pkg_checksum,
+                "packageName": "com.nexus.mdm.agent",
                 "componentName": "com.nexus.mdm.agent/com.nexus.mdm.agent.admin.NexusAdminReceiver",
-                "defaultDownloadUrl": download_url,
-                "defaultServerUrl": server_url,
-                "companies": companies_summary
+                "defaultDownloadUrl": download_url if active_ip != 'localhost' else lan_download_url,
+                "defaultServerUrl": server_url if active_ip != 'localhost' else lan_server_url,
+                "lanDownloadUrl": lan_download_url,
+                "lanServerUrl": lan_server_url,
+                "defaultEnrollmentKey": "ENROLL-NEXUS-2026-KEY",
+                "companies": companies_summary,
+                "autoInstallPackages": [p for p in load_packages_data() if p.get('autoInstall')]
             })
             return
 
@@ -905,6 +1107,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        global devices
         parsed = urlparse(self.path)
         path = parsed.path
 
@@ -918,8 +1121,6 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 return
 
             raw_filename = self.headers.get('X-Filename', 'managed-app.apk')
-            import urllib.parse
-            import re
             raw_filename = urllib.parse.unquote(raw_filename)
             filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_filename)
             if not filename.endswith('.apk'):
@@ -960,6 +1161,77 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             })
             return
 
+        # ---------------------------------------------------------
+        # PACKAGES MANAGEMENT: BINARY APK UPLOAD
+        # ---------------------------------------------------------
+        if path == '/api/packages/upload':
+            content_len = int(self.headers.get('Content-Length', 0))
+            if content_len <= 0:
+                self._send_json(400, {"success": False, "error": "الملف فارغ أو غير موجود"})
+                return
+
+            raw_filename = self.headers.get('X-Filename', 'package.apk')
+            raw_filename = urllib.parse.unquote(raw_filename)
+            clean_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_filename)
+            if not clean_name.endswith('.apk'):
+                clean_name += '.apk'
+
+            app_title = urllib.parse.unquote(self.headers.get('X-App-Name', '')).strip()
+            auto_install_str = self.headers.get('X-Auto-Install', 'true').strip().lower()
+            auto_install = auto_install_str in ('true', '1', 'yes')
+
+            timestamp = int(time.time() * 1000)
+            stored_filename = f"pkg_{timestamp}_{clean_name}"
+            target_path = os.path.join(DOWNLOADS_DIR, stored_filename)
+            sha256 = hashlib.sha256()
+
+            bytes_left = content_len
+            with open(target_path, 'wb') as f:
+                while bytes_left > 0:
+                    chunk_size = min(bytes_left, 65536)
+                    chunk = self.rfile.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    sha256.update(chunk)
+                    bytes_left -= len(chunk)
+
+            file_size = os.path.getsize(target_path)
+            checksum = sha256.hexdigest()
+            extracted_pkg = extract_apk_package_name(target_path) or f"com.managed.pkg_{timestamp}"
+
+            host = self.headers.get('Host', f"localhost:{PORT}")
+            proto = self.headers.get('X-Forwarded-Proto', 'https' if ('onrender.com' in host or self.headers.get('X-Forwarded-Ssl') == 'on') else 'http')
+            apk_url = f"{proto}://{host}/downloads/{stored_filename}"
+
+            new_pkg = {
+                "id": f"pkg_{timestamp}",
+                "name": app_title or clean_name.replace('.apk', '').replace('_', ' '),
+                "packageName": extracted_pkg,
+                "version": "1.0",
+                "type": "apk",
+                "filename": stored_filename,
+                "url": apk_url,
+                "relativeUrl": f"/downloads/{stored_filename}",
+                "size": file_size,
+                "checksum": checksum,
+                "autoInstall": auto_install,
+                "createdAt": timestamp
+            }
+
+            packages = load_packages_data()
+            packages.insert(0, new_pkg)
+            save_packages_data(packages)
+
+            add_audit_log('PACKAGE_APK_ADDED', extracted_pkg, f"Added APK package {new_pkg['name']} ({file_size} bytes, autoInstall={auto_install})")
+
+            self._send_json(200, {
+                "success": True,
+                "package": new_pkg,
+                "message": "Package uploaded and registered successfully."
+            })
+            return
+
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len).decode('utf-8') if content_len > 0 else '{}'
 
@@ -967,6 +1239,129 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             data = json.loads(body)
         except Exception:
             data = {}
+
+        # ---------------------------------------------------------
+        # PACKAGES MANAGEMENT: JSON APIS
+        # ---------------------------------------------------------
+        if path == '/api/packages/play-store':
+            name = str(data.get('name', '')).strip()
+            pkg_name = str(data.get('packageName', '')).strip()
+            if not pkg_name:
+                self._send_json(400, {"success": False, "error": "Missing package name or Play Store link"})
+                return
+
+            if 'id=' in pkg_name:
+                match = re.search(r'id=([a-zA-Z0-9_.]+)', pkg_name)
+                if match:
+                    pkg_name = match.group(1)
+
+            auto_install = bool(data.get('autoInstall', True))
+            icon_url = str(data.get('icon', '')).strip()
+            timestamp = int(time.time() * 1000)
+
+            new_pkg = {
+                "id": f"pkg_{timestamp}",
+                "name": name or pkg_name,
+                "packageName": pkg_name,
+                "version": "Google Play",
+                "type": "playstore",
+                "url": f"https://play.google.com/store/apps/details?id={pkg_name}",
+                "icon": icon_url or "",
+                "autoInstall": auto_install,
+                "createdAt": timestamp
+            }
+
+            packages = load_packages_data()
+            packages.insert(0, new_pkg)
+            save_packages_data(packages)
+
+            add_audit_log('PACKAGE_PLAYSTORE_ADDED', pkg_name, f"Added Google Play package {new_pkg['name']} (autoInstall={auto_install})")
+
+            self._send_json(200, {
+                "success": True,
+                "package": new_pkg,
+                "message": "Google Play package registered successfully."
+            })
+            return
+
+        if path == '/api/packages/toggle-auto-install':
+            pkg_id = str(data.get('id', '')).strip()
+            auto_install = bool(data.get('autoInstall', False))
+            packages = load_packages_data()
+            updated = False
+            for p in packages:
+                if p.get('id') == pkg_id:
+                    p['autoInstall'] = auto_install
+                    updated = True
+                    break
+            if updated:
+                save_packages_data(packages)
+                self._send_json(200, {"success": True, "packages": packages})
+            else:
+                self._send_json(404, {"success": False, "error": "Package not found"})
+            return
+
+        if path == '/api/packages/delete':
+            pkg_id = str(data.get('id', '')).strip()
+            packages = load_packages_data()
+            to_remove = None
+            for p in packages:
+                if p.get('id') == pkg_id:
+                    to_remove = p
+                    break
+            if to_remove:
+                packages.remove(to_remove)
+                save_packages_data(packages)
+                if to_remove.get('type') == 'apk' and to_remove.get('filename'):
+                    fp = os.path.join(DOWNLOADS_DIR, to_remove['filename'])
+                    if os.path.exists(fp):
+                        try:
+                            os.remove(fp)
+                        except Exception:
+                            pass
+                self._send_json(200, {"success": True, "packages": packages})
+            else:
+                self._send_json(404, {"success": False, "error": "Package not found"})
+            return
+
+        if path == '/api/packages/deploy-fleet':
+            pkg_id = str(data.get('id', '') or data.get('packageId', '')).strip()
+            target_device_ids = data.get('deviceIds') or []
+            packages = load_packages_data()
+            target_pkg = next((p for p in packages if p.get('id') == pkg_id), None)
+            if not target_pkg:
+                self._send_json(404, {"success": False, "error": "Package not found"})
+                return
+
+            devices = load_devices_cache()
+            if not target_device_ids:
+                target_device_ids = list(devices.keys())
+
+            queued_count = 0
+            for d_id in target_device_ids:
+                if d_id not in pending_commands:
+                    pending_commands[d_id] = []
+                if target_pkg.get('type') == 'apk':
+                    pending_commands[d_id].append({
+                        "action": "INSTALL_APK_FROM_URL",
+                        "url": target_pkg.get('url'),
+                        "package_name": target_pkg.get('packageName'),
+                        "app_name": target_pkg.get('name')
+                    })
+                else:
+                    pending_commands[d_id].append({
+                        "action": "INSTALL_PLAY_STORE_APP",
+                        "package_name": target_pkg.get('packageName'),
+                        "app_name": target_pkg.get('name')
+                    })
+                queued_count += 1
+
+            self._send_json(200, {
+                "success": True,
+                "queuedCount": queued_count,
+                "message": f"Deployment command queued for {queued_count} devices."
+            })
+            return
 
         # ---------------------------------------------------------
         # DEVELOPER AUTHENTICATION & MANAGEMENT APIs
@@ -1055,7 +1450,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # TENANT AUTHENTICATION API: Company & Branch Web Admin Login
         # ---------------------------------------------------------
         if path == '/api/tenant/login':
-            login_id = (data.get('email') or data.get('username') or data.get('number') or data.get('phone') or '').strip()
+            login_id = (data.get('email') or data.get('username') or data.get('branchLogin') or data.get('loginId') or data.get('number') or data.get('phone') or data.get('token') or data.get('code') or '').strip()
             password = (data.get('password') or '').strip()
 
             if not login_id or not password:
@@ -1117,7 +1512,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 return
 
             # 2. Check branches across all companies
-            # Per user request: "بدل بريد الدخول خلي رقم"
+            # 2. Check branches across all companies
             matched_branch = None
             parent_for_branch = None
             for t in tenants_data.get('tenants', []):
@@ -1125,7 +1520,21 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     b_num = str(br.get('number', '')).strip()
                     b_phone = str(br.get('phone', '')).strip()
                     b_code = str(br.get('code', '')).strip().upper()
-                    if (login_id == b_num or login_id == b_phone or login_id.upper() == b_code) and str(br.get('password', '')) == password:
+                    b_email = str(br.get('email', '')).strip().lower()
+                    b_user = str(br.get('username', '')).strip().lower()
+                    b_name = str(br.get('name', '')).strip().lower()
+                    b_token = str(br.get('enrollmentToken', '')).strip().upper()
+
+                    id_matches = (
+                        (login_id == b_num) or
+                        (b_phone and login_id == b_phone) or
+                        (b_code and login_id.upper() == b_code) or
+                        (b_token and login_id.upper() == b_token) or
+                        (b_email and login_lower == b_email) or
+                        (b_user and login_lower == b_user) or
+                        (b_name and login_lower == b_name)
+                    )
+                    if id_matches and str(br.get('password', '')) == password:
                         matched_branch = br
                         parent_for_branch = t
                         break
@@ -1151,6 +1560,9 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                     "branchId": matched_branch.get('id'),
                     "branchName": matched_branch.get('name'),
                     "branchNumber": matched_branch.get('number'),
+                    "branchCode": matched_branch.get('code'),
+                    "group": matched_branch.get('group', f"\\Iraq\\{matched_branch.get('name')}"),
+                    "enrollmentToken": matched_branch.get('enrollmentToken'),
                     "name": f"{parent_for_branch.get('name')} - {matched_branch.get('name')}",
                     "canExitKiosk": False,
                     "loginTime": time.time()
@@ -1357,35 +1769,94 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             return
 
         # ---------------------------------------------------------
-        # BRANCH MANAGEMENT (Parent Company Web Admin)
+        # ENROLLMENT SHORT TOKEN RESOLUTION API (POST)
         # ---------------------------------------------------------
-        if path == '/api/tenant/branches':
-            session_token = self.headers.get('X-Tenant-Token')
-            session = ACTIVE_TENANT_SESSIONS.get(session_token)
-            if not session:
-                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
-                return
-
-            if session.get('isBranch'):
-                self._send_json(403, {"error": "غير مصرح لمدراء الفروع بإنشاء فروع جديدة."})
+        if path == '/api/enroll/token':
+            token_val = str(data.get('token') or data.get('enrollmentToken') or '').strip().upper()
+            if not token_val:
+                self._send_json(400, {"success": False, "error": "Missing 'token' in request body."})
                 return
 
             tenants_data = load_tenants_data()
-            matched = None
+            matched_branch = None
+            matched_tenant = None
+
             for t in tenants_data.get('tenants', []):
-                if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
-                    matched = t
+                for br in t.get('branches', []):
+                    b_tok = str(br.get('enrollmentToken', '')).strip().upper()
+                    b_code = str(br.get('code', '')).strip().upper()
+                    b_num = str(br.get('number', '')).strip()
+                    if token_val in (b_tok, b_code, b_num):
+                        matched_branch = br
+                        matched_tenant = t
+                        break
+                if matched_branch:
                     break
+
+            if not matched_branch:
+                self._send_json(404, {"success": False, "error": f"Invalid or expired enrollment token: '{token_val}'"})
+                return
+
+            server_url = self.get_server_url()
+            self._send_json(200, {
+                "success": True,
+                "branch": {
+                    "id": matched_branch.get('id'),
+                    "name": matched_branch.get('name'),
+                    "code": matched_branch.get('code'),
+                    "number": matched_branch.get('number'),
+                    "email": matched_branch.get('email', ''),
+                    "group": matched_branch.get('group', f"\\Iraq\\{matched_branch.get('name')}"),
+                    "enrollmentToken": matched_branch.get('enrollmentToken'),
+                    "wifiSsid": matched_branch.get('wifiSsid', ''),
+                    "wifiPassword": matched_branch.get('wifiPassword', '')
+                },
+                "companyCode": matched_tenant.get('code', 'JIB'),
+                "companyName": matched_tenant.get('name', 'JIB'),
+                "serverUrl": server_url,
+                "apkUrl": f"{server_url}/download/nexus-agent.apk"
+            })
+            return
+
+        # ---------------------------------------------------------
+        # BRANCH MANAGEMENT (Parent Company Web Admin & Super Admin)
+        # ---------------------------------------------------------
+        if path == '/api/tenant/branches':
+            session_token = self.headers.get('X-Tenant-Token')
+            dev_token = self.headers.get('X-Developer-Token')
+            session = ACTIVE_TENANT_SESSIONS.get(session_token)
+            tenants_data = load_tenants_data()
+            matched = None
+
+            if session:
+                if session.get('isBranch'):
+                    self._send_json(403, {"error": "غير مصرح لمدراء الفروع بإنشاء فروع جديدة."})
+                    return
+                for t in tenants_data.get('tenants', []):
+                    if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
+                        matched = t
+                        break
+            elif dev_token and dev_token in ACTIVE_DEVELOPER_SESSIONS:
+                tenant_id = data.get('tenantId') or data.get('companyCode')
+                if tenant_id:
+                    matched = next((t for t in tenants_data.get('tenants', []) if t.get('id') == tenant_id or t.get('code') == tenant_id), None)
+                if not matched and len(tenants_data.get('tenants', [])) >= 1:
+                    matched = tenants_data['tenants'][0]
+            elif len(tenants_data.get('tenants', [])) >= 1:
+                matched = tenants_data['tenants'][0]
+            else:
+                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
+                return
 
             if not matched:
                 self._send_json(404, {"error": "الشركة غير موجودة."})
                 return
 
             branches = matched.setdefault('branches', [])
-            max_branches = int(matched.get('subscription', {}).get('maxBranches', 5))
+            max_branches = int(matched.get('subscription', {}).get('maxBranches', 25))
             if len(branches) >= max_branches:
                 self._send_json(400, {
-                    "error": f"تم الوصول إلى الحد الأقصى للفروع المسموح بها لهذه الشركة ({max_branches} فرع). يرجى التواصل مع المطور لترقية الباقة."
+                    "error": f"تم الوصول إلى الحد الأقصى للفروع المسموح بها ({max_branches} فرع). يرجى ترقية الباقة."
                 })
                 return
 
@@ -1393,34 +1864,51 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             b_number = str(data.get('number') or data.get('phone') or '').strip()
             b_password = str(data.get('password', '')).strip()
             b_code = str(data.get('code', '')).strip().upper()
+            b_email = str(data.get('email') or data.get('username') or '').strip()
+            b_token = str(data.get('enrollmentToken') or data.get('token') or '').strip().upper()
+            b_wifi_ssid = str(data.get('wifiSsid') or '').strip()
+            b_wifi_pass = str(data.get('wifiPassword') or '').strip()
 
             if not b_name:
                 self._send_json(400, {"error": "اسم الفرع مطلوب."})
-                return
-            if not b_number:
-                self._send_json(400, {"error": "رقم الدخول للفرع مطلوب."})
                 return
             if not b_password:
                 self._send_json(400, {"error": "كلمة المرور مطلوبة."})
                 return
 
-            # Check duplicate branch number in this company
+            clean_name_code = re.sub(r'[^A-Za-z0-9]', '', b_name).upper()
+            if not b_code:
+                b_code = clean_name_code if clean_name_code else f"BR{len(branches) + 1:02d}"
+            if not b_number:
+                b_number = str(100 + len(branches) + 1)
+            if not b_email:
+                b_email = f"it.{clean_name_code.lower() or 'branch'}@jib.iq"
+            if not b_token:
+                prefix = b_code[:3] if len(b_code) >= 3 else 'BRN'
+                b_token = f"JIB-{prefix}-2026"
+
+            # Check duplicate branch number or token
             if any(str(b.get('number', '')).strip() == b_number for b in branches):
-                self._send_json(400, {"error": f"رقم الدخول ({b_number}) مسجل بالفعل لفرع آخر بشركتكم."})
-                return
+                b_number = str(100 + len(branches) + 1)
 
             new_branch_id = f"br_{int(time.time())}_{len(branches) + 1}"
             new_branch = {
                 "id": new_branch_id,
                 "name": b_name,
                 "number": b_number,
-                "code": b_code or f"BR-{len(branches) + 1:02d}",
+                "code": b_code,
+                "email": b_email,
+                "username": b_email,
                 "password": b_password,
+                "enrollmentToken": b_token,
+                "group": f"\\Iraq\\{b_name}",
+                "wifiSsid": b_wifi_ssid,
+                "wifiPassword": b_wifi_pass,
                 "createdAt": datetime.now().isoformat()
             }
             branches.append(new_branch)
             save_tenants_data(tenants_data)
-            add_audit_log('BRANCH_CREATED', matched.get('code'), f"Created branch '{b_name}' with number {b_number}")
+            add_audit_log('BRANCH_CREATED', matched.get('code'), f"Created branch '{b_name}' with token {b_token} and login {b_email}")
 
             self._send_json(200, {
                 "success": True,
@@ -1432,13 +1920,26 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
         if path == '/api/tenant/branches/delete':
             session_token = self.headers.get('X-Tenant-Token')
+            dev_token = self.headers.get('X-Developer-Token')
             session = ACTIVE_TENANT_SESSIONS.get(session_token)
-            if not session:
-                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
-                return
+            tenants_data = load_tenants_data()
+            matched = None
 
-            if session.get('isBranch'):
-                self._send_json(403, {"error": "غير مصرح لمدراء الفروع بحذف الفروع."})
+            if session:
+                if session.get('isBranch'):
+                    self._send_json(403, {"error": "غير مصرح لمدراء الفروع بحذف الفروع."})
+                    return
+                for t in tenants_data.get('tenants', []):
+                    if t.get('id') == session.get('tenantId') or t.get('code') == session.get('code'):
+                        matched = t
+                        break
+            elif dev_token and dev_token in ACTIVE_DEVELOPER_SESSIONS:
+                if len(tenants_data.get('tenants', [])) >= 1:
+                    matched = tenants_data['tenants'][0]
+            elif len(tenants_data.get('tenants', [])) >= 1:
+                matched = tenants_data['tenants'][0]
+            else:
+                self._send_json(401, {"error": "يرجى تسجيل الدخول أولاً."})
                 return
 
             branch_id = data.get('branchId')
@@ -1681,10 +2182,11 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         # AGENT HEARTBEAT & SUBSCRIPTION VERIFICATION
         # ---------------------------------------------------------
         if path == '/api/devices/heartbeat':
-            dev_id = data.get('id')
+            dev_id = data.get('id') or data.get('deviceId')
             if not dev_id:
                 self._send_json(400, {"error": "Missing device id"})
                 return
+            data['id'] = dev_id
 
             existing_dev = devices.get(dev_id, {})
 
@@ -1699,6 +2201,13 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                 else:
                     comp_code = 'NEXUS-DEFAULT'
             data['companyCode'] = comp_code
+
+            # Record enrollment key if provided
+            enrollment_key = str(data.get('enrollmentKey') or data.get('enrollment_key') or '').strip()
+            if enrollment_key:
+                data['enrollmentKey'] = enrollment_key
+            elif 'enrollmentKey' in existing_dev:
+                data['enrollmentKey'] = existing_dev['enrollmentKey']
 
             # Lookup tenant subscription
             tenants_data = load_tenants_data()
@@ -1728,33 +2237,60 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             data['subscriptionActive'] = sub_active
             data['companyName'] = comp_name
 
+            # Resolve short enrollment token if provided
+            incoming_token = str(data.get('enrollmentToken') or data.get('enrollment_token') or data.get('token') or '').strip().upper()
+            if incoming_token:
+                for t in tenants_data.get('tenants', []):
+                    for b in t.get('branches', []):
+                        if incoming_token in (str(b.get('enrollmentToken', '')).upper(), str(b.get('code', '')).upper(), str(b.get('number', ''))):
+                            tenant = t
+                            data['companyCode'] = t.get('code', 'JIB')
+                            data['branchId'] = b.get('id')
+                            data['branchName'] = b.get('name')
+                            data['branchCode'] = b.get('code')
+                            data['branchNumber'] = b.get('number')
+                            data['branch'] = b.get('name')
+                            data['group'] = b.get('group', f"\\Iraq\\{b.get('name')}")
+                            data['enrollmentToken'] = b.get('enrollmentToken')
+                            break
+
             # Resolve incoming branch or preserve existing branch
             incoming_branch_id = data.get('branchId') or data.get('branch_id')
-            incoming_branch_name = data.get('branchName') or data.get('branch_name')
+            incoming_branch_name = data.get('branchName') or data.get('branch_name') or data.get('branch')
             incoming_branch_code = data.get('branchCode') or data.get('branch_code')
             incoming_branch_number = data.get('branchNumber') or data.get('branch_number')
+            incoming_group = data.get('group')
 
             if incoming_branch_id:
                 data['branchId'] = incoming_branch_id
-                if incoming_branch_name: data['branchName'] = incoming_branch_name
-                if incoming_branch_code: data['branchCode'] = incoming_branch_code
-                if incoming_branch_number: data['branchNumber'] = incoming_branch_number
+            if incoming_branch_name:
+                data['branchName'] = incoming_branch_name
+                data['branch'] = incoming_branch_name
+            if incoming_branch_code: data['branchCode'] = incoming_branch_code
+            if incoming_branch_number: data['branchNumber'] = incoming_branch_number
+            if incoming_group: data['group'] = incoming_group
 
             # Enrich from tenant branches if tenant is found
-            if tenant and data.get('branchId'):
-                b_lookup = str(data.get('branchId')).strip()
+            if tenant and (data.get('branchId') or data.get('branchName') or data.get('branch')):
+                b_lookup = str(data.get('branchId') or data.get('branchName') or data.get('branch')).strip().lower()
                 for b in tenant.get('branches', []):
-                    if str(b.get('id', '')) == b_lookup or str(b.get('code', '')) == b_lookup or str(b.get('number', '')) == b_lookup:
+                    if (str(b.get('id', '')).lower() == b_lookup or 
+                        str(b.get('code', '')).lower() == b_lookup or 
+                        str(b.get('number', '')).lower() == b_lookup or
+                        str(b.get('name', '')).lower() == b_lookup):
                         data['branchId'] = b.get('id')
                         data['branchName'] = b.get('name')
+                        data['branch'] = b.get('name')
                         data['branchCode'] = b.get('code', '')
                         data['branchNumber'] = b.get('number', '')
+                        data['group'] = b.get('group', f"\\Iraq\\{b.get('name')}")
+                        data['enrollmentToken'] = b.get('enrollmentToken', '')
                         break
 
             # CRITICAL: Preserve all persistent server-assigned fields if not supplied in incoming heartbeat
             preserve_fields = [
-                'branchId', 'branchName', 'branchCode', 'branchNumber',
-                'customName', 'notes', 'tags', 'assignedBranch'
+                'branchId', 'branchName', 'branchCode', 'branchNumber', 'branch', 'group',
+                'enrollmentToken', 'customName', 'notes', 'tags', 'assignedBranch'
             ]
             for field in preserve_fields:
                 if field in existing_dev and (field not in data or not data[field]):
@@ -1783,6 +2319,36 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             elif 'whitelistedApps' in existing_dev:
                 data['whitelistedApps'] = existing_dev['whitelistedApps']
 
+            # Auto-provisioning application packages on initial enrollment/setup
+            is_new_enrollment = (not existing_dev) or not existing_dev.get('provisioningPackagesInstalled')
+            all_packages = load_packages_data()
+            auto_pkgs = [p for p in all_packages if p.get('autoInstall')]
+
+            if is_new_enrollment and auto_pkgs:
+                if dev_id not in pending_commands:
+                    pending_commands[dev_id] = []
+                cur_whitelist = set(data.get('whitelistedApps') or [])
+                for p in auto_pkgs:
+                    pkg_name = p.get('packageName')
+                    if pkg_name:
+                        cur_whitelist.add(pkg_name)
+                    if p.get('type') == 'apk':
+                        pending_commands[dev_id].append({
+                            "action": "INSTALL_APK_FROM_URL",
+                            "url": p.get('url'),
+                            "package_name": pkg_name,
+                            "app_name": p.get('name')
+                        })
+                    else:
+                        pending_commands[dev_id].append({
+                            "action": "INSTALL_PLAY_STORE_APP",
+                            "package_name": pkg_name,
+                            "app_name": p.get('name')
+                        })
+                data['whitelistedApps'] = list(cur_whitelist)
+                data['provisioningPackagesInstalled'] = True
+                add_audit_log('DEVICE_AUTO_PACKAGES', dev_id, f"Auto-dispatched {len(auto_pkgs)} provisioning package(s) on device setup.")
+
             devices[dev_id] = data
             save_devices_cache(devices)
 
@@ -1796,6 +2362,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             self._send_json(200, {
                 "status": "OK",
                 "commands": cmds,
+                "autoInstallPackages": auto_pkgs,
                 "subscriptionActive": sub_active,
                 "subscriptionMessage": sub_msg,
                 "companyCode": comp_code,
@@ -1885,30 +2452,48 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
         if path == '/api/devices/delete':
             session_token = self.headers.get('X-Tenant-Token')
             session = ACTIVE_TENANT_SESSIONS.get(session_token) if session_token else None
-            if session and session.get('isBranch'):
-                self._send_json(403, {"error": "غير مصرح لمدراء الفروع بحذف أجهزة من النظام. هذه الصلاحية للإدارة العامة فقط."})
-                return
+            user_branch_id = session.get('branchId') if (session and session.get('isBranch')) else None
+            user_branch_name = session.get('branchName') if (session and session.get('isBranch')) else None
 
             dev_id = data.get('deviceId')
-            if not dev_id:
-                self._send_json(400, {"error": "deviceId is required"})
+            dev_ids = data.get('deviceIds')
+            if not dev_ids and dev_id:
+                dev_ids = [dev_id]
+
+            if not dev_ids or not isinstance(dev_ids, list):
+                self._send_json(400, {"error": "deviceId or deviceIds list is required"})
                 return
 
-            if dev_id in devices:
-                dev_info = devices.pop(dev_id)
+            deleted_count = 0
+            deleted_ids = []
+            for did in dev_ids:
+                if did in devices:
+                    dev_info = devices.get(did, {})
+                    # If branch user, only allow deleting devices within their branch
+                    if user_branch_id:
+                        d_branch = dev_info.get('branch') or dev_info.get('branchId') or ''
+                        d_group = dev_info.get('group') or ''
+                        if d_branch and d_branch not in [user_branch_id, user_branch_name] and (user_branch_name and user_branch_name not in d_group):
+                            continue
+
+                    devices.pop(did, None)
+                    pending_commands.pop(did, None)
+                    latest_frames.pop(did, None)
+                    pending_touch_events.pop(did, None)
+                    deleted_ids.append(did)
+                    deleted_count += 1
+                    add_audit_log('DEVICE_DELETED', did, f"Deleted device '{dev_info.get('name', did)}' ({did})")
+
+            if deleted_count > 0:
                 save_devices_cache(devices)
-                pending_commands.pop(dev_id, None)
-                latest_frames.pop(dev_id, None)
-                pending_touch_events.pop(dev_id, None)
-                dev_name = dev_info.get('name', dev_id)
-                add_audit_log('DEVICE_DELETED', dev_id, f"Deleted device '{dev_name}' ({dev_id})")
                 self._send_json(200, {
                     "success": True,
-                    "deviceId": dev_id,
-                    "message": f"تم حذف الجهاز '{dev_name}' من النظام بنجاح."
+                    "deletedCount": deleted_count,
+                    "deletedIds": deleted_ids,
+                    "message": f"تم حذف {deleted_count} جهاز بنجاح."
                 })
             else:
-                self._send_json(404, {"error": "الجهاز غير موجود في النظام."})
+                self._send_json(404, {"error": "لم يتم العثور على الأجهزة المحددة أو ليس لديك صلاحية لحذفها."})
             return
 
         # ---------------------------------------------------------
@@ -2140,8 +2725,13 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                         key_name = data.get('key', 'BACK')
                         key_map = {
                             'BACK': '4',
+                            'KEYCODE_BACK': '4',
                             'HOME': '3',
+                            'KEYCODE_HOME': '3',
                             'RECENTS': '187',
+                            'KEYCODE_APP_SWITCH': '187',
+                            'SEARCH': '84',
+                            'KEYCODE_SEARCH': '84',
                             'POWER': '26',
                             'VOLUME_UP': '24',
                             'VOLUME_DOWN': '25'
@@ -2170,7 +2760,7 @@ def run():
     ThreadingHTTPServer.allow_reuse_address = True
     httpd = ThreadingHTTPServer(server_address, NexusAdminHandler)
     print("====================================================")
-    print(f" Nexus MDM Master Server is running!")
+    print(f" JIB MobiControl Master Server is running!")
     print(f" Company Web Admin:   http://localhost:{PORT}")
     print(f" Developer Console:   http://localhost:{PORT}/developer.html")
     print("====================================================")

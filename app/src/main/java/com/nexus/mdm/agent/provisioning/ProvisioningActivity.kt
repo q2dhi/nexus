@@ -83,10 +83,14 @@ class ProvisioningActivity : AppCompatActivity() {
                 val branchId = extrasBundle.getString("branch_id")
                 val branchName = extrasBundle.getString("branch_name")
                 val branchCode = extrasBundle.getString("branch_code")
+                val enrollmentKey = extrasBundle.getString("enrollment_key")
+                    ?: extrasBundle.getString("enrollmentKey")
+                    ?: extrasBundle.getString("key")
 
                 if (!serverUrl.isNullOrBlank()) configStore.serverUrl = serverUrl
                 if (!deviceTag.isNullOrBlank()) configStore.deviceTag = deviceTag
                 if (!companyCode.isNullOrBlank()) configStore.companyCode = companyCode
+                if (!enrollmentKey.isNullOrBlank()) configStore.enrollmentKey = enrollmentKey
                 if (!branchId.isNullOrBlank()) {
                     configStore.branchId = branchId
                     configStore.branchName = branchName ?: ""
@@ -97,11 +101,13 @@ class ProvisioningActivity : AppCompatActivity() {
             AppLogger.e("ProvisioningActivity", "Error reading extras bundle in compliance activity", e)
         }
 
-        // Apply baseline security policies and persistent home launcher
+        // Apply baseline security policies
         try {
+            configStore.isKioskEnabled = false
             val policyHelper = PolicyManagerHelper(this)
             policyHelper.applyBaselineSecurityPolicies()
-            policyHelper.setAsDefaultHomeLauncher()
+            policyHelper.clearDefaultHomeLauncher()
+            policyHelper.setStatusBarDisabled(false)
         } catch (e: Exception) {
             AppLogger.e("ProvisioningActivity", "Error applying baseline policies", e)
         }
