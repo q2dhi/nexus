@@ -281,14 +281,21 @@ class MdmCloudSyncService : Service() {
 
         commandDispatcher = CommandDispatcher(this, policyHelper, kioskManager, silentInstaller, peripheralManager)
 
-        // 1. Acquire persistent high-performance WifiLock to prevent Wi-Fi sleep on Honeywell CT47
+        // 1. Acquire persistent WifiLock to prevent Wi-Fi sleep on Honeywell CT47
+        // WIFI_MODE_FULL_HIGH_PERF is deprecated on Android 14+; use FULL_LOW_LATENCY with fallback
         try {
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            wifiLock = wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "nexus:wifi_keepalive")?.apply {
+            val lockMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
+            wifiLock = wifiManager?.createWifiLock(lockMode, "nexus:wifi_keepalive")?.apply {
                 setReferenceCounted(false)
                 acquire()
             }
-            AppLogger.i("CloudSync", "Persistent high-performance WifiLock acquired.")
+            AppLogger.i("CloudSync", "Persistent WifiLock acquired (mode=$lockMode).")
         } catch (e: Exception) {
             AppLogger.w("CloudSync", "Failed acquiring WifiLock: ${e.message}")
         }
@@ -414,9 +421,10 @@ class MdmCloudSyncService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 var fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    fgsType = fgsType or
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
+                    // CRITICAL: DO NOT use FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED.
+                    // It requires system app signature and crashes non-system apps on Android 14+
+                    // with ForegroundServiceTypeNotAllowedException.
+                    fgsType = fgsType or ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                 }
                 startForeground(NOTIFICATION_ID, notification, fgsType)
             } else {
@@ -449,7 +457,14 @@ class MdmCloudSyncService : Service() {
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_USER_PRESENT)
         }
-        registerReceiver(screenReceiver, filter)
+        // Use ContextCompat.registerReceiver for Android 13+ compatibility
+        // Without RECEIVER_NOT_EXPORTED flag, registerReceiver throws SecurityException on API 33+
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            screenReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun startSyncLoop() {

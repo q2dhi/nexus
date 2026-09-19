@@ -50,17 +50,25 @@ class NexusApp : Application() {
             override fun onActivityDestroyed(activity: android.app.Activity) {}
         })
 
-        // Auto-grant all enterprise and runtime permissions immediately upon startup
+        // Auto-grant all enterprise and runtime permissions — ONLY if Device Owner is active.
+        // Before provisioning completes, the app is not yet Device Owner, so DPM calls
+        // like setPermissionPolicy() throw SecurityException on many OEM devices.
         try {
             val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(this)
-            policyHelper.grantAllEnterprisePermissions(this)
+            if (policyHelper.isDeviceOwner()) {
+                policyHelper.grantAllEnterprisePermissions(this)
+                // Start location tracking only after Device Owner is confirmed and permissions are granted
+                try {
+                    com.nexus.mdm.agent.location.LocationTracker.getInstance(this).startTracking()
+                } catch (locEx: Exception) {
+                    AppLogger.w("NexusApp", "LocationTracker deferred start warning: ${locEx.message}")
+                }
+            } else {
+                AppLogger.i("NexusApp", "Device Owner not yet active — deferring permission grants and location tracking")
+            }
         } catch (e: Exception) {
-            AppLogger.w("NexusApp", "Initial permission auto-grant warning: ${e.message}")
+            AppLogger.w("NexusApp", "Initial setup warning: ${e.message}")
         }
-
-        try {
-            com.nexus.mdm.agent.location.LocationTracker.getInstance(this).startTracking()
-        } catch (_: Exception) {}
     }
 
     private fun setupNotificationChannels() {

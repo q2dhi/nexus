@@ -1,18 +1,30 @@
 package com.nexus.mdm.agent.admin
 
 import android.app.admin.DeviceAdminReceiver
+import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PersistableBundle
 import android.os.UserHandle
 import com.nexus.mdm.agent.remote.MdmCloudSyncService
 import com.nexus.mdm.agent.ui.MainActivity
 import com.nexus.mdm.agent.util.AppLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Nexus Enterprise Device Administration Receiver.
  * Receives broadcast actions from the Android system for Device Owner provisioning,
  * policy lifecycle changes, and lock task mode transitions.
+ *
+ * CRITICAL FIX: Uses goAsync() + coroutine for heavy I/O work in onProfileProvisioningComplete()
+ * to prevent ANR. BroadcastReceivers have a 10-second execution limit; the previous code
+ * performed disk I/O (EncryptedSharedPreferences), crypto (MasterKey), and network I/O
+ * (performSyncNow) directly on the main thread.
  */
 class NexusAdminReceiver : DeviceAdminReceiver() {
 
@@ -29,82 +41,68 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             "Device Owner provisioning completed successfully via Android Enterprise."
         )
 
+        // Use goAsync() to extend the BroadcastReceiver lifetime beyond the default 10s ANR limit
+        val pendingResult = goAsync()
+
+        // Perform all heavy work on a background dispatcher
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+            try {
+                performPostProvisioningSetup(context, intent)
+            } catch (e: Exception) {
+                AppLogger.e("AdminReceiver", "Post-provisioning setup error: ${e.message}", e)
+            } finally {
+                try {
+                    pendingResult.finish()
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /**
+     * Performs all post-provisioning setup work on a background thread.
+     */
+    private fun performPostProvisioningSetup(context: Context, intent: Intent) {
         val policyHelper = PolicyManagerHelper(context)
         val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
 
         // Read QR Provisioning Admin Extras Bundle (Device Name, Company Code, Server URL)
         try {
-            val extrasBundle = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra(
-                    android.app.admin.DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE,
-                    android.os.PersistableBundle::class.java
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra<android.os.PersistableBundle>(android.app.admin.DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
-            }
+            val extrasBundle = try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(
+                        DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE,
+                        PersistableBundle::class.java
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra<PersistableBundle>(DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
+                }
+            } catch (_: Exception) { null }
 
             if (extrasBundle != null) {
-                val serverUrl = extrasBundle.getString("server_url")
-                val deviceTag = extrasBundle.getString("device_tag")
-                    ?: extrasBundle.getString("device_name")
-                    ?: extrasBundle.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
-                val companyCode = extrasBundle.getString("company_code")
-                val branchId = extrasBundle.getString("branch_id")
-                val branchName = extrasBundle.getString("branch_name")
-                val branchCode = extrasBundle.getString("branch_code")
-
-                if (!serverUrl.isNullOrBlank()) {
-                    configStore.serverUrl = serverUrl
-                    AppLogger.i("AdminReceiver", "Configured server URL from QR: $serverUrl")
-                }
-                if (!deviceTag.isNullOrBlank()) {
-                    configStore.deviceTag = deviceTag
-                    AppLogger.i("AdminReceiver", "Configured device tag from QR: $deviceTag")
-                }
-                if (!companyCode.isNullOrBlank()) {
-                    configStore.companyCode = companyCode
-                    AppLogger.i("AdminReceiver", "Configured company code from QR: $companyCode")
-                }
-                if (!branchId.isNullOrBlank()) {
-                    configStore.branchId = branchId
-                    configStore.branchName = branchName ?: ""
-                    configStore.branchCode = branchCode ?: ""
-                    AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
-                }
+                applyPersistableBundleExtras(extrasBundle, configStore)
             } else {
-                val standardExtras = intent.getBundleExtra(android.app.admin.DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
-                    ?: intent.extras?.getBundle("android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE")
-                if (standardExtras != null) {
-                    val serverUrl = standardExtras.getString("server_url")
-                    val deviceTag = standardExtras.getString("device_tag")
-                        ?: standardExtras.getString("device_name")
-                        ?: standardExtras.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
-                        ?: intent.getStringExtra("android.app.extra.PROVISIONING_DEVICE_TAG")
-                    val companyCode = standardExtras.getString("company_code")
-                    val branchId = standardExtras.getString("branch_id")
-                    val branchName = standardExtras.getString("branch_name")
-                    val branchCode = standardExtras.getString("branch_code")
+                val standardExtras = try {
+                    intent.getBundleExtra(DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE)
+                        ?: intent.extras?.getBundle("android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE")
+                } catch (_: Exception) { null }
 
-                    if (!serverUrl.isNullOrBlank()) configStore.serverUrl = serverUrl
-                    if (!deviceTag.isNullOrBlank()) configStore.deviceTag = deviceTag
-                    if (!companyCode.isNullOrBlank()) configStore.companyCode = companyCode
-                    if (!branchId.isNullOrBlank()) {
-                        configStore.branchId = branchId
-                        configStore.branchName = branchName ?: ""
-                        configStore.branchCode = branchCode ?: ""
-                        AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
-                    }
+                if (standardExtras != null) {
+                    applyStandardBundleExtras(standardExtras, intent, configStore)
                 }
             }
         } catch (e: Exception) {
             AppLogger.e("AdminReceiver", "Error reading QR provisioning admin extras bundle", e)
         }
 
-        // 1. Enforce baseline security posture immediately
-        policyHelper.applyBaselineSecurityPolicies()
-        configStore.isKioskEnabled = true
-        policyHelper.setAsDefaultHomeLauncher()
+        // 1. Enforce baseline security posture
+        try {
+            policyHelper.applyBaselineSecurityPolicies()
+            configStore.isKioskEnabled = true
+            policyHelper.setAsDefaultHomeLauncher()
+        } catch (e: Exception) {
+            AppLogger.e("AdminReceiver", "Error applying baseline policies", e)
+        }
 
         // 2. Set default lock task packages to include Nexus MDM
         try {
@@ -117,25 +115,100 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             AppLogger.e("AdminReceiver", "Failed to whitelist default LockTask packages", e)
         }
 
-        // 3. Start Cloud Sync Service & send initial registration heartbeat immediately
-        MdmCloudSyncService.start(context)
-        MdmCloudSyncService.performSyncNow(context)
+        // 3. Start Cloud Sync Service & send initial registration heartbeat
+        try {
+            MdmCloudSyncService.start(context)
+        } catch (_: Exception) {}
+        try {
+            MdmCloudSyncService.performSyncNow(context)
+        } catch (_: Exception) {}
 
-        // Launch Kiosk Home surface cleanly
+        // 4. Launch Kiosk Home surface using a safe mechanism
         if (configStore.isKioskEnabled) {
-            try {
-                val launchIntent = Intent(context, MainActivity::class.java).apply {
-                    action = Intent.ACTION_MAIN
-                    addCategory(Intent.CATEGORY_HOME)
-                    addCategory(Intent.CATEGORY_DEFAULT)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
-                    putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
-                }
-                context.startActivity(launchIntent)
-            } catch (e: Exception) {
-                AppLogger.w("AdminReceiver", "Could not start MainActivity directly: ${e.message}")
+            launchMainActivitySafely(context, configStore)
+        }
+    }
+
+    private fun applyPersistableBundleExtras(
+        extrasBundle: PersistableBundle,
+        configStore: com.nexus.mdm.agent.config.SecureConfigStore
+    ) {
+        val serverUrl = extrasBundle.getString("server_url")
+        val deviceTag = extrasBundle.getString("device_tag")
+            ?: extrasBundle.getString("device_name")
+            ?: extrasBundle.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
+        val companyCode = extrasBundle.getString("company_code")
+        val branchId = extrasBundle.getString("branch_id")
+        val branchName = extrasBundle.getString("branch_name")
+        val branchCode = extrasBundle.getString("branch_code")
+
+        if (!serverUrl.isNullOrBlank()) {
+            configStore.serverUrl = serverUrl
+            AppLogger.i("AdminReceiver", "Configured server URL from QR: $serverUrl")
+        }
+        if (!deviceTag.isNullOrBlank()) {
+            configStore.deviceTag = deviceTag
+            AppLogger.i("AdminReceiver", "Configured device tag from QR: $deviceTag")
+        }
+        if (!companyCode.isNullOrBlank()) {
+            configStore.companyCode = companyCode
+            AppLogger.i("AdminReceiver", "Configured company code from QR: $companyCode")
+        }
+        if (!branchId.isNullOrBlank()) {
+            configStore.branchId = branchId
+            configStore.branchName = branchName ?: ""
+            configStore.branchCode = branchCode ?: ""
+            AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
+        }
+    }
+
+    private fun applyStandardBundleExtras(
+        standardExtras: android.os.Bundle,
+        intent: Intent,
+        configStore: com.nexus.mdm.agent.config.SecureConfigStore
+    ) {
+        val serverUrl = standardExtras.getString("server_url")
+        val deviceTag = standardExtras.getString("device_tag")
+            ?: standardExtras.getString("device_name")
+            ?: standardExtras.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
+            ?: intent.getStringExtra("android.app.extra.PROVISIONING_DEVICE_TAG")
+        val companyCode = standardExtras.getString("company_code")
+        val branchId = standardExtras.getString("branch_id")
+        val branchName = standardExtras.getString("branch_name")
+        val branchCode = standardExtras.getString("branch_code")
+
+        if (!serverUrl.isNullOrBlank()) configStore.serverUrl = serverUrl
+        if (!deviceTag.isNullOrBlank()) configStore.deviceTag = deviceTag
+        if (!companyCode.isNullOrBlank()) configStore.companyCode = companyCode
+        if (!branchId.isNullOrBlank()) {
+            configStore.branchId = branchId
+            configStore.branchName = branchName ?: ""
+            configStore.branchCode = branchCode ?: ""
+            AppLogger.i("AdminReceiver", "Configured branch from QR: $branchName ($branchId)")
+        }
+    }
+
+    /**
+     * Safely launches MainActivity from a background context.
+     * On Android 10+ (API 29+), launching Activities from background is restricted.
+     * Device Owner apps generally have this exemption, but we guard against failures.
+     */
+    private fun launchMainActivitySafely(
+        context: Context,
+        configStore: com.nexus.mdm.agent.config.SecureConfigStore
+    ) {
+        try {
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                action = Intent.ACTION_MAIN
+                addCategory(Intent.CATEGORY_HOME)
+                addCategory(Intent.CATEGORY_DEFAULT)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
+                putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
             }
+            context.startActivity(launchIntent)
+        } catch (e: Exception) {
+            AppLogger.w("AdminReceiver", "Could not start MainActivity directly: ${e.message}")
         }
     }
 

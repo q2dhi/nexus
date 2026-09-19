@@ -125,7 +125,17 @@ class PolicyManagerHelper(private val context: Context) {
             } catch (_: Exception) {}
 
             // 7. Keep standard Android home screen active unless Kiosk is explicitly engaged
-            clearDefaultHomeLauncher()
+            // CRITICAL: Do NOT clear home launcher if Kiosk mode is configured, because
+            // ProvisioningActivity/AdminReceiver will call setAsDefaultHomeLauncher() right after
+            // this method, causing a race condition that resets the home screen.
+            try {
+                val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+                if (!configStore.isKioskEnabled) {
+                    clearDefaultHomeLauncher()
+                }
+            } catch (_: Exception) {
+                // If we can't read config, don't clear — safer to keep MDM as home
+            }
             setStatusBarDisabled(false)
 
             AppLogger.i("PolicyManager", "Baseline enterprise security profile applied successfully.")

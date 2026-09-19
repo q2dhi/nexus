@@ -13,10 +13,10 @@
     <!-- Enterprise & System Permissions -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -146,9 +146,10 @@
             </intent-filter>
         </receiver>
 
-        <!-- Boot & Recovery Receiver (Zero-Trust Unexported) -->
+        <!-- Boot & Recovery Receiver (Zero-Trust Unexported, Direct Boot Aware) -->
         <receiver
             android:name=".service.BootReceiver"
+            android:directBootAware="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -171,7 +172,7 @@
         <service
             android:name=".remote.MdmCloudSyncService"
             android:exported="false"
-            android:foregroundServiceType="specialUse|systemExempted|location|mediaProjection"
+            android:foregroundServiceType="specialUse|location|mediaProjection"
             tools:targetApi="34">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
