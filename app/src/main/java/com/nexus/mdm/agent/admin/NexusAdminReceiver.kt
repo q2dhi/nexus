@@ -121,14 +121,21 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
         MdmCloudSyncService.start(context)
         MdmCloudSyncService.performSyncNow(context)
 
-        // Only launch Kiosk surface if kiosk mode was explicitly requested in extras
+        // Launch Kiosk Home surface cleanly
         if (configStore.isKioskEnabled) {
-            val launchIntent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
-                putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
+            try {
+                val launchIntent = Intent(context, MainActivity::class.java).apply {
+                    action = Intent.ACTION_MAIN
+                    addCategory(Intent.CATEGORY_HOME)
+                    addCategory(Intent.CATEGORY_DEFAULT)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
+                    putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
+                }
+                context.startActivity(launchIntent)
+            } catch (e: Exception) {
+                AppLogger.w("AdminReceiver", "Could not start MainActivity directly: ${e.message}")
             }
-            context.startActivity(launchIntent)
         }
     }
 
