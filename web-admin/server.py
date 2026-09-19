@@ -2505,12 +2505,32 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
 
             dev_id = data.get('deviceId')
             command = data.get('command')
-            raw_payload = data.get('payload')
-            payload = raw_payload if isinstance(raw_payload, dict) else {}
+            raw_payload = data.get('payload') or data.get('params') or {}
+            payload = dict(raw_payload) if isinstance(raw_payload, dict) else {}
+            # Merge any top-level parameter fields passed directly
+            for k, v in data.items():
+                if k not in ('deviceId', 'command', 'payload', 'params') and k not in payload:
+                    payload[k] = v
 
             if not dev_id or not command:
                 self._send_json(400, {"error": "Missing deviceId or command"})
                 return
+
+            # Normalize Kiosk exit commands
+            is_kiosk_disable = False
+            if command in ('EXIT_KIOSK', 'STOP_KIOSK', 'DISABLE_KIOSK'):
+                is_kiosk_disable = True
+                payload['enable'] = False
+                payload['enabled'] = False
+                command = 'SET_KIOSK_MODE'
+            elif command == 'SET_KIOSK_MODE':
+                enable_val = payload.get('enable')
+                if enable_val is None:
+                    enable_val = payload.get('enabled')
+                if enable_val is False:
+                    is_kiosk_disable = True
+                    payload['enable'] = False
+                    payload['enabled'] = False
 
             # SECURITY ENFORCEMENT: If caller is a Branch Web Admin:
             # Branches CANNOT exit Kiosk mode! (User specified: رمز الأدمن يكون فقط لدى الشركة الرئيسية يعني الافرع ما يقدرون يفكون الكشك)
@@ -2529,7 +2549,7 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                         self._send_json(403, {"error": "غير مصرح لمدير الفرع بالتحكم بأجهزة خارج فرعه."})
                         return
 
-                if command == 'SET_KIOSK_MODE' and not payload.get('enable', True):
+                if is_kiosk_disable:
                     self._send_json(403, {
                         "error": "غير مصرح لمدراء الفروع بإلغاء وضع الكشك. هذه الصلاحية محصورة بالإدارة العامة للشركة فقط."
                     })
@@ -2548,6 +2568,34 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
             cmd_obj = dict(payload)
             cmd_obj['command'] = command
             cmd_obj['timestamp'] = int(time.time() * 1000)
+
+            # Mirror interactive touch & screen control commands directly into real-time pending_touch_events
+            if dev_id != 'ALL':
+                if command in ('TOUCH_CLICK', 'TAP'):
+                    x_val = float(payload.get('xRatio', payload.get('x', 0.5)))
+                    y_val = float(payload.get('yRatio', payload.get('y', 0.5)))
+                    pending_touch_events.setdefault(dev_id, []).append({
+                        "action": "tap",
+                        "xRatio": x_val,
+                        "yRatio": y_val
+                    })
+                elif command in ('SWIPE', 'DRAG'):
+                    pending_touch_events.setdefault(dev_id, []).append({
+                        "action": "swipe",
+                        "startXRatio": float(payload.get('startXRatio', 0.5)),
+                        "startYRatio": float(payload.get('startYRatio', 0.8)),
+                        "endXRatio": float(payload.get('endXRatio', 0.5)),
+                        "endYRatio": float(payload.get('endYRatio', 0.2)),
+                        "duration": int(payload.get('duration', 300))
+                    })
+                elif command in ('SEND_KEY', 'KEY'):
+                    pending_touch_events.setdefault(dev_id, []).append({
+                        "action": "key",
+                        "key": payload.get('key', 'BACK')
+                    })
+                elif command in ('WAKE_SCREEN', 'WAKE_DEVICE', 'UNLOCK_SCREEN', 'UNLOCK_DEVICE', 'LOCK_SCREEN'):
+                    act = 'wake' if 'WAKE' in command else ('unlock' if 'UNLOCK' in command else 'lock')
+                    pending_touch_events.setdefault(dev_id, []).append({"action": act})
 
             if dev_id == 'ALL':
                 target_ids = []

@@ -59,27 +59,17 @@
                         android:src="@drawable/ic_nexus_logo"
                         android:contentDescription="Nexus Logo" />
 
-                    <!-- Brand Name "nexus" -->
+                    <!-- Brand Name "JIB MobiControl" -->
                     <TextView
                         android:id="@+id/tvKioskBrand"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="10dp"
-                        android:text="nexus"
+                        android:text="JIB MobiControl"
                         android:textColor="#FFFFFF"
-                        android:textSize="22sp"
+                        android:textSize="19sp"
                         android:textStyle="bold"
                         android:letterSpacing="-0.02" />
-
-                    <!-- Royal/Sky Blue Dot "." -->
-                    <TextView
-                        android:id="@+id/tvKioskBrandDot"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="."
-                        android:textColor="#93C5FD"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvKioskBadge"
@@ -95,6 +85,20 @@
                         android:textSize="10sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <!-- Quick Settings Header Button -->
+                <ImageView
+                    android:id="@+id/btnKioskHeaderSettings"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_neomorph_pill"
+                    android:backgroundTint="@color/nexus_royal_blue_dark"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_nav_settings"
+                    app:tint="#FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Quick Settings" />
             </LinearLayout>
 
             <!-- Bottom Row in Header: Real-Time Time and Date -->
@@ -162,7 +166,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Nexus Dedicated Workspace"
+                        android:text="JIB MobiControl Workspace"
                         android:textColor="#93C5FD"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -256,7 +260,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="12dp"
-                android:text="Protected by Nexus Enterprise Firmware"
+                android:text="Protected by JIB MobiControl"
                 android:textColor="@color/nexus_text_muted"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -272,7 +276,7 @@
             android:elevation="12dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="12dp">
 
             <!-- 1. Back Navigation Button -->
             <LinearLayout
@@ -332,7 +336,36 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- 3. Admin Console / Security Button -->
+            <!-- 3. Kiosk Quick Settings Button (Wi-Fi, Bluetooth, Brightness) -->
+            <LinearLayout
+                android:id="@+id/btnKioskNavSettings"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.2"
+                android:background="@drawable/bg_nav_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_nav_settings"
+                    app:tint="#2563EB"
+                    android:contentDescription="الإعدادات" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="إعدادات الجهاز"
+                    android:textColor="#1D4ED8"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 4. Admin Console / Security Button -->
             <LinearLayout
                 android:id="@+id/btnKioskNavAdmin"
                 android:layout_width="0dp"
@@ -394,7 +427,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Nexus Enterprise"
+                    android:text="JIB MobiControl"
                     android:textColor="@color/nexus_text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -488,7 +521,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:background="@drawable/bg_neomorph_button"
-                    android:text="Set Nexus as Default Home App (Permanent Lock)"
+                    android:text="Set JIB MobiControl as Default Home App (Permanent Lock)"
                     android:textAllCaps="false"
                     android:textColor="@color/nexus_text_primary"
                     android:textStyle="bold"

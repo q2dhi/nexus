@@ -1,5 +1,11 @@
 package com.nexus.mdm.agent.ui
 
+import android.bluetooth.BluetoothAdapter
+import android.media.Ringtone
+import android.media.RingtoneManager
+import android.net.wifi.WifiManager
+import android.widget.SeekBar
+import androidx.appcompat.widget.SwitchCompat
 import android.app.Dialog
 import android.app.role.RoleManager
 import android.content.Context
@@ -550,6 +556,14 @@ class MainActivity : AppCompatActivity() {
             updateKioskGrid()
         }
 
+        findViewById<View>(R.id.btnKioskNavSettings)?.setOnClickListener {
+            showKioskQuickSettingsDialog()
+        }
+
+        findViewById<View>(R.id.btnKioskHeaderSettings)?.setOnClickListener {
+            showKioskQuickSettingsDialog()
+        }
+
         findViewById<View>(R.id.btnKioskNavAdmin)?.setOnClickListener {
             showKioskSecurityActionDialog()
         }
@@ -673,6 +687,18 @@ class MainActivity : AppCompatActivity() {
         if (intent.hasExtra("EXTRA_SYNC_TIME")) {
             Toast.makeText(this, "تمت مزامنة الوقت والتاريخ مع السيرفر بنجاح!", Toast.LENGTH_SHORT).show()
         }
+        if (intent.getBooleanExtra("EXTRA_SHOW_MESSAGE", false)) {
+            val title = intent.getStringExtra("EXTRA_MESSAGE_TITLE") ?: "رسالة من إدارة النظام"
+            val message = intent.getStringExtra("EXTRA_MESSAGE_BODY") ?: ""
+            showBroadcastMessageDialog(title, message)
+        }
+        if (intent.getBooleanExtra("EXTRA_INCOMING_CALL", false)) {
+            val callerName = intent.getStringExtra("EXTRA_CALLER_NAME") ?: "إدارة النظام المركزية"
+            showIncomingCallDialog(callerName)
+        }
+        if (intent.getBooleanExtra("EXTRA_END_CALL", false)) {
+            dismissIncomingCallDialog()
+        }
     }
 
     override fun onDestroy() {
@@ -680,6 +706,9 @@ class MainActivity : AppCompatActivity() {
             instance = null
         }
         super.onDestroy()
+        dismissIncomingCallDialog()
+        kioskQuickSettingsDialog?.dismiss()
+        kioskQuickSettingsDialog = null
         if (::antiTamperGuard.isInitialized) {
             antiTamperGuard.stopMonitoring()
         }
@@ -1706,6 +1735,268 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             com.nexus.mdm.agent.util.AppLogger.w("MainActivity", "Could not request battery optimization exemption: ${e.message}")
+        }
+    }
+
+    private var kioskQuickSettingsDialog: Dialog? = null
+
+    private fun showKioskQuickSettingsDialog() {
+        if (isFinishing || isDestroyed) return
+        if (kioskQuickSettingsDialog?.isShowing == true) return
+
+        try {
+            val dialog = Dialog(this, R.style.Theme_NexusDPC)
+            dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+            val view = LayoutInflater.from(this).inflate(R.layout.dialog_kiosk_quick_settings, null)
+            dialog.setContentView(view)
+
+            // 1. Wi-Fi Controls
+            val tvWifiStatus = view.findViewById<TextView>(R.id.tvQuickWifiStatus)
+            val switchWifi = view.findViewById<SwitchCompat>(R.id.switchQuickWifi)
+            val btnWifiList = view.findViewById<Button>(R.id.btnQuickWifiList)
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+
+            fun updateWifiUI() {
+                val isWifiOn = wifiManager?.isWifiEnabled == true
+                switchWifi?.isChecked = isWifiOn
+                if (isWifiOn) {
+                    val info = wifiManager?.connectionInfo
+                    val ssid = info?.ssid?.replace("\"", "") ?: ""
+                    if (ssid.isNotEmpty() && ssid != "<unknown ssid>") {
+                        tvWifiStatus?.text = "متصل بشبكة: $ssid"
+                    } else {
+                        tvWifiStatus?.text = "الواي فاي مفعّل"
+                    }
+                } else {
+                    tvWifiStatus?.text = "الواي فاي معطّل"
+                }
+            }
+            updateWifiUI()
+
+            switchWifi?.setOnCheckedChangeListener { _, isChecked ->
+                try {
+                    @Suppress("DEPRECATION")
+                    wifiManager?.isWifiEnabled = isChecked
+                    updateWifiUI()
+                } catch (e: Exception) {
+                    AppLogger.w("MainActivity", "Failed toggling Wi-Fi: ${e.message}")
+                }
+            }
+
+            btnWifiList?.setOnClickListener {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startActivity(Intent(Settings.Panel.ACTION_WIFI).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
+                    } else {
+                        startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
+                    }
+                } catch (_: Exception) {
+                    try {
+                        startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
+                    } catch (_: Exception) {}
+                }
+            }
+
+            // 2. Bluetooth Controls
+            val tvBtStatus = view.findViewById<TextView>(R.id.tvQuickBluetoothStatus)
+            val switchBt = view.findViewById<SwitchCompat>(R.id.switchQuickBluetooth)
+            val btAdapter = BluetoothAdapter.getDefaultAdapter()
+
+            if (btAdapter == null) {
+                switchBt?.isEnabled = false
+                tvBtStatus?.text = "البلوتوث غير مدعوم في هذا الجهاز"
+            } else {
+                fun updateBtUI() {
+                    val isBtOn = btAdapter.isEnabled
+                    switchBt?.isChecked = isBtOn
+                    tvBtStatus?.text = if (isBtOn) "البلوتوث مفعّل وجاهز للربط" else "البلوتوث معطّل"
+                }
+                updateBtUI()
+
+                switchBt?.setOnCheckedChangeListener { _, isChecked ->
+                    try {
+                        if (isChecked) {
+                            @Suppress("DEPRECATION")
+                            btAdapter.enable()
+                        } else {
+                            @Suppress("DEPRECATION")
+                            btAdapter.disable()
+                        }
+                        updateBtUI()
+                    } catch (e: Exception) {
+                        AppLogger.w("MainActivity", "Failed toggling Bluetooth: ${e.message}")
+                    }
+                }
+            }
+
+            // 3. Brightness Controls
+            val tvBrightness = view.findViewById<TextView>(R.id.tvQuickBrightnessPercent)
+            val sbBrightness = view.findViewById<SeekBar>(R.id.sbQuickBrightness)
+
+            val currentSysBrightness = try {
+                Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+            } catch (_: Exception) { 180 }
+            val initPercent = ((currentSysBrightness * 100) / 255).coerceIn(5, 100)
+            sbBrightness?.progress = initPercent
+            tvBrightness?.text = "$initPercent%"
+
+            sbBrightness?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val safePercent = progress.coerceIn(5, 100)
+                    tvBrightness?.text = "$safePercent%"
+                    val floatVal = safePercent / 100f
+
+                    // Apply immediately to current activity window
+                    val lp = window.attributes
+                    lp.screenBrightness = floatVal
+                    window.attributes = lp
+
+                    // Apply to dialog window
+                    dialog.window?.let { dw ->
+                        val dlp = dw.attributes
+                        dlp.screenBrightness = floatVal
+                        dw.attributes = dlp
+                    }
+
+                    // Attempt persistent system setting if permitted
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.System.canWrite(this@MainActivity)) {
+                        try {
+                            Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, (safePercent * 255) / 100)
+                        } catch (_: Exception) {}
+                    }
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+
+            // Exit Kiosk Button
+            view.findViewById<Button>(R.id.btnQuickExitKiosk)?.setOnClickListener {
+                dialog.dismiss()
+                showAdminPasswordDialog(
+                    title = "إيقاف وضع الكشك",
+                    subtitle = "أدخل رمز المشرف للخروج من وضع الكشك والعودة لواجهة أندرويد.",
+                    actionButtonText = "تأكيد الخروج للأندرويد"
+                ) {
+                    exitKioskToAndroid()
+                }
+            }
+
+            // Close Button
+            view.findViewById<Button>(R.id.btnQuickClose)?.setOnClickListener {
+                dialog.dismiss()
+            }
+
+            kioskQuickSettingsDialog = dialog
+            dialog.show()
+        } catch (e: Exception) {
+            AppLogger.e("MainActivity", "Failed opening Kiosk Quick Settings dialog", e)
+        }
+    }
+
+    private var activeCallDialog: Dialog? = null
+    private var activeRingtone: Ringtone? = null
+
+    private fun showIncomingCallDialog(callerName: String) {
+        if (isFinishing || isDestroyed) return
+        runOnUiThread {
+            try {
+                dismissIncomingCallDialog()
+
+                // Play ringtone loop
+                try {
+                    val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    activeRingtone = RingtoneManager.getRingtone(applicationContext, alertUri)?.apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            isLooping = true
+                        }
+                        play()
+                    }
+                } catch (re: Exception) {
+                    AppLogger.w("MainActivity", "Error starting ringtone: ${re.message}")
+                }
+
+                val dialog = Dialog(this, R.style.Theme_NexusDPC)
+                dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                val view = LayoutInflater.from(this).inflate(R.layout.dialog_incoming_call, null)
+                dialog.setContentView(view)
+
+                view.findViewById<TextView>(R.id.tvCallerName)?.text = callerName
+
+                val tvStatus = view.findViewById<TextView>(R.id.tvCallStatus)
+                val btnAccept = view.findViewById<Button>(R.id.btnAcceptCall)
+                val btnDecline = view.findViewById<Button>(R.id.btnDeclineCall)
+
+                btnAccept?.setOnClickListener {
+                    try {
+                        activeRingtone?.stop()
+                    } catch (_: Exception) {}
+                    tvStatus?.text = "المكالمة متصلة الآن - اتصال مباشر مع المشرف"
+                    tvStatus?.setTextColor(Color.parseColor("#059669"))
+                    btnAccept.visibility = View.GONE
+                    btnDecline?.text = "إنهاء المكالمة"
+                }
+
+                btnDecline?.setOnClickListener {
+                    dismissIncomingCallDialog()
+                }
+
+                activeCallDialog = dialog
+                dialog.setCancelable(false)
+                dialog.show()
+            } catch (e: Exception) {
+                AppLogger.e("MainActivity", "Failed showing incoming call dialog", e)
+            }
+        }
+    }
+
+    private fun dismissIncomingCallDialog() {
+        runOnUiThread {
+            try {
+                activeRingtone?.stop()
+                activeRingtone = null
+            } catch (_: Exception) {}
+            try {
+                if (activeCallDialog?.isShowing == true) {
+                    activeCallDialog?.dismiss()
+                }
+                activeCallDialog = null
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun showBroadcastMessageDialog(title: String, message: String) {
+        if (isFinishing || isDestroyed) return
+        runOnUiThread {
+            try {
+                // Play notification alert tone
+                try {
+                    val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    RingtoneManager.getRingtone(applicationContext, alertUri)?.play()
+                } catch (_: Exception) {}
+
+                val dialog = Dialog(this, R.style.Theme_NexusDPC)
+                dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                val view = LayoutInflater.from(this).inflate(R.layout.dialog_broadcast_message, null)
+                dialog.setContentView(view)
+
+                view.findViewById<TextView>(R.id.tvMsgTitle)?.text = title
+                view.findViewById<TextView>(R.id.tvMsgBody)?.text = message
+
+                view.findViewById<Button>(R.id.btnMsgOk)?.setOnClickListener {
+                    dialog.dismiss()
+                }
+
+                dialog.show()
+            } catch (e: Exception) {
+                AppLogger.e("MainActivity", "Failed showing broadcast message dialog", e)
+            }
         }
     }
 }

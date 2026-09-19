@@ -2024,8 +2024,10 @@ function sotiModalAction(action) {
         dispatchRemoteCommand(devId, 'REBOOT', {});
         showToast('Reboot command sent', 'warning');
     } else if (action === 'KIOSK_TOGGLE') {
-        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: true });
-        showToast('Kiosk mode updated', 'success');
+        const d = (allDevices || []).find(x => x.id === devId);
+        const shouldEnable = d ? !d.isKiosk : true;
+        dispatchRemoteCommand(devId, 'SET_KIOSK_MODE', { enable: shouldEnable, enabled: shouldEnable });
+        showToast(shouldEnable ? (isRtl ? 'تم تفعيل وضع الكشك' : 'Kiosk Mode enabled') : (isRtl ? 'تم إيقاف وضع الكشك' : 'Kiosk Mode disabled'), 'success');
     } else if (action === 'RENAME') {
         const newName = prompt('Enter new device name:', document.getElementById('sotiModalDeviceName')?.innerText || '');
         if (newName && newName.trim()) {

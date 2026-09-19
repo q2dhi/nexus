@@ -59,12 +59,77 @@ class CommandDispatcher(
                 }
 
                 "SET_KIOSK_MODE" -> {
-                    val enable = if (json.has("enable")) {
-                        json.getBoolean("enable")
-                    } else {
-                        json.optBoolean("enabled", true)
+                    val enable = when {
+                        json.has("enable") -> json.getBoolean("enable")
+                        json.has("enabled") -> json.getBoolean("enabled")
+                        else -> false
                     }
                     executeKioskMode(enable, currentActivity)
+                }
+
+                "EXIT_KIOSK", "STOP_KIOSK", "DISABLE_KIOSK" -> {
+                    executeKioskMode(false, currentActivity)
+                }
+
+                "TOUCH_CLICK", "TAP" -> {
+                    val x = json.optDouble("xRatio", json.optDouble("x", 0.5)).toFloat()
+                    val y = json.optDouble("yRatio", json.optDouble("y", 0.5)).toFloat()
+                    val tapAction = JSONObject().apply {
+                        put("action", "tap")
+                        put("xRatio", x.toDouble())
+                        put("yRatio", y.toDouble())
+                    }
+                    RemoteInputExecutor.executeAction(context, tapAction)
+                    Result.success("Touch click executed at ($x, $y)")
+                }
+
+                "SWIPE", "DRAG" -> {
+                    val swipeAction = JSONObject().apply {
+                        put("action", "swipe")
+                        put("startXRatio", json.optDouble("startXRatio", 0.5))
+                        put("startYRatio", json.optDouble("startYRatio", 0.8))
+                        put("endXRatio", json.optDouble("endXRatio", 0.5))
+                        put("endYRatio", json.optDouble("endYRatio", 0.2))
+                        put("duration", json.optLong("duration", 300L))
+                        put("direction", json.optString("direction", "up"))
+                    }
+                    RemoteInputExecutor.executeAction(context, swipeAction)
+                    Result.success("Swipe gesture executed.")
+                }
+
+                "SEND_KEY", "KEY" -> {
+                    val keyName = json.optString("key", "BACK")
+                    val keyAction = JSONObject().apply {
+                        put("action", "key")
+                        put("key", keyName)
+                    }
+                    RemoteInputExecutor.executeAction(context, keyAction)
+                    Result.success("Hardware key executed: $keyName")
+                }
+
+                "INPUT_TEXT", "TYPE_TEXT" -> {
+                    val text = json.optString("text", "")
+                    val textAction = JSONObject().apply {
+                        put("action", "text")
+                        put("text", text)
+                    }
+                    RemoteInputExecutor.executeAction(context, textAction)
+                    Result.success("Text input executed: $text")
+                }
+
+                "SHOW_NOTIFICATION", "BROADCAST_MESSAGE", "SEND_MESSAGE" -> {
+                    val title = json.optString("title", "رسالة من إدارة النظام")
+                    val message = json.optString("message", json.optString("text", "إشعار من الإدارة"))
+                    executeShowMessage(title, message)
+                }
+
+                "CALL_DEVICE", "INCOMING_CALL", "AUDIO_CALL" -> {
+                    val caller = json.optString("caller", "إدارة النظام المركزية")
+                    executeIncomingCall(caller)
+                }
+
+                "END_CALL", "CANCEL_CALL" -> {
+                    executeEndCall()
                 }
 
                 "INSTALL_APK_FROM_URL" -> {
@@ -648,6 +713,89 @@ class CommandDispatcher(
             Result.success("GPS location refresh triggered successfully.")
         } catch (e: Exception) {
             AppLogger.w("CommandDispatcher", "executeRefreshLocation error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    private fun executeShowMessage(title: String, message: String): Result<String> {
+        return try {
+            AppLogger.i("CommandDispatcher", "Displaying broadcast message: $title - $message")
+            DeviceWakeManager.wakeUpScreen(context)
+
+            // Post notification
+            try {
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    putExtra("EXTRA_SHOW_MESSAGE", true)
+                    putExtra("EXTRA_MESSAGE_TITLE", title)
+                    putExtra("EXTRA_MESSAGE_BODY", message)
+                }
+                val pendingIntent = android.app.PendingIntent.getActivity(
+                    context,
+                    System.currentTimeMillis().toInt(),
+                    intent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                val notification = androidx.core.app.NotificationCompat.Builder(context, com.nexus.mdm.agent.NexusApp.CHANNEL_ID_ALERTS)
+                    .setSmallIcon(com.nexus.mdm.agent.R.drawable.ic_nexus_shield)
+                    .setContentTitle(title)
+                    .setContentText(message)
+                    .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
+                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
+                    .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
+                    .setAutoCancel(true)
+                    .setContentIntent(pendingIntent)
+                    .build()
+                notificationManager.notify(9001, notification)
+            } catch (ne: Exception) {
+                AppLogger.w("CommandDispatcher", "Notification posting error: ${ne.message}")
+            }
+
+            // Launch Activity with alert dialog
+            val actIntent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra("EXTRA_SHOW_MESSAGE", true)
+                putExtra("EXTRA_MESSAGE_TITLE", title)
+                putExtra("EXTRA_MESSAGE_BODY", message)
+            }
+            context.startActivity(actIntent)
+            Result.success("Message displayed: $title")
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to show broadcast message", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun executeIncomingCall(callerName: String): Result<String> {
+        return try {
+            AppLogger.i("CommandDispatcher", "Triggering incoming call alert from: $callerName")
+            DeviceWakeManager.wakeAndUnlock(context)
+
+            val actIntent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra("EXTRA_INCOMING_CALL", true)
+                putExtra("EXTRA_CALLER_NAME", callerName)
+            }
+            context.startActivity(actIntent)
+            Result.success("Incoming call alert triggered from $callerName")
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to trigger incoming call", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun executeEndCall(): Result<String> {
+        return try {
+            AppLogger.i("CommandDispatcher", "Ending active call session")
+            val actIntent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra("EXTRA_END_CALL", true)
+            }
+            context.startActivity(actIntent)
+            Result.success("Call ended remotely.")
+        } catch (e: Exception) {
+            AppLogger.e("CommandDispatcher", "Failed to end call", e)
             Result.failure(e)
         }
     }

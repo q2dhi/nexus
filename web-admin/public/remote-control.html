@@ -515,6 +515,89 @@
             color: #FFFFFF;
         }
 
+        /* Active Call Modal Overlay */
+        .rc-call-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 2500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .rc-call-card {
+            background: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 32px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            min-width: 300px;
+            animation: rcPulseCard 2s infinite ease-in-out;
+        }
+        @keyframes rcPulseCard {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        .rc-call-pulse-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #0284C7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+            animation: rcPulseWave 1.6s infinite cubic-bezier(0.66, 0, 0, 1);
+        }
+        @keyframes rcPulseWave {
+            to { box-shadow: 0 0 0 26px rgba(2, 132, 199, 0); }
+        }
+        .rc-call-title {
+            color: #F8FAFC;
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .rc-call-device {
+            color: #94A3B8;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .rc-call-timer {
+            color: #38BDF8;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-bottom: 24px;
+        }
+        .rc-call-end-btn {
+            background: #EF4444;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 28px;
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+        }
+        .rc-call-end-btn:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+        }
+
         /* Toast notification */
         .rc-toast {
             position: fixed;
@@ -564,9 +647,10 @@
 
         <!-- Dropdown Menu (Screenshot 5.53.21 PM) -->
         <div id="rcDropdownMenu" class="rc-dropdown-menu">
+            <div class="rc-dropdown-item" onclick="handleRcAction('WAKE_UNLOCK')">Wake & Unlock Screen</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('SEND_SCRIPT')">Send Script</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_ON')">Turn Kiosk Mode ON</div>
-            <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_OFF')">Turn Kiosk Mode OFF</div>
+            <div class="rc-dropdown-item" onclick="handleRcAction('KIOSK_OFF')">Turn Kiosk Mode OFF (Exit Kiosk)</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('SOFT_RESET')">Soft Reset</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('ADMIN_MODE')">Enter Administrator Mode</div>
             <div class="rc-dropdown-item" onclick="handleRcAction('USER_MODE')">Enter User Mode</div>
@@ -580,9 +664,9 @@
         <div class="honeywell-device-wrapper" id="ct60Wrapper">
             <div class="honeywell-phone-frame" id="rcPhoneFrame">
                 <img id="rcChassisImg" src="honeywell-ct60-frame.png?v=20260919" alt="Honeywell Handheld Computer" class="honeywell-chassis-img" draggable="false" />
-                <div id="ct60Screen" class="phone-display-viewport" onclick="handleScreenTouch(event)">
+                <div id="ct60Screen" class="phone-display-viewport">
                     <!-- Live Screen or SOTI Lockscreen -->
-                    <img id="rcScreenImg" class="phone-live-img" style="display:none;" alt="Live Device Screen" />
+                    <img id="rcScreenImg" class="phone-live-img" style="display:none;" alt="Live Device Screen" draggable="false" />
                     
                     <!-- Android Default Lockscreen -->
                     <div id="rcDefaultScreen" class="rc-android-lockscreen">
@@ -600,7 +684,7 @@
                         </div>
 
                         <!-- Center Lock and Clock -->
-                        <div class="rc-lock-center">
+                        <div class="rc-lock-center" onclick="handleRcAction('WAKE_UNLOCK')" style="cursor:pointer;" title="Click to unlock">
                             <div class="rc-lock-icon">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -672,6 +756,12 @@
 
         <!-- Right Floating Middle Action Pill -->
         <div class="rc-floating-toolbar-mid">
+            <button class="rc-floating-btn-mid" title="Wake & Unlock Screen" onclick="handleRcAction('WAKE_UNLOCK')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+            </button>
             <button class="rc-floating-btn-mid" title="Zoom In" onclick="zoomChassis(0.1)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="7"></circle>
@@ -703,13 +793,13 @@
             <button class="rc-floating-btn-mid" title="Settings" onclick="showRcToast('Remote Settings')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
             </button>
         </div>
 
         <!-- Right Floating Bottom Key/Phone Button -->
-        <button class="rc-floating-btn-bottom" title="Device Controls" onclick="showRcToast('Device Controls')">
+        <button class="rc-floating-btn-bottom" title="Wake & Unlock" onclick="handleRcAction('WAKE_UNLOCK')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                 <line x1="12" y1="18" x2="12.01" y2="18"></line>
@@ -723,23 +813,23 @@
                     <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
                     <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
                 </svg>
-                <span>Chat</span>
+                <span>Chat &amp; Intercom</span>
             </div>
             <div class="rc-chat-divider"></div>
             <div class="rc-chat-body">
-                <span class="rc-chat-devname" id="rcChatDevName">محمد علي ميسان 1</span>
+                <span class="rc-chat-devname" id="rcChatDevName">Device</span>
                 <div class="rc-chat-actions">
                     <button class="rc-chat-btn" title="Send Message" onclick="openChatPrompt()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
                     </button>
-                    <button class="rc-chat-btn" title="Audio Call" onclick="showRcToast('Calling device...')">
+                    <button class="rc-chat-btn" title="Audio Call" onclick="startAudioCall()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                         </svg>
                     </button>
-                    <button class="rc-chat-btn" title="Video Call" onclick="showRcToast('Video call request sent...')">
+                    <button class="rc-chat-btn" title="Video Call" onclick="startAudioCall()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="23 7 16 12 23 17 23 7"></polygon>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -749,6 +839,29 @@
             </div>
         </div>
     </main>
+
+    <!-- Active Audio Call Modal -->
+    <div id="rcCallModal" class="rc-call-modal" style="display:none;">
+        <div class="rc-call-card">
+            <div class="rc-call-pulse-ring">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+            </div>
+            <div class="rc-call-title" id="rcCallStatus">جاري رنين الجهاز...</div>
+            <div class="rc-call-device" id="rcCallDevName">Device</div>
+            <div class="rc-call-timer" id="rcCallTimer">00:00</div>
+            <div class="rc-call-actions">
+                <button type="button" class="rc-call-end-btn" onclick="endAudioCall()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                    <span>إنهاء المكالمة</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Toast -->
     <div id="rcToast" class="rc-toast">Action Executed</div>
@@ -836,48 +949,138 @@
         setInterval(updateLiveClock, 1000);
         updateLiveClock();
 
-        // Screen Touch Interaction
-        async function handleScreenTouch(event) {
+        // Screen Touch & Swipe Gesture Interaction
+        let isPointerDown = false;
+        let pointerStartX = 0;
+        let pointerStartY = 0;
+        let pointerStartTime = 0;
+
+        function initScreenTouchListeners() {
+            const viewport = document.getElementById('ct60Screen');
+            if (!viewport) return;
+
+            viewport.addEventListener('mousedown', (e) => {
+                isPointerDown = true;
+                pointerStartX = e.clientX;
+                pointerStartY = e.clientY;
+                pointerStartTime = Date.now();
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!isPointerDown) return;
+                isPointerDown = false;
+                handlePointerEnd(e.clientX, e.clientY);
+            });
+
+            viewport.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isPointerDown = true;
+                    pointerStartX = e.touches[0].clientX;
+                    pointerStartY = e.touches[0].clientY;
+                    pointerStartTime = Date.now();
+                }
+            }, { passive: true });
+
+            viewport.addEventListener('touchend', (e) => {
+                if (!isPointerDown) return;
+                isPointerDown = false;
+                if (e.changedTouches.length > 0) {
+                    handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                }
+            }, { passive: true });
+        }
+
+        async function handlePointerEnd(clientX, clientY) {
             const viewport = document.getElementById('ct60Screen');
             if (!viewport) return;
             const rect = viewport.getBoundingClientRect();
-            const relX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-            const relY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+            const dx = clientX - pointerStartX;
+            const dy = clientY - pointerStartY;
+            const dist = Math.hypot(dx, dy);
+            const duration = Math.min(600, Math.max(150, Date.now() - pointerStartTime));
 
-            // Visual touch feedback dot
+            const startXRel = Math.max(0, Math.min(1, (pointerStartX - rect.left) / rect.width));
+            const startYRel = Math.max(0, Math.min(1, (pointerStartY - rect.top) / rect.height));
+            const endXRel = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const endYRel = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+
+            if (dist > 25) {
+                // Swipe / Drag event (e.g. swipe up to unlock)
+                showTouchFeedbackDot(pointerStartX - rect.left, pointerStartY - rect.top, '#F59E0B');
+                showTouchFeedbackDot(clientX - rect.left, clientY - rect.top, '#EF4444');
+                try {
+                    await fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'swipe',
+                            startXRatio: startXRel,
+                            startYRatio: startYRel,
+                            endXRatio: endXRel,
+                            endYRatio: endYRel,
+                            duration: duration
+                        })
+                    }).catch(() => {});
+                    postCommand('SWIPE', {
+                        startXRatio: startXRel,
+                        startYRatio: startYRel,
+                        endXRatio: endXRel,
+                        endYRatio: endYRel,
+                        duration: duration
+                    });
+                    setTimeout(refreshScreenFrame, 200);
+                    setTimeout(refreshScreenFrame, 500);
+                } catch (err) {
+                    console.error('Swipe dispatch error:', err);
+                }
+            } else {
+                // Click / Tap event
+                showTouchFeedbackDot(clientX - rect.left, clientY - rect.top, 'rgba(2, 132, 199, 0.7)');
+                try {
+                    await fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'tap',
+                            xRatio: endXRel,
+                            yRatio: endYRel
+                        })
+                    }).catch(() => {});
+                    postCommand('TOUCH_CLICK', {
+                        xRatio: endXRel,
+                        yRatio: endYRel,
+                        x: endXRel,
+                        y: endYRel
+                    });
+                    setTimeout(refreshScreenFrame, 150);
+                } catch (err) {
+                    console.error('Tap dispatch error:', err);
+                }
+            }
+        }
+
+        function showTouchFeedbackDot(relX, relY, color) {
+            const viewport = document.getElementById('ct60Screen');
+            if (!viewport) return;
             const dot = document.createElement('div');
             dot.style.position = 'absolute';
-            dot.style.left = `${event.clientX - rect.left - 12}px`;
-            dot.style.top = `${event.clientY - rect.top - 12}px`;
+            dot.style.left = `${relX - 12}px`;
+            dot.style.top = `${relY - 12}px`;
             dot.style.width = '24px';
             dot.style.height = '24px';
             dot.style.borderRadius = '50%';
-            dot.style.background = 'rgba(2, 132, 199, 0.6)';
+            dot.style.background = color;
             dot.style.border = '2px solid #FFFFFF';
             dot.style.pointerEvents = 'none';
             dot.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             dot.style.transform = 'scale(1)';
+            dot.style.zIndex = '999';
             viewport.appendChild(dot);
             setTimeout(() => {
                 dot.style.opacity = '0';
                 dot.style.transform = 'scale(1.5)';
                 setTimeout(() => dot.remove(), 300);
             }, 100);
-
-            try {
-                await fetch('/api/commands', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        deviceId: deviceId,
-                        command: 'TOUCH_CLICK',
-                        params: { x: relX, y: relY }
-                    })
-                });
-                setTimeout(refreshScreenFrame, 150);
-            } catch (err) {
-                console.error('Touch event failed:', err);
-            }
         }
 
         // Hardware Navigation Keys
@@ -896,6 +1099,7 @@
                     body: JSON.stringify({
                         deviceId: deviceId,
                         command: 'SEND_KEY',
+                        payload: { key: keyName },
                         params: { key: keyName }
                     })
                 }).catch(() => {});
@@ -922,7 +1126,16 @@
             const menu = document.getElementById('rcDropdownMenu');
             if (menu) menu.classList.remove('show');
 
-            if (actionType === 'SEND_SCRIPT') {
+            if (actionType === 'WAKE_UNLOCK') {
+                await postCommand('WAKE_SCREEN', {});
+                await postCommand('UNLOCK_SCREEN', {});
+                await fetch(`/api/devices/${encodeURIComponent(deviceId)}/touch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'unlock' })
+                }).catch(() => {});
+                showRcToast('تم إرسال أمر فتح القفل وتنشيط الشاشة');
+            } else if (actionType === 'SEND_SCRIPT') {
                 const script = prompt('Enter command or script to execute on device:', 'getprop ro.build.version.release');
                 if (!script) return;
                 await postCommand('EXEC_SCRIPT', { script: script });
@@ -932,7 +1145,8 @@
                 showRcToast('Kiosk Mode enabled on device');
             } else if (actionType === 'KIOSK_OFF') {
                 await postCommand('SET_KIOSK_MODE', { enable: false, enabled: false });
-                showRcToast('Kiosk Mode disabled on device');
+                await postCommand('EXIT_KIOSK', { enable: false });
+                showRcToast('تم إرسال أمر إيقاف وضع الكشك بنجاح');
             } else if (actionType === 'SOFT_RESET') {
                 const devName = currentDevice?.name || 'Honeywell';
                 if (confirm(`Reboot device ${devName}?`)) {
@@ -949,15 +1163,111 @@
             setTimeout(refreshScreenFrame, 300);
         }
 
-        async function postCommand(command, params) {
+        async function postCommand(command, params = {}) {
             try {
+                const payload = Object.assign({}, params);
                 await fetch('/api/commands', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deviceId: deviceId, command: command, params: params })
+                    body: JSON.stringify({
+                        deviceId: deviceId,
+                        command: command,
+                        payload: payload,
+                        params: payload
+                    })
                 });
             } catch (err) {
                 console.error('Command post error:', err);
+            }
+        }
+
+        // Audio Call & Ringing Management
+        let callTimerInterval = null;
+        let callSeconds = 0;
+        let audioRingCtx = null;
+        let ringOscInterval = null;
+
+        function startAudioCall() {
+            const modal = document.getElementById('rcCallModal');
+            const devEl = document.getElementById('rcCallDevName');
+            const timerEl = document.getElementById('rcCallTimer');
+            const statusEl = document.getElementById('rcCallStatus');
+            if (!modal) return;
+
+            if (devEl) devEl.innerText = currentDevice ? (currentDevice.name || currentDevice.id) : 'Device';
+            if (statusEl) statusEl.innerText = 'جاري الاتصال ورنين الجهاز...';
+            if (timerEl) timerEl.innerText = '00:00';
+
+            modal.style.display = 'flex';
+            callSeconds = 0;
+            clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
+                if (timerEl) timerEl.innerText = `${mins}:${secs}`;
+                if (callSeconds === 3 && statusEl) {
+                    statusEl.innerText = '📞 جاري الرنين على شاشة الجهاز...';
+                }
+            }, 1000);
+
+            // Send call commands to device
+            postCommand('CALL_DEVICE', { caller: 'IT Administrator', title: 'اتصال وارد من الإدارة' });
+            postCommand('INCOMING_CALL', { caller: 'IT Administrator', title: 'اتصال وارد من الإدارة' });
+            playLocalRingtone();
+            showRcToast('تم إطلاق نغمة الاتصال بالجهاز');
+        }
+
+        function endAudioCall() {
+            const modal = document.getElementById('rcCallModal');
+            if (modal) modal.style.display = 'none';
+            clearInterval(callTimerInterval);
+            callTimerInterval = null;
+            stopLocalRingtone();
+
+            postCommand('END_CALL', {});
+            showRcToast('تم إنهاء المكالمة');
+        }
+
+        function playLocalRingtone() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                audioRingCtx = new AudioContext();
+                const playRingPulse = () => {
+                    if (!audioRingCtx) return;
+                    const osc1 = audioRingCtx.createOscillator();
+                    const osc2 = audioRingCtx.createOscillator();
+                    const gain = audioRingCtx.createGain();
+
+                    osc1.frequency.value = 440;
+                    osc2.frequency.value = 480;
+                    gain.gain.value = 0.08;
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioRingCtx.destination);
+
+                    osc1.start();
+                    osc2.start();
+                    setTimeout(() => {
+                        try {
+                            osc1.stop();
+                            osc2.stop();
+                        } catch (_) {}
+                    }, 1400);
+                };
+                playRingPulse();
+                ringOscInterval = setInterval(playRingPulse, 3500);
+            } catch (_) {}
+        }
+
+        function stopLocalRingtone() {
+            clearInterval(ringOscInterval);
+            ringOscInterval = null;
+            if (audioRingCtx) {
+                try { audioRingCtx.close(); } catch (_) {}
+                audioRingCtx = null;
             }
         }
 
@@ -998,10 +1308,13 @@
         }
 
         function openChatPrompt() {
-            const msg = prompt(`Send push notification to ${currentDevice ? currentDevice.name : 'Device'}:`, 'يرجى مراجعة الفرع للاستلام');
-            if (msg) {
-                postCommand('SHOW_NOTIFICATION', { title: 'IT Support', message: msg });
-                showRcToast('Notification sent to operator');
+            const devName = currentDevice ? currentDevice.name : 'Device';
+            const msg = prompt(`إرسال رسالة فورية إلى المشغّل (${devName}):`, 'يرجى مراجعة إدارة الفرع فوراً');
+            if (msg && msg.trim()) {
+                const text = msg.trim();
+                postCommand('BROADCAST_MESSAGE', { title: 'إدارة النظام (IT Support)', message: text });
+                postCommand('SHOW_NOTIFICATION', { title: 'إدارة النظام (IT Support)', message: text });
+                showRcToast('تم إرسال الرسالة إلى الجهاز بنجاح ✅');
             }
         }
 
@@ -1013,7 +1326,10 @@
             setTimeout(() => { toast.style.display = 'none'; }, 2200);
         }
 
-        window.onload = initRemoteSession;
+        window.onload = () => {
+            initRemoteSession();
+            initScreenTouchListeners();
+        };
     </script>
 </body>
 </html>
