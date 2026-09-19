@@ -62,12 +62,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Dedicated Home / Firmware Kiosk Launcher Filter -->
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
+
 
             <intent-filter>
                 <action android:name="android.app.action.PROVISIONING_SUCCESSFUL" />

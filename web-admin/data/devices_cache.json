@@ -243,8 +243,8 @@
     "serialNumber": "21345B1003",
     "group": "\\Iraq\\Najaf",
     "branch": "Najaf",
-    "companyCode": "NEXUS-DEFAULT",
-    "companyName": "شركة الجنوب الإسلامي",
+    "companyCode": "JIB",
+    "companyName": "JIB",
     "enrollmentTime": "2023-12-03 08:35:20",
     "agentOnline": true,
     "agentVersion": "15.4.1.1024",
@@ -269,7 +269,11 @@
         "lng": 44.3315,
         "time": "02:45 PM"
       }
-    ]
+    ],
+    "branchId": "br_1789805182_3",
+    "branchName": "babil",
+    "branchCode": "BABIL",
+    "branchNumber": "110"
   },
   "HONEYWELL_CT60_990010903302004": {
     "id": "HONEYWELL_CT60_990010903302004",
@@ -3697,7 +3701,7 @@
       "scannerSupported": "SUPPORTED",
       "oemConfigSupported": "SUPPORTED"
     },
-    "lastSeen": 1789811962.8440619,
+    "lastSeen": 1789814998.459861,
     "subscriptionActive": true,
     "companyName": "JIB",
     "whitelistedApps": [

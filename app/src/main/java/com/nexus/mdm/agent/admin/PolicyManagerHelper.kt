@@ -123,8 +123,9 @@ class PolicyManagerHelper(private val context: Context) {
                 }
             } catch (_: Exception) {}
 
-            // 7. Automatically set Nexus as Persistent Default Home Launcher (No system chooser dialog!)
-            setAsDefaultHomeLauncher()
+            // 7. Keep standard Android home screen active unless Kiosk is explicitly engaged
+            clearDefaultHomeLauncher()
+            setStatusBarDisabled(false)
 
             AppLogger.i("PolicyManager", "Baseline enterprise security profile applied successfully.")
             return true

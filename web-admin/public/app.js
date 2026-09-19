@@ -436,16 +436,7 @@ let selectedFleetBranch = 'ALL';
 
 async function fetchDevices() {
     try {
-        let branchFilter = selectedFleetBranch;
-        if (currentTenantData && currentTenantData.isBranch && currentTenantData.branchId) {
-            branchFilter = currentTenantData.branchId;
-            selectedFleetBranch = currentTenantData.branchId;
-        }
-
         let url = `/api/devices?companyCode=${encodeURIComponent(currentCompanyCode || '')}`;
-        if (branchFilter && branchFilter !== 'ALL') {
-            url += `&branchId=${encodeURIComponent(branchFilter)}`;
-        }
         const headers = {};
         if (currentTenantToken) headers['X-Tenant-Token'] = currentTenantToken;
         if (currentCompanyCode) headers['X-Company-Code'] = currentCompanyCode;

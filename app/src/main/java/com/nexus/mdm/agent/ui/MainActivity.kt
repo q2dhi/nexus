@@ -155,7 +155,11 @@ class MainActivity : AppCompatActivity() {
 
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.applyBaselineSecurityPolicies()
-                policyHelper.setAsDefaultHomeLauncher()
+                if (configStore.isKioskEnabled) {
+                    policyHelper.setAsDefaultHomeLauncher()
+                } else {
+                    policyHelper.clearDefaultHomeLauncher()
+                }
                 try {
                     val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
                     val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)

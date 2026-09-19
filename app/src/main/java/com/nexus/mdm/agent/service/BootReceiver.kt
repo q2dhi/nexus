@@ -28,11 +28,20 @@ class BootReceiver : BroadcastReceiver() {
             AppLogger.i("BootReceiver", "Verifying baseline enterprise profile on boot.")
             policyHelper.applyBaselineSecurityPolicies()
 
-            // 3. For dedicated COSU kiosks, launch the main console/kiosk surface
-            val launchIntent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+            if (configStore.isKioskEnabled) {
+                // Kiosk mode is active: set Nexus as default home and launch kiosk surface
+                policyHelper.setAsDefaultHomeLauncher()
+                val launchIntent = Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                context.startActivity(launchIntent)
+                AppLogger.i("BootReceiver", "Kiosk mode active: launching kiosk surface.")
+            } else {
+                // Normal mode: clear any home launcher override, let Android stock home run
+                policyHelper.clearDefaultHomeLauncher()
+                AppLogger.i("BootReceiver", "Normal mode: Android stock home screen active.")
             }
-            context.startActivity(launchIntent)
         }
     }
 }

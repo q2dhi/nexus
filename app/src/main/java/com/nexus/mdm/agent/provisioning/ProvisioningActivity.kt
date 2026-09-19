@@ -9,6 +9,7 @@ import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
 import com.nexus.mdm.agent.admin.PolicyManagerHelper
 import com.nexus.mdm.agent.config.SecureConfigStore
+import com.nexus.mdm.agent.remote.MdmCloudSyncService
 import com.nexus.mdm.agent.util.AppLogger
 
 /**
@@ -80,9 +81,9 @@ class ProvisioningActivity : AppCompatActivity() {
                     ?: extrasBundle.getString("android.app.extra.PROVISIONING_DEVICE_TAG")
                     ?: intent.getStringExtra("android.app.extra.PROVISIONING_DEVICE_TAG")
                 val companyCode = extrasBundle.getString("company_code")
-                val branchId = extrasBundle.getString("branch_id")
-                val branchName = extrasBundle.getString("branch_name")
-                val branchCode = extrasBundle.getString("branch_code")
+                val branchId = extrasBundle.getString("branch_id") ?: extrasBundle.getString("branchId")
+                val branchName = extrasBundle.getString("branch_name") ?: extrasBundle.getString("branch")
+                val branchCode = extrasBundle.getString("branch_code") ?: extrasBundle.getString("branchCode")
                 val enrollmentKey = extrasBundle.getString("enrollment_key")
                     ?: extrasBundle.getString("enrollmentKey")
                     ?: extrasBundle.getString("key")
@@ -111,6 +112,10 @@ class ProvisioningActivity : AppCompatActivity() {
         } catch (e: Exception) {
             AppLogger.e("ProvisioningActivity", "Error applying baseline policies", e)
         }
+
+        // Start Cloud Sync Service & send initial registration heartbeat immediately
+        MdmCloudSyncService.start(this)
+        MdmCloudSyncService.performSyncNow(this)
 
         setResult(Activity.RESULT_OK)
         finish()

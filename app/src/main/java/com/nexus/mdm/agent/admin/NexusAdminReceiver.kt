@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.UserHandle
+import com.nexus.mdm.agent.remote.MdmCloudSyncService
 import com.nexus.mdm.agent.ui.MainActivity
 import com.nexus.mdm.agent.util.AppLogger
 
@@ -116,13 +117,19 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
             AppLogger.e("AdminReceiver", "Failed to whitelist default LockTask packages", e)
         }
 
-        // 3. Launch Nexus MDM main console to complete device initialization
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
-            putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
+        // 3. Start Cloud Sync Service & send initial registration heartbeat immediately
+        MdmCloudSyncService.start(context)
+        MdmCloudSyncService.performSyncNow(context)
+
+        // Only launch Kiosk surface if kiosk mode was explicitly requested in extras
+        if (configStore.isKioskEnabled) {
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("EXTRA_DEVICE_TAG", configStore.deviceTag)
+                putExtra("EXTRA_COMPANY_CODE", configStore.companyCode)
+            }
+            context.startActivity(launchIntent)
         }
-        context.startActivity(launchIntent)
     }
 
     override fun onEnabled(context: Context, intent: Intent) {
