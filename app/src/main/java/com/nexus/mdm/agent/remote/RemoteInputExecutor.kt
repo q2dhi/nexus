@@ -144,13 +144,17 @@ object RemoteInputExecutor {
                             if (accessibilityService != null) {
                                 accessibilityService.performGlobalKey(key)
                             } else {
-                                val keyCode = when (key) {
+                                val norm = key.uppercase().removePrefix("KEYCODE_")
+                                val keyCode = when (norm) {
                                     "HOME" -> 3
                                     "BACK" -> 4
                                     "RECENTS", "APP_SWITCH" -> 187
                                     "ENTER" -> 66
                                     "TAB" -> 61
                                     "ESCAPE" -> 111
+                                    "VOLUME_UP" -> 24
+                                    "VOLUME_DOWN" -> 25
+                                    "POWER" -> 26
                                     else -> 0
                                 }
                                 var shellKey = false
@@ -161,9 +165,9 @@ object RemoteInputExecutor {
                                     } catch (_: Exception) {}
                                 }
                                 if (!shellKey) {
-                                    if (key == "BACK") {
+                                    if (norm == "BACK") {
                                         MainActivity.instance?.onBackPressedDispatcher?.onBackPressed()
-                                    } else if (key == "HOME") {
+                                    } else if (norm == "HOME") {
                                         MainActivity.instance?.handleKioskStateChange(true)
                                     }
                                 }

@@ -79,18 +79,22 @@ object ScreenCaptureManager {
     }
 
     private suspend fun captureFrame(): String? {
-        // Priority 1: System-wide screenshot via Accessibility Service (Captures ALL apps, launcher, settings)
+        // Priority 1: System-wide screenshot or active window layout via Accessibility Service (Captures ALL apps, launcher, settings)
         val a11yService = NexusAccessibilityService.instance
-        if (a11yService != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (a11yService != null) {
             try {
-                val bitmap = a11yService.captureScreen()
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    a11yService.captureScreen() ?: a11yService.renderActiveWindowLayout()
+                } else {
+                    a11yService.renderActiveWindowLayout()
+                }
                 if (bitmap != null) {
                     return withContext(Dispatchers.IO) {
                         processAndCompressBitmap(bitmap)
                     }
                 }
             } catch (e: Exception) {
-                AppLogger.w("ScreenCapture", "Accessibility screenshot failed: ${e.message}")
+                AppLogger.w("ScreenCapture", "Accessibility screenshot/layout failed: ${e.message}")
             }
         }
 

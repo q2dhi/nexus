@@ -1303,6 +1303,7 @@ class MainActivity : AppCompatActivity() {
         applyKioskWindowFlags()
         if (policyHelper.isDeviceOwner()) {
             policyHelper.setStatusBarDisabled(true)
+            policyHelper.setAsDefaultHomeLauncher()
         }
         kioskManager.startKiosk(this)
         kioskManager.refreshLockTaskPackages()

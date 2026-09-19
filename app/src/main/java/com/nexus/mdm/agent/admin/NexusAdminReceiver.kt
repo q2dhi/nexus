@@ -103,8 +103,8 @@ class NexusAdminReceiver : DeviceAdminReceiver() {
 
         // 1. Enforce baseline security posture immediately
         policyHelper.applyBaselineSecurityPolicies()
-        configStore.isKioskEnabled = false
-        policyHelper.clearDefaultHomeLauncher()
+        configStore.isKioskEnabled = true
+        policyHelper.setAsDefaultHomeLauncher()
 
         // 2. Set default lock task packages to include Nexus MDM
         try {

@@ -118,6 +118,14 @@ class KioskManager(private val context: Context) {
                 AppLogger.w("KioskManager", "setPermissionPolicy warning: ${e.message}")
             }
 
+            // 0. Set Nexus MDM as persistent default Home launcher
+            try {
+                val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
+                policyHelper.setAsDefaultHomeLauncher()
+            } catch (e: Exception) {
+                AppLogger.w("KioskManager", "Failed setting default home launcher: ${e.message}")
+            }
+
             // 1. Whitelist packages permitted in LockTask mode
             try {
                 dpm.setLockTaskPackages(adminComponent, effectivePackages.toTypedArray())
@@ -125,12 +133,11 @@ class KioskManager(private val context: Context) {
                 AppLogger.w("KioskManager", "setLockTaskPackages warning: ${e.message}")
             }
 
-            // 2. Configure LockTask features: Keep status bar system info, navigation buttons, and Lock Screen (Keyguard) visible
+            // 2. Configure LockTask features: System info, Keyguard, and Home returning to Nexus Kiosk (No Overview)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
                     val lockTaskFeatures = DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
                                            DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
-                                           DevicePolicyManager.LOCK_TASK_FEATURE_OVERVIEW or
                                            DevicePolicyManager.LOCK_TASK_FEATURE_KEYGUARD
                     dpm.setLockTaskFeatures(adminComponent, lockTaskFeatures)
                 } catch (e: Exception) {

@@ -102,13 +102,13 @@ class ProvisioningActivity : AppCompatActivity() {
             AppLogger.e("ProvisioningActivity", "Error reading extras bundle in compliance activity", e)
         }
 
-        // Apply baseline security policies
+        // Apply baseline security policies and engage Kiosk mode
         try {
-            configStore.isKioskEnabled = false
+            configStore.isKioskEnabled = true
             val policyHelper = PolicyManagerHelper(this)
             policyHelper.applyBaselineSecurityPolicies()
-            policyHelper.clearDefaultHomeLauncher()
-            policyHelper.setStatusBarDisabled(false)
+            policyHelper.setAsDefaultHomeLauncher()
+            policyHelper.setStatusBarDisabled(true)
         } catch (e: Exception) {
             AppLogger.e("ProvisioningActivity", "Error applying baseline policies", e)
         }
