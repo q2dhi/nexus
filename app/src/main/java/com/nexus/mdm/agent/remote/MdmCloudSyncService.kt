@@ -269,6 +269,12 @@ class MdmCloudSyncService : Service() {
         whitelistManager = AppWhitelistManager(this)
 
         val policyHelper = PolicyManagerHelper(this)
+        try {
+            policyHelper.grantAllEnterprisePermissions(this)
+        } catch (e: Exception) {
+            AppLogger.w("CloudSync", "Initial grantAllEnterprisePermissions warning: ${e.message}")
+        }
+
         val kioskManager = KioskManager(this)
         val silentInstaller = SilentInstaller(this)
         val peripheralManager = PeripheralPolicyManager(this, policyHelper)
@@ -297,6 +303,20 @@ class MdmCloudSyncService : Service() {
             LocationTracker.getInstance(applicationContext).startTracking()
         } catch (e: Exception) {
             AppLogger.w("CloudSync", "LocationTracker init warning: ${e.message}")
+        }
+
+        // 2. Start persistent screen capture stream so Web Admin remote control is instantaneous
+        try {
+            val androidId = try {
+                android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
+            } catch (_: Exception) { "DEVICE" }
+            val deviceId = "${Build.MANUFACTURER}_${Build.MODEL}_${androidId.takeLast(6)}"
+            if (configStore.serverUrl.isNotBlank()) {
+                ScreenCaptureManager.startStream(applicationContext, configStore.serverUrl, deviceId)
+                AppLogger.i("CloudSync", "Persistent remote screen streaming engine started for $deviceId")
+            }
+        } catch (e: Exception) {
+            AppLogger.w("CloudSync", "Auto screen stream init warning: ${e.message}")
         }
 
         AppLogger.i("CloudSync", "Cloud sync service initialized as Foreground Service. Endpoint: ${configStore.serverUrl}")

@@ -2237,7 +2237,10 @@ class NexusAdminHandler(SimpleHTTPRequestHandler):
                             seen_actions.add(act_sig)
                             actions.append(act)
 
-            self._send_json(200, {"status": "OK", "actions": actions})
+            now_t = time.time()
+            has_viewer = bool((dev_id and dev_id in adb_stream_subscribers and now_t < adb_stream_subscribers[dev_id]) or
+                              (raw_dev_id and raw_dev_id in adb_stream_subscribers and now_t < adb_stream_subscribers[raw_dev_id]))
+            self._send_json(200, {"status": "OK", "actions": actions, "hasViewer": has_viewer})
             return
 
         if path == '/api/geofence':

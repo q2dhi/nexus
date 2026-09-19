@@ -351,6 +351,93 @@ class PolicyManagerHelper(private val context: Context) {
     }
 
     /**
+     * Automatically grants ALL runtime and manifest permissions without user intervention,
+     * clears any restrictive user policies, sets PERMISSION_POLICY_AUTO_GRANT,
+     * and ensures privileged system and accessibility states are active.
+     */
+    fun grantAllEnterprisePermissions(context: Context): Boolean {
+        if (!isAdminActive()) return false
+        return try {
+            AppLogger.i("PolicyManager", "Auto-granting all enterprise permissions...")
+
+            // 1. Global Auto-Grant Policy for Device Owner / Profile Owner
+            try {
+                dpm.setPermissionPolicy(adminComponent, DevicePolicyManager.PERMISSION_POLICY_AUTO_GRANT)
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Failed setting PERMISSION_POLICY_AUTO_GRANT: ${e.message}")
+            }
+
+            // 2. Clear any restrictions that could block Wi-Fi, Bluetooth, or Settings
+            val restrictionsToClear = listOf(
+                UserManager.DISALLOW_CONFIG_BLUETOOTH,
+                UserManager.DISALLOW_BLUETOOTH,
+                UserManager.DISALLOW_CONFIG_WIFI,
+                UserManager.DISALLOW_SHARE_LOCATION,
+                UserManager.DISALLOW_CONFIG_LOCATION
+            )
+            for (r in restrictionsToClear) {
+                try {
+                    dpm.clearUserRestriction(adminComponent, r)
+                } catch (_: Exception) {}
+            }
+
+            // 3. Explicitly grant every permission defined in AndroidManifest for our package
+            try {
+                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    context.packageManager.getPackageInfo(
+                        context.packageName,
+                        android.content.pm.PackageManager.PackageInfoFlags.of(android.content.pm.PackageManager.GET_PERMISSIONS.toLong())
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_PERMISSIONS)
+                }
+
+                val requestedPerms = packageInfo.requestedPermissions ?: emptyArray()
+                for (perm in requestedPerms) {
+                    try {
+                        dpm.setPermissionGrantState(
+                            adminComponent,
+                            context.packageName,
+                            perm,
+                            DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+                        )
+                    } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                AppLogger.w("PolicyManager", "Error granting manifest permissions: ${e.message}")
+            }
+
+            // 4. Special / AppOps permissions via Shell execution fallback
+            try {
+                val pkg = context.packageName
+                val cmds = arrayOf(
+                    "appops set $pkg SYSTEM_ALERT_WINDOW allow",
+                    "appops set $pkg WRITE_SETTINGS allow",
+                    "appops set $pkg PACKAGE_USAGE_STATS allow",
+                    "appops set $pkg PROJECT_MEDIA allow"
+                )
+                for (cmd in cmds) {
+                    try {
+                        Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
+                    } catch (_: Exception) {}
+                    try {
+                        Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+
+            // 5. Ensure Accessibility Service is also active
+            ensureAccessibilityServiceActive(context)
+
+            true
+        } catch (e: Exception) {
+            AppLogger.e("PolicyManager", "grantAllEnterprisePermissions failed", e)
+            false
+        }
+    }
+
+    /**
      * Clears the persistent preferred Home Launcher assignment.
      */
     fun clearDefaultHomeLauncher(): Boolean {

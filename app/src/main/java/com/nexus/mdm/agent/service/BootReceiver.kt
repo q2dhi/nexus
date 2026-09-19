@@ -26,6 +26,7 @@ class BootReceiver : BroadcastReceiver() {
         val policyHelper = PolicyManagerHelper(context)
         if (policyHelper.isDeviceOwner()) {
             AppLogger.i("BootReceiver", "Verifying baseline enterprise profile on boot.")
+            policyHelper.grantAllEnterprisePermissions(context)
             policyHelper.applyBaselineSecurityPolicies()
 
             val configStore = com.nexus.mdm.agent.config.SecureConfigStore(context)

@@ -29,6 +29,8 @@ object ScreenCaptureManager {
     private var streamJob: Job? = null
     private val pixelCopyThread = android.os.HandlerThread("NexusPixelCopy").apply { start() }
     private val pixelCopyHandler = Handler(pixelCopyThread.looper)
+    @Volatile
+    private var isViewerActive = true
 
     fun isCurrentlyStreaming(): Boolean = isStreaming.get()
 
@@ -57,8 +59,12 @@ object ScreenCaptureManager {
                     AppLogger.w("ScreenCapture", "Frame capture/push error: ${e.message}")
                 }
 
-                // If disconnected from server for a very long time, back off slightly to save battery
-                val interval = if (consecutiveNetworkErrors > 15) 1000L else 480L
+                // Dynamic streaming cadence: rapid when active viewer is watching, back off when idle
+                val interval = when {
+                    consecutiveNetworkErrors > 15 -> 2500L
+                    !isViewerActive -> 1800L
+                    else -> 380L
+                }
                 delay(interval)
             }
         }
@@ -98,11 +104,11 @@ object ScreenCaptureManager {
             }
         } catch (_: Exception) {}
 
-        // Priority 3: Fallback to PixelCopy if MainActivity is active
-        val mainActivity = MainActivity.instance
-        if (mainActivity != null && !mainActivity.isFinishing && !mainActivity.isDestroyed) {
+        // Priority 3: Fallback to PixelCopy on currently active activity (MainActivity or KioskSettingsActivity)
+        val activeActivity = com.nexus.mdm.agent.NexusApp.currentResumedActivity ?: MainActivity.instance
+        if (activeActivity != null && !activeActivity.isFinishing && !activeActivity.isDestroyed) {
             try {
-                val pixelCopyBitmap = capturePixelCopy(mainActivity)
+                val pixelCopyBitmap = capturePixelCopy(activeActivity)
                 if (pixelCopyBitmap != null) {
                     return withContext(Dispatchers.IO) {
                         processAndCompressBitmap(pixelCopyBitmap)
@@ -114,7 +120,7 @@ object ScreenCaptureManager {
 
             // Priority 4: Direct decorView software rendering fallback
             try {
-                val decorBitmap = captureDecorView(mainActivity)
+                val decorBitmap = captureDecorView(activeActivity)
                 if (decorBitmap != null) {
                     return withContext(Dispatchers.IO) {
                         processAndCompressBitmap(decorBitmap)
@@ -274,6 +280,9 @@ object ScreenCaptureManager {
                     val responseText = conn.inputStream.bufferedReader().use { it.readText() }
                     if (responseText.isNotEmpty()) {
                         val respJson = org.json.JSONObject(responseText)
+                        if (respJson.has("hasViewer")) {
+                            isViewerActive = respJson.optBoolean("hasViewer", true)
+                        }
                         val actionsArray = respJson.optJSONArray("actions")
                         if (actionsArray != null && actionsArray.length() > 0) {
                             for (i in 0 until actionsArray.length()) {

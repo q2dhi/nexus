@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.Bundle
 import com.nexus.mdm.agent.util.AppLogger
 
 /**
@@ -18,6 +19,10 @@ class NexusApp : Application() {
         const val CHANNEL_ID_ALERTS = "nexus_security_alerts"
         lateinit var instance: NexusApp
             private set
+
+        @Volatile
+        var currentResumedActivity: android.app.Activity? = null
+            private set
     }
 
     override fun onCreate() {
@@ -27,6 +32,31 @@ class NexusApp : Application() {
         AppLogger.i("NexusApp", "Nexus DPC Agent initializing (API ${Build.VERSION.SDK_INT})")
         setupNotificationChannels()
         setupUncaughtExceptionHandler()
+
+        // Track resumed activity for instantaneous PixelCopy / DecorView fallback in screen streaming
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: android.app.Activity) {
+                currentResumedActivity = activity
+            }
+            override fun onActivityPaused(activity: android.app.Activity) {
+                if (currentResumedActivity === activity) {
+                    currentResumedActivity = null
+                }
+            }
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: android.app.Activity) {}
+            override fun onActivityStopped(activity: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: android.app.Activity) {}
+        })
+
+        // Auto-grant all enterprise and runtime permissions immediately upon startup
+        try {
+            val policyHelper = com.nexus.mdm.agent.admin.PolicyManagerHelper(this)
+            policyHelper.grantAllEnterprisePermissions(this)
+        } catch (e: Exception) {
+            AppLogger.w("NexusApp", "Initial permission auto-grant warning: ${e.message}")
+        }
 
         try {
             com.nexus.mdm.agent.location.LocationTracker.getInstance(this).startTracking()

@@ -161,57 +161,12 @@ class MainActivity : AppCompatActivity() {
 
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.applyBaselineSecurityPolicies()
+                policyHelper.grantAllEnterprisePermissions(this)
                 if (configStore.isKioskEnabled) {
                     policyHelper.setAsDefaultHomeLauncher()
                 } else {
                     policyHelper.clearDefaultHomeLauncher()
                 }
-                try {
-                    val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-                    val admin = com.nexus.mdm.agent.admin.NexusAdminReceiver.getComponentName(this)
-
-                    // Auto-grant all runtime permissions so Maps and third-party apps never get blocked on permission requests
-                    try {
-                        dpm.setPermissionPolicy(admin, android.app.admin.DevicePolicyManager.PERMISSION_POLICY_AUTO_GRANT)
-                    } catch (pe: Exception) {
-                        AppLogger.w("MainActivity", "Failed to set PERMISSION_POLICY_AUTO_GRANT: ${pe.message}")
-                    }
-
-                    val enterprisePerms = listOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                        android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                        android.Manifest.permission.READ_PHONE_STATE,
-                        android.Manifest.permission.CAMERA
-                    )
-                    for (p in enterprisePerms) {
-                        try {
-                            dpm.setPermissionGrantState(admin, packageName, p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
-                        } catch (_: Exception) {}
-                    }
-
-                    // Proactively grant location permissions to Google Maps and Google Play Services
-                    for (p in listOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION
-                    )) {
-                        try {
-                            dpm.setPermissionGrantState(admin, "com.google.android.apps.maps", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
-                            dpm.setPermissionGrantState(admin, "com.google.android.gms", p, android.app.admin.DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
-                        } catch (_: Exception) {}
-                    }
-
-                    // Ensure GPS Location is permanently enabled and restrictions cleared
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                        try {
-                            dpm.setLocationEnabled(admin, true)
-                        } catch (_: Exception) {}
-                    }
-                    try {
-                        dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_SHARE_LOCATION)
-                        dpm.clearUserRestriction(admin, android.os.UserManager.DISALLOW_CONFIG_LOCATION)
-                    } catch (_: Exception) {}
-                } catch (_: Exception) {}
             }
 
             // Proactively request runtime location permissions if not already granted
@@ -274,11 +229,13 @@ class MainActivity : AppCompatActivity() {
         MdmCloudSyncService.start(this)
         isLaunchingWhitelistedApp = false
         refreshBadges()
+        if (policyHelper.isDeviceOwner()) {
+            policyHelper.grantAllEnterprisePermissions(this)
+        }
         if (configStore.isKioskEnabled) {
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.setAsDefaultHomeLauncher()
                 policyHelper.setStatusBarDisabled(true)
-                policyHelper.ensureAccessibilityServiceActive(this)
             }
             applyKioskWindowFlags()
             kioskManager.startKiosk(this)
@@ -287,7 +244,6 @@ class MainActivity : AppCompatActivity() {
             if (policyHelper.isDeviceOwner()) {
                 policyHelper.clearDefaultHomeLauncher()
                 policyHelper.setStatusBarDisabled(false)
-                policyHelper.ensureAccessibilityServiceActive(this)
             }
             clearKioskWindowFlags()
         }
@@ -557,11 +513,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnKioskNavSettings)?.setOnClickListener {
-            showKioskQuickSettingsDialog()
+            try {
+                startActivity(Intent(this, KioskSettingsActivity::class.java))
+            } catch (_: Exception) {
+                showKioskQuickSettingsDialog()
+            }
         }
 
         findViewById<View>(R.id.btnKioskHeaderSettings)?.setOnClickListener {
-            showKioskQuickSettingsDialog()
+            try {
+                startActivity(Intent(this, KioskSettingsActivity::class.java))
+            } catch (_: Exception) {
+                showKioskQuickSettingsDialog()
+            }
         }
 
         findViewById<View>(R.id.btnKioskNavAdmin)?.setOnClickListener {
@@ -638,7 +602,7 @@ class MainActivity : AppCompatActivity() {
             com.nexus.mdm.agent.remote.ScreenCaptureManager.startStream(applicationContext, serverUrl, deviceId)
         }
         if (intent.getBooleanExtra("EXTRA_OPEN_A11Y_SETTINGS", false)) {
-            openAccessibilitySettings()
+            policyHelper.grantAllEnterprisePermissions(this)
         }
         if (intent.getBooleanExtra("EXTRA_REMOTE_WAKE", false)) {
             com.nexus.mdm.agent.remote.DeviceWakeManager.wakeAndUnlock(this)
@@ -1194,9 +1158,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateKioskGrid() {
         val whitelistedApps = allInstalledApps.filter { AppWhitelistManager.isPackageAllowed(it.packageName, selectedWhitelist) }
+
+        // Dedicated custom settings tile inside Kiosk mode (Wi-Fi, Bluetooth, Brightness)
+        val settingsIcon = ContextCompat.getDrawable(this, R.drawable.ic_nav_settings)
+            ?: ContextCompat.getDrawable(this, android.R.drawable.ic_menu_preferences)!!
+        val kioskSettingsItem = AppWhitelistManager.AppItem(
+            packageName = "com.nexus.mdm.agent.kiosk_settings",
+            appName = "إعدادات الجهاز",
+            icon = settingsIcon,
+            isWhitelisted = true
+        )
+        val displayApps = mutableListOf<AppWhitelistManager.AppItem>().apply {
+            add(kioskSettingsItem)
+            addAll(whitelistedApps)
+        }
+
         val kioskAdapter = KioskAppsAdapter(
-            whitelistedApps,
+            displayApps,
             onAppClick = { app ->
+                if (app.packageName == "com.nexus.mdm.agent.kiosk_settings") {
+                    try {
+                        val settingsIntent = Intent(this, KioskSettingsActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        startActivity(settingsIntent)
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "تعذر فتح إعدادات الجهاز: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                    return@KioskAppsAdapter
+                }
                 isLaunchingWhitelistedApp = true
                 // Pre-grant essential runtime permissions (Location, Camera) if Device Owner
                 if (policyHelper.isDeviceOwner()) {
@@ -1221,7 +1211,9 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             onAppLongClick = { app ->
-                promptRepairApp(app)
+                if (app.packageName != "com.nexus.mdm.agent.kiosk_settings") {
+                    promptRepairApp(app)
+                }
             }
         )
         rvKioskApps.adapter = kioskAdapter
@@ -1463,18 +1455,10 @@ class MainActivity : AppCompatActivity() {
 
     fun openAccessibilitySettings() {
         try {
-            isLaunchingWhitelistedApp = true
-            if (policyHelper.isDeviceOwner()) {
-                if (policyHelper.ensureAccessibilityServiceActive(this)) {
-                    Toast.makeText(this, "تم تفعيل خدمة التحكم عن بعد تلقائياً بنجاح! ✅", Toast.LENGTH_SHORT).show()
-                    refreshBadges()
-                    return
-                }
-                val current = policyHelper.dpm.getLockTaskPackages(policyHelper.adminComponent).toMutableSet()
-                if (!current.contains("com.android.settings")) {
-                    current.add("com.android.settings")
-                    policyHelper.dpm.setLockTaskPackages(policyHelper.adminComponent, current.toTypedArray())
-                }
+            if (policyHelper.grantAllEnterprisePermissions(this)) {
+                Toast.makeText(this, "تم تفعيل كافة الصلاحيات والتحكم عن بعد تلقائياً بنجاح! ✅", Toast.LENGTH_SHORT).show()
+                refreshBadges()
+                return
             }
             val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
             if (am?.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE) {
@@ -1490,7 +1474,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra(":settings:show_fragment_args", bundle)
             }
             startActivity(intent)
-            Toast.makeText(this, "يرجى تفعيل JIB MobiControl Remote Control للتحكم عن بعد وبث الشاشة.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "يرجى تفعيل خدمة التحكم عن بعد في إمكانية الوصول.", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Toast.makeText(this, "تعذر فتح إعدادات إمكانية الوصول: ${e.message}", Toast.LENGTH_SHORT).show()
         }

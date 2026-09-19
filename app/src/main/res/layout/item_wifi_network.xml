@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_neomorph_card"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Wi-Fi Signal Icon Container -->
+    <ImageView
+        android:id="@+id/ivWifiSignal"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/bg_neomorph_pill"
+        android:backgroundTint="#EFF6FF"
+        android:padding="7dp"
+        android:src="@drawable/ic_settings_wifi"
+        app:tint="#2563EB"
+        android:contentDescription="Wi-Fi Signal" />
+
+    <!-- Network Info -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvWifiSsid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wi-Fi Network SSID"
+            android:textColor="#0F172A"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvWifiSecurity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="مؤمنة (WPA2/WPA3)"
+            android:textColor="#64748B"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Connected Badge or Connect Arrow -->
+    <TextView
+        android:id="@+id/tvWifiConnectedBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_neomorph_pill"
+        android:backgroundTint="#ECFDF5"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="متصل ✓"
+        android:textColor="#059669"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/ivWifiLock"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_shield"
+        app:tint="#94A3B8"
+        android:contentDescription="Lock Security" />
+
+</LinearLayout>
